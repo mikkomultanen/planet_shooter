@@ -13,6 +13,7 @@ public class PlayerController : MonoBehaviour
 	private Rigidbody2D rb;
 	private float nextFire = 0.0f;
 	private float gravityForceMagnitude;
+	private bool isInWater = false;
 
 	// Use this for initialization
 	void Start ()
@@ -20,7 +21,21 @@ public class PlayerController : MonoBehaviour
 		rb = gameObject.GetComponent<Rigidbody2D> ();
 		gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
 	}
-	
+
+	void OnTriggerEnter2D(Collider2D other) {
+		if (other.tag == "Water") {
+			isInWater = true;
+			rb.drag = 5;
+		}
+	}
+
+	void OnTriggerExit2D(Collider2D other) {
+		if (other.tag == "Water") {
+			isInWater = false;
+			rb.drag = 1;
+		}
+	}
+
 	// Update is called once per frame
 	void Update ()
 	{
@@ -44,11 +59,17 @@ public class PlayerController : MonoBehaviour
 			thrust = Input.GetButton ("Fire2_2") ? 1.0f : 0.0f;
 		}
 
+		float positionMagnitude = rb.position.magnitude;
+		float floatingAndGravityForceMagnitude = (isInWater ? -1.2f : 1f) * gravityForceMagnitude;
+		float thursterForceMagnitude = thrust * Mathf.Clamp ((120f - positionMagnitude) / 20f, 0f, 1f) * maxThrustPower;
+		if (isInWater) {
+			thursterForceMagnitude = Mathf.Min (thursterForceMagnitude, 0.8f * floatingAndGravityForceMagnitude);
+		}
+			
+		Vector2 gravity = rb.position.normalized * floatingAndGravityForceMagnitude;
+		Vector2 thrusters = transform.up * thursterForceMagnitude;
 
-		Vector2 gravity = rb.position.normalized * gravityForceMagnitude;
-		Vector2 thrusters = transform.up * thrust * Mathf.Clamp ((120f - rb.position.magnitude) / 20f, 0f, 1f) * maxThrustPower;
 		rb.AddForce (thrusters + gravity);
-
 		rb.angularVelocity = -turn * 90f;
 	}
 }
