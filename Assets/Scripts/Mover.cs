@@ -19,8 +19,7 @@ public class Mover : MonoBehaviour
 		rb.velocity += initialVelocity;
 	}
 
-	void OnCollisionEnter2D (Collision2D coll)
-	{
+	void OnTriggerEnter2D(Collider2D other) {
 		//if (coll.gameObject.tag == "Enemy")
 		//	coll.gameObject.SendMessage("ApplyDamage", 10);
 		Destroy (gameObject);
