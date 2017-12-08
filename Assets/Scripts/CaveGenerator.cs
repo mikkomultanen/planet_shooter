@@ -18,7 +18,8 @@ public class CaveGenerator : ExplodableAddon
 		foreach (GameObject fragment in fragments) {
 			if (Random.Range (0, 100) > 50) {
 				if (Application.isEditor) {
-					DestroyImmediate (fragment);
+					// TODO improve ExplodableAddon to support destroying fragments or create a new fragment generator
+					//DestroyImmediate (fragment);
 				} else {
 					Destroy (fragment);
 				}
