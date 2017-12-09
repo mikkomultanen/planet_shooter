@@ -16,18 +16,9 @@ public class CaveGenerator : ExplodableAddon
 	public override void OnFragmentsGenerated (List<GameObject> fragments)
 	{
 		foreach (GameObject fragment in fragments) {
-			if (Random.Range (0, 100) > 50) {
-				if (Application.isEditor) {
-					// TODO improve ExplodableAddon to support destroying fragments or create a new fragment generator
-					//DestroyImmediate (fragment);
-				} else {
-					Destroy (fragment);
-				}
-			} else {
-				Rigidbody2D fragRb = fragment.GetComponent<Rigidbody2D> ();
-				fragRb.bodyType = RigidbodyType2D.Static;
-				fragment.AddComponent<EarthBlock> ();
-			}
+			Rigidbody2D fragRb = fragment.GetComponent<Rigidbody2D> ();
+			fragRb.bodyType = RigidbodyType2D.Static;
+			fragment.AddComponent<EarthBlock> ();
 		}
 	}
 }

@@ -239,6 +239,87 @@ public static class SpriteExploder {
 
         return morePieces;
     }
+	public static List<GameObject> GenerateCavePieces(GameObject source, int extraPoints = 0, int subshatterSteps = 0, Material mat = null)
+	{
+		List<GameObject> pieces = new List<GameObject>();
+
+		if (mat == null)
+		{
+			mat = createFragmentMaterial(source);
+		}
+
+		//get transform information
+		Vector3 origScale = source.transform.localScale;
+		source.transform.localScale = Vector3.one;
+		Quaternion origRotation = source.transform.localRotation;
+		source.transform.localRotation = Quaternion.identity;
+
+		//get rigidbody information
+		Vector2 origVelocity = source.GetComponent<Rigidbody2D>().velocity;
+
+		//get collider information
+		PolygonCollider2D sourcePolyCollider = source.GetComponent<PolygonCollider2D>();
+		BoxCollider2D sourceBoxCollider = source.GetComponent<BoxCollider2D>();
+		List<Vector2> points = new List<Vector2>();
+		List<Vector2> borderPoints = new List<Vector2>();
+		if (sourcePolyCollider != null)
+		{
+			points = getPoints(sourcePolyCollider);
+			borderPoints = getPoints(sourcePolyCollider);
+		}
+		else if (sourceBoxCollider != null)
+		{
+			points = getPoints(sourceBoxCollider);
+			borderPoints = getPoints(sourceBoxCollider);
+		}
+
+		Rect rect = getRect(source);
+
+		for (int i = 0; i < extraPoints; i++)
+		{
+			points.Add(new Vector2(Random.Range(
+				rect.width / -2 + rect.center.x, rect.width / 2 + rect.center.x), 
+				Random.Range(rect.height / -2 + rect.center.y, rect.height / 2 + rect.center.y)
+			));
+		}
+
+
+		Voronoi voronoi = new Delaunay.Voronoi(points, null, rect);
+		List<List<Vector2>> clippedRegions = new List<List<Vector2>>();
+		foreach (List<Vector2> region in voronoi.Regions())
+		{
+			clippedRegions = ClipperHelper.clip(borderPoints, region);
+			foreach (List<Vector2> clippedRegion in clippedRegions)
+			{
+				if (Random.Range (0, 100) > 50) {
+					pieces.Add(generateVoronoiPiece(source, clippedRegion, origVelocity, origScale, origRotation, mat));
+				}
+			}
+		}
+
+		List<GameObject> morePieces = new List<GameObject>();
+		if (subshatterSteps > 0)
+		{
+			subshatterSteps--;
+			foreach (GameObject piece in pieces)
+			{
+				morePieces.AddRange(SpriteExploder.GenerateVoronoiPieces(piece, extraPoints, subshatterSteps));
+				GameObject.DestroyImmediate(piece);
+			}
+		}
+		else
+		{
+			morePieces = pieces;
+		}
+
+		//reset transform information
+		source.transform.localScale = origScale;
+		source.transform.localRotation = origRotation;
+
+		Resources.UnloadUnusedAssets();
+
+		return morePieces;
+	}
     private static GameObject generateVoronoiPiece(GameObject source, List<Vector2> region, Vector2 origVelocity, Vector3 origScale, Quaternion origRotation, Material mat)
     {
         //Create Game Object and set transform settings properly

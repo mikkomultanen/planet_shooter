@@ -19,7 +19,8 @@ public class Explodable : MonoBehaviour
     public enum ShatterType
     {
         Triangle,
-        Voronoi
+        Voronoi,
+		Cave
     };
     public ShatterType shatterType;
     public List<GameObject> fragments = new List<GameObject>();
@@ -97,6 +98,9 @@ public class Explodable : MonoBehaviour
             case ShatterType.Voronoi:
                 fragments = SpriteExploder.GenerateVoronoiPieces(gameObject, extraPoints, subshatterSteps);
                 break;
+			case ShatterType.Cave:
+				fragments = SpriteExploder.GenerateCavePieces(gameObject, extraPoints, subshatterSteps);
+				break;
             default:
                 Debug.Log("invalid choice");
                 break;
