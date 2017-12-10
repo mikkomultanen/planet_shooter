@@ -6,19 +6,36 @@ using UnityEditor;
 [RequireComponent (typeof(Explodable))]
 public class CaveGenerator : ExplodableAddon
 {
+	private Explodable _explodable;
+
 	void Awake ()
 	{
 		if (!Application.isEditor || EditorApplication.isPlaying) {
-			GetComponent<Explodable> ().explode ();
+			Debug.Log ("Generate cave");
+			_explodable = GetComponent<Explodable>();
+			_explodable.explode ();
 		}
 	}
 
 	public override void OnFragmentsGenerated (List<GameObject> fragments)
 	{
+		_explodable = GetComponent<Explodable> ();
+
 		foreach (GameObject fragment in fragments) {
 			Rigidbody2D fragRb = fragment.GetComponent<Rigidbody2D> ();
 			fragRb.bodyType = RigidbodyType2D.Static;
+
+			Explodable fragExp = fragment.AddComponent<Explodable>();
+			fragExp.shatterType = Explodable.ShatterType.Voronoi;
+			fragExp.allowRuntimeFragmentation = true;
+			fragExp.extraPoints = 3;
+			fragExp.fragmentLayer = _explodable.fragmentLayer;
+			fragExp.sortingLayerName = _explodable.sortingLayerName;
+			fragExp.orderInLayer = _explodable.orderInLayer;
+
 			fragment.AddComponent<EarthBlock> ();
+
+			fragment.layer = _explodable.gameObject.layer;
 		}
 	}
 }
