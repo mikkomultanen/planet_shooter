@@ -20,8 +20,10 @@ public class Mover : MonoBehaviour
 	}
 
 	void OnTriggerEnter2D(Collider2D other) {
-		//if (coll.gameObject.tag == "Enemy")
-		//	coll.gameObject.SendMessage("ApplyDamage", 10);
+		EarthBlock earthBlock = other.GetComponent<EarthBlock> ();
+		if (earthBlock != null) {
+			earthBlock.doDamage (100f);
+		}
 		Destroy (gameObject);
 	}
 
