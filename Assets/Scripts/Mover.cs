@@ -22,7 +22,7 @@ public class Mover : MonoBehaviour
 	void OnTriggerEnter2D(Collider2D other) {
 		EarthBlock earthBlock = other.GetComponent<EarthBlock> ();
 		if (earthBlock != null) {
-			earthBlock.doDamage (1f);
+			earthBlock.doDamage (100f);
 		}
 		Destroy (gameObject);
 	}
