@@ -250,7 +250,7 @@ public static class SpriteExploder
 		if (subshatterSteps > 0) {
 			subshatterSteps--;
 			foreach (GameObject piece in pieces) {
-				morePieces.AddRange (SpriteExploder.GenerateVoronoiPieces (piece, 1, subshatterSteps));
+				morePieces.AddRange (SpriteExploder.GenerateVoronoiPieces (piece, 3, subshatterSteps));
 				GameObject.DestroyImmediate (piece);
 			}
 		} else {
@@ -358,7 +358,7 @@ public static class SpriteExploder
 		float y0 = rect.height / -2 + rect.center.y + rowHeight / 2;
 
 		float x, y, xOffset;
-		float randomVariation = 0.3f;
+		float randomVariation = 0.4f;
 		Vector2 point;
 		for (int i = 0; i < rows; i++) {
 			y = y0 + i * rowHeight;
