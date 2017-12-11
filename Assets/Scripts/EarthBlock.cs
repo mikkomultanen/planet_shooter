@@ -5,7 +5,6 @@ using UnityEngine;
 [RequireComponent (typeof(Explodable))]
 public class EarthBlock : ExplodableAddon
 {
-	protected int recurringCount = 0;
 	private Rigidbody2D rb;
 	private float health = 5f;
 
@@ -13,8 +12,9 @@ public class EarthBlock : ExplodableAddon
 	{
 		Explodable _explodable = GetComponent<Explodable> ();
 		foreach (GameObject fragment in fragments) {
-			fragment.GetComponent<Rigidbody2D> ().useAutoMass = true;
-			fragment.GetComponent<Collider2D> ().density = 100;
+			Collider2D col = fragment.GetComponent<Collider2D> ();
+			col.attachedRigidbody.useAutoMass = true;
+			col.density = 100;
 
 			fragment.AddComponent<Gravity> ();
 
@@ -26,8 +26,7 @@ public class EarthBlock : ExplodableAddon
 			fragExp.sortingLayerName = _explodable.sortingLayerName;
 			fragExp.orderInLayer = _explodable.orderInLayer;
 
-			EarthBlock earthBlock = fragment.AddComponent<EarthBlock> ();
-			earthBlock.recurringCount = recurringCount + 1;
+			fragment.AddComponent<EarthBlock> ();
 
 			fragment.layer = _explodable.gameObject.layer;
 		}
@@ -36,15 +35,15 @@ public class EarthBlock : ExplodableAddon
 	public void Start ()
 	{
 		rb = GetComponent<Rigidbody2D> ();
-		if (recurringCount > 0) {
-			health /= (recurringCount + 1);
-			StartCoroutine (waitAndExplode ());
+		health *= rb.mass / 500;
+		if (rb.bodyType != RigidbodyType2D.Static) {
+			StartCoroutine (waitAndExplode (rb.mass / 10));
 		}
 	}
 
-	private IEnumerator waitAndExplode ()
+	private IEnumerator waitAndExplode (float lifetime)
 	{
-		yield return new WaitForSecondsRealtime (15f / (recurringCount * recurringCount));
+		yield return new WaitForSecondsRealtime (lifetime);
 
 		Destroy (gameObject);
 		// TODO add particle effect
@@ -52,9 +51,9 @@ public class EarthBlock : ExplodableAddon
 
 	public void doDamage (float damage)
 	{
-		health -= damage;
-		if (health < 0f) {
-			if (recurringCount > 2) {
+		//health -= damage;
+		if (health < damage) {//0f) {
+			if (rb.bodyType != RigidbodyType2D.Static && rb.mass < 10) {
 				Destroy (gameObject);
 				// TODO add particle effect
 			} else {
@@ -65,20 +64,8 @@ public class EarthBlock : ExplodableAddon
 
 	void OnCollisionEnter2D (Collision2D collision)
 	{
-		if (recurringCount > 0) {
-			float magnitude = collision.relativeVelocity.magnitude;
-			float impact = magnitude * magnitude;
-			if (impact > 100) {
-				doDamage (impact / 100);
-			}
-		}
-	}
-
-	void Update ()
-	{
-		if (recurringCount > 0 && rb.IsSleeping ()) {
-			Destroy (gameObject);
-			// TODO add particle effect
+		if (rb.bodyType != RigidbodyType2D.Static) {
+			doDamage (collision.relativeVelocity.sqrMagnitude / 100);
 		}
 	}
 }

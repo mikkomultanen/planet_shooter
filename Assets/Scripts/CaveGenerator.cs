@@ -20,9 +20,13 @@ public class CaveGenerator : ExplodableAddon
 	public override void OnFragmentsGenerated (List<GameObject> fragments)
 	{
 		_explodable = GetComponent<Explodable> ();
-
+		float mass;
 		foreach (GameObject fragment in fragments) {
 			Rigidbody2D fragRb = fragment.GetComponent<Rigidbody2D> ();
+			fragRb.useAutoMass = true;
+			mass = fragRb.mass * 100;
+			fragRb.useAutoMass = false;
+			fragRb.mass = mass;
 			fragRb.bodyType = RigidbodyType2D.Static;
 
 			Explodable fragExp = fragment.AddComponent<Explodable>();
