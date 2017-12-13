@@ -9,6 +9,7 @@ public class PlayerController : MonoBehaviour
 	public Transform gunPoint;
 	public float maxThrustPower = 20f;
 	public float fireRate = 0.2f;
+	public ParticleSystem thruster;
 
 	private Rigidbody2D rb;
 	private float nextFire = 0.0f;
@@ -44,6 +45,13 @@ public class PlayerController : MonoBehaviour
 			nextFire = Time.time + fireRate;
 			GameObject clone = Instantiate (projectile, gunPoint.position, gunPoint.rotation) as GameObject;
 			clone.GetComponent<Rigidbody2D> ().velocity = rb.velocity;
+		}
+		bool thrustersOn = Input.GetButton ("Fire2");
+		if (thrustersOn != thruster.isPlaying) {
+			if (thrustersOn)
+				thruster.Play ();
+			else
+				thruster.Stop ();
 		}
 	}
 
