@@ -38,7 +38,7 @@ public class CaveGenerator : ExplodableAddon
 			fragExp.orderInLayer = _explodable.orderInLayer;
 
 			fragment.AddComponent<EarthBlock> ();
-
+			fragment.AddComponent<ExplodeOnClick>();
 			fragment.layer = _explodable.gameObject.layer;
 		}
 	}

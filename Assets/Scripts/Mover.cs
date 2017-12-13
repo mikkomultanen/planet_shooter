@@ -24,6 +24,8 @@ public class Mover : MonoBehaviour
 		if (earthBlock != null) {
 			earthBlock.doDamage (100f);
 		}
+		ExplosionForce ef = GameObject.FindObjectOfType<ExplosionForce>();
+		ef.doExplosion(transform.position);
 		Destroy (gameObject);
 	}
 

@@ -240,7 +240,8 @@ public static class SpriteExploder
 		foreach (List<Vector2> region in voronoi.Regions()) {
 			clippedRegions = ClipperHelper.clip (borderPoints, region);
 			foreach (List<Vector2> clippedRegion in clippedRegions) {
-				if (Random.Range (0, 100) > 50) {
+				Vector2 center = getCenter (clippedRegion);
+				if (center.magnitude > 100 || Random.Range (0, 100) > 50) {
 					pieces.Add (generateVoronoiPiece (source, clippedRegion, origVelocity, origScale, origRotation, mat));
 				}
 			}
@@ -321,6 +322,15 @@ public static class SpriteExploder
 		rigidbody.velocity = origVelocity;
 
 		return piece;
+	}
+
+	private static Vector2 getCenter (List<Vector2> points)
+	{
+		Vector2 result = new Vector2 (0f, 0f);
+		foreach (Vector2 point in points) {
+			result += point;
+		}
+		return result / points.Count;
 	}
 
 	public static PointsResult getPoints (GameObject source, int extraPoints = 0)
