@@ -42,9 +42,10 @@ public class PlayerHealth : MonoBehaviour, Damageable
 	{
 		health -= damage;
 		if (health < 0f) {
-			// TODO death effect
 			health = originalHealth;
-			pc.respawn ();
+			gameObject.SetActive (false);
+			Respawner ef = GameObject.FindObjectOfType<Respawner>();
+			ef.respawn(gameObject, 5);
 		}
 	}
 }
