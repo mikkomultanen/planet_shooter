@@ -33,6 +33,7 @@ public class PlayerController : MonoBehaviour
 	void Start ()
 	{
 		rb = gameObject.GetComponent<Rigidbody2D> ();
+		transform.up = rb.position.normalized;
 		originalDrag = rb.drag;
 		gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
 		xAxis = playerNumber.ToString () + " Horizontal";
@@ -94,5 +95,12 @@ public class PlayerController : MonoBehaviour
 		rb.AddForce (thrusters + gravity);
 		// TODO use rb.AddTorque and angularDrag to turn the ship
 		rb.angularVelocity = -turn * 90f;
+	}
+
+	public void respawn ()
+	{
+		Debug.Log ("respawn " + transform.parent.position);
+		transform.localPosition = new Vector3 (0, 0, 0);
+		transform.up = rb.position.normalized;
 	}
 }

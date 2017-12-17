@@ -6,32 +6,26 @@ public class Mover : MonoBehaviour
 {
 
 	public float speed;
+	public float damage = 1f;
 
 	private Rigidbody2D rb;
-	private float gravityForceMagnitude;
 
 	// Use this for initialization
 	void Start ()
 	{
 		rb = GetComponent<Rigidbody2D> ();
-		gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
 		Vector2 initialVelocity = transform.up * speed;
 		rb.velocity += initialVelocity;
 	}
 
 	void OnTriggerEnter2D(Collider2D other) {
-		EarthBlock earthBlock = other.GetComponent<EarthBlock> ();
-		if (earthBlock != null) {
-			earthBlock.doDamage (100f);
+		Damageable damageable = other.GetComponent<Damageable> ();
+		if (damageable != null) {
+			damageable.doDamage (damage);
 		}
 		ExplosionForce ef = GameObject.FindObjectOfType<ExplosionForce>();
 		ef.doExplosion(transform.position);
 		Destroy (gameObject);
-	}
-
-	void FixedUpdate ()
-	{
-		rb.AddForce (rb.position.normalized * gravityForceMagnitude);
 	}
 
 	// LateUpdate is called after Update each frame

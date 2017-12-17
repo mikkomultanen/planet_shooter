@@ -2,41 +2,49 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerHealth : MonoBehaviour {
+public class PlayerHealth : MonoBehaviour, Damageable
+{
 
-    public float health = 100;
-    private float bulletDamage = 10;
-    public ParticleSystem smoke;
+	public float health = 100;
+	public ParticleSystem smoke;
 
-    // Use this for initialization
-    void Start () {
-		
+	private float originalHealth;
+	private PlayerController pc;
+
+	// Use this for initialization
+	void Start ()
+	{
+		originalHealth = health;
+		pc = GetComponent<PlayerController> ();
 	}
 
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.tag == "Bullet") {
-            this.health -= this.bulletDamage;
-        }
-            
-    }
+	void OnCollisionEnter2D (Collision2D collision)
+	{
+		doDamage (collision.relativeVelocity.sqrMagnitude / 100);
+	}
 
-    void OnCollisionEnter2D(Collision2D collision)
-    {
-        this.health -= collision.relativeVelocity.sqrMagnitude / 100;
-    }
+	// Update is called once per frame
+	void Update ()
+	{
+		bool lowHealth = (this.health <= 20);
+		if (lowHealth && smoke.isStopped) {
+			smoke.Play ();
+		}
+		if (lowHealth != smoke.isPlaying) {
+			if (lowHealth)
+				smoke.Play ();
+			else
+				smoke.Stop ();
+		}
+	}
 
-    // Update is called once per frame
-    void Update () {
-        bool lowHealth = (this.health <= 20);
-		if (lowHealth && smoke.isStopped)
-        {
-            smoke.Play();
-        }
-        if (lowHealth != smoke.isPlaying)
-        {
-            if (lowHealth) smoke.Play();
-            else smoke.Stop();
-        }
-    }
+	public void doDamage (float damage)
+	{
+		health -= damage;
+		if (health < 0f) {
+			// TODO death effect
+			health = originalHealth;
+			pc.respawn ();
+		}
+	}
 }

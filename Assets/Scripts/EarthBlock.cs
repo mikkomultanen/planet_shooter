@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent (typeof(Explodable))]
-public class EarthBlock : ExplodableAddon
+public class EarthBlock : ExplodableAddon, Damageable
 {
 	private Rigidbody2D rb;
 	private float health = 5f;
