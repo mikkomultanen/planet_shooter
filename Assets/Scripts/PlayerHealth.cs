@@ -7,6 +7,7 @@ public class PlayerHealth : MonoBehaviour, Damageable
 
 	public float health = 100;
 	public ParticleSystem smoke;
+	public ParticleSystem explosion;
 
 	private float originalHealth;
 	private PlayerController pc;
@@ -42,6 +43,7 @@ public class PlayerHealth : MonoBehaviour, Damageable
 	{
 		health -= damage;
 		if (health < 0f) {
+			Instantiate (explosion, transform.position, transform.rotation);
 			health = originalHealth;
 			gameObject.SetActive (false);
 			Respawner ef = GameObject.FindObjectOfType<Respawner>();

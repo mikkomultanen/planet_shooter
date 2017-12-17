@@ -10,6 +10,7 @@ public class MissileMover : MonoBehaviour
 	public float explosionRadius = 5f;
 	public float thrustAcceleration = 10f;
 	public float maxSpeed = 10f;
+	public ParticleSystem explosion;
 
 	private Rigidbody2D rb;
 	private float thurstForceMagnitude;
@@ -35,6 +36,7 @@ public class MissileMover : MonoBehaviour
 			}
 		}
 
+		Instantiate (explosion, transform.position, transform.rotation);
 		ExplosionForce ef = GameObject.FindObjectOfType<ExplosionForce> ();
 		ef.doExplosion (transform.position, explosionForce, explosionRadius);
 		Destroy (gameObject);
