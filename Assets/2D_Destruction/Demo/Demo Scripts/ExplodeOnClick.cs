@@ -14,6 +14,6 @@ public class ExplodeOnClick : MonoBehaviour {
 	{
 		_explodable.explode();
 		ExplosionForce ef = GameObject.FindObjectOfType<ExplosionForce>();
-		ef.doExplosion(transform.position);
+		ef.doExplosion(transform.position, 100000, 5);
 	}
 }

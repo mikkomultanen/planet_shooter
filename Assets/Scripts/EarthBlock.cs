@@ -35,6 +35,7 @@ public class EarthBlock : ExplodableAddon, Damageable
 	public void Start ()
 	{
 		rb = GetComponent<Rigidbody2D> ();
+		rb.drag = 1f;
 		health *= rb.mass / 500;
 		if (rb.bodyType != RigidbodyType2D.Static) {
 			StartCoroutine (waitAndExplode (rb.mass / 10));
@@ -51,8 +52,7 @@ public class EarthBlock : ExplodableAddon, Damageable
 
 	public void doDamage (float damage)
 	{
-		//health -= damage;
-		if (health < damage) {//0f) {
+		if (health < damage) {
 			if (rb.bodyType != RigidbodyType2D.Static && rb.mass < 10) {
 				Destroy (gameObject);
 				// TODO add particle effect

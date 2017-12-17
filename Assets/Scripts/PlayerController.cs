@@ -14,20 +14,24 @@ public class PlayerController : MonoBehaviour
 {
 	public PlayerNumber playerNumber;
 	public GameObject projectile;
+	public GameObject missile;
 	public Transform gunPoint;
 	public float maxThrustPower = 2000f;
 	public float maxSpeed = 10f;
 	public float fireRate = 0.2f;
+	public float missileFireRate = 1f;
 	public ParticleSystem thruster;
 
 	private Rigidbody2D rb;
 	private float originalDrag;
 	private float nextFire = 0.0f;
+	private float nextMissileFire = 0.0f;
 	private float gravityForceMagnitude;
 	private bool isInWater = false;
 	private string xAxis;
 	private string yAxis;
 	private string fire1Button;
+	private string fire2Button;
 
 	// Use this for initialization
 	void Start ()
@@ -39,6 +43,7 @@ public class PlayerController : MonoBehaviour
 		xAxis = playerNumber.ToString () + " Horizontal";
 		yAxis = playerNumber.ToString () + " Vertical";
 		fire1Button = playerNumber.ToString () + " Fire1";
+		fire2Button = playerNumber.ToString () + " Fire2";
 	}
 
 	void OnTriggerEnter2D (Collider2D other)
@@ -63,6 +68,11 @@ public class PlayerController : MonoBehaviour
 		if (Input.GetButton (fire1Button) && Time.time > nextFire) {
 			nextFire = Time.time + fireRate;
 			GameObject clone = Instantiate (projectile, gunPoint.position, gunPoint.rotation) as GameObject;
+			clone.GetComponent<Rigidbody2D> ().velocity = rb.velocity;
+		}
+		if (Input.GetButton (fire2Button) && Time.time > nextMissileFire) {
+			nextMissileFire = Time.time + missileFireRate;
+			GameObject clone = Instantiate (missile, gunPoint.position, gunPoint.rotation) as GameObject;
 			clone.GetComponent<Rigidbody2D> ().velocity = rb.velocity;
 		}
 		bool thrustersOn = Input.GetAxis (yAxis) > 0f;

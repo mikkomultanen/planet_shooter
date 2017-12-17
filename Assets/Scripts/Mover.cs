@@ -23,8 +23,6 @@ public class Mover : MonoBehaviour
 		if (damageable != null) {
 			damageable.doDamage (damage);
 		}
-		ExplosionForce ef = GameObject.FindObjectOfType<ExplosionForce>();
-		ef.doExplosion(transform.position);
 		Destroy (gameObject);
 	}
 
