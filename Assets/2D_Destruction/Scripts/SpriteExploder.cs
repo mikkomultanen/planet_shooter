@@ -232,16 +232,23 @@ public static class SpriteExploder
 
 		Rect rect = getRect (source);
 
-		List<Vector2> points = pointsResult.points;
+		List<Vector2> points = new List<Vector2> ();
+		foreach (Point point in pointsResult.points) {
+			points.Add (point.point);
+		} 
 		List<Vector2> borderPoints = pointsResult.borderPoints;
 
 		Voronoi voronoi = new Delaunay.Voronoi (points, null, rect);
 		List<List<Vector2>> clippedRegions = new List<List<Vector2>> ();
-		foreach (List<Vector2> region in voronoi.Regions()) {
-			clippedRegions = ClipperHelper.clip (borderPoints, region);
-			foreach (List<Vector2> clippedRegion in clippedRegions) {
-				Vector2 center = getCenter (clippedRegion);
-				if (center.magnitude > 100 || Random.Range (0, 100) > 50) {
+		foreach (Point point in pointsResult.points) {
+			bool isWall = pointsResult.isWall (point);
+			float magnitude = point.point.magnitude;
+			bool isCell = magnitude > 100;
+			bool isInStartingArea = Mathf.Abs (Mathf.Abs (point.point.x) - Mathf.Abs (point.point.y)) < 10;
+			if (!isInStartingArea && (isWall || isCell)) {
+				List<Vector2> region = voronoi.Region (point.point);
+				clippedRegions = ClipperHelper.clip (borderPoints, region);
+				foreach (List<Vector2> clippedRegion in clippedRegions) {
 					pieces.Add (generateVoronoiPiece (source, clippedRegion, origVelocity, origScale, origRotation, mat));
 				}
 			}
@@ -331,65 +338,6 @@ public static class SpriteExploder
 			result += point;
 		}
 		return result / points.Count;
-	}
-
-	public static PointsResult getPoints (GameObject source, int extraPoints = 0)
-	{
-		//get transform information
-		Vector3 origScale = source.transform.localScale;
-		source.transform.localScale = Vector3.one;
-		Quaternion origRotation = source.transform.localRotation;
-		source.transform.localRotation = Quaternion.identity;
-
-		//get collider information
-		PolygonCollider2D sourcePolyCollider = source.GetComponent<PolygonCollider2D> ();
-		BoxCollider2D sourceBoxCollider = source.GetComponent<BoxCollider2D> ();
-		Collider2D sourceCollider = null;
-		List<Vector2> points = new List<Vector2> ();
-		List<Vector2> borderPoints = new List<Vector2> ();
-		if (sourcePolyCollider != null) {
-			borderPoints = getPoints (sourcePolyCollider);
-			sourceCollider = sourcePolyCollider;
-		} else if (sourceBoxCollider != null) {
-			borderPoints = getPoints (sourceBoxCollider);
-			sourceCollider = sourceBoxCollider;
-		}
-
-		Rect rect = getRect (source);
-
-		float ratio = Mathf.Sqrt (3) / 2;
-		float n = Mathf.Sqrt (Mathf.Max (extraPoints / ratio, 100));
-		int rows = Mathf.RoundToInt (n);
-		float rowHeight = rect.height / rows;
-		int columns = Mathf.RoundToInt (n * ratio);
-		float columnWidth = rect.width / columns;
-
-		float x0 = rect.width / -2 + rect.center.x + columnWidth / 2;
-		float y0 = rect.height / -2 + rect.center.y + rowHeight / 2;
-
-		float x, y, xOffset;
-		float randomVariation = 0.4f;
-		Vector2 point;
-		for (int i = 0; i < rows; i++) {
-			y = y0 + i * rowHeight;
-			xOffset = i % 2 == 0 ? -columnWidth / 4 : columnWidth / 4;
-			for (int j = 0; j < columns; j++) {
-				x = x0 + j * columnWidth + xOffset;
-				point = new Vector2 (
-					Random.Range (randomVariation * columnWidth / -2 + x, randomVariation * columnWidth / 2 + x), 
-					Random.Range (randomVariation * rowHeight / -2 + y, randomVariation * rowHeight / 2 + y)
-				);
-				if (sourceCollider != null && sourceCollider.OverlapPoint (point)) {
-					points.Add (point);
-				}
-			}
-		}
-
-		//reset transform information
-		source.transform.localScale = origScale;
-		source.transform.localRotation = origRotation;
-
-		return new PointsResult (points, borderPoints);
 	}
 
 	/// <summary>
@@ -676,15 +624,188 @@ public static class SpriteExploder
 
 	}
 
+	public static PointsResult getPoints (GameObject source, int extraPoints = 0)
+	{
+		//get transform information
+		Vector3 origScale = source.transform.localScale;
+		source.transform.localScale = Vector3.one;
+		Quaternion origRotation = source.transform.localRotation;
+		source.transform.localRotation = Quaternion.identity;
+
+		//get collider information
+		PolygonCollider2D sourcePolyCollider = source.GetComponent<PolygonCollider2D> ();
+		BoxCollider2D sourceBoxCollider = source.GetComponent<BoxCollider2D> ();
+		Collider2D sourceCollider = null;
+		List<Point> points = new List<Point> ();
+		List<Vector2> borderPoints = new List<Vector2> ();
+		if (sourcePolyCollider != null) {
+			borderPoints = getPoints (sourcePolyCollider);
+			sourceCollider = sourcePolyCollider;
+		} else if (sourceBoxCollider != null) {
+			borderPoints = getPoints (sourceBoxCollider);
+			sourceCollider = sourceBoxCollider;
+		}
+
+		Rect rect = getRect (source);
+
+		float ratio = Mathf.Sqrt (3) / 2;
+		float n = Mathf.Sqrt (Mathf.Max (extraPoints / ratio, 100));
+		int rows = Mathf.RoundToInt (n);
+		float rowHeight = rect.height / rows;
+		int columns = Mathf.RoundToInt (n * ratio);
+		float columnWidth = rect.width / columns;
+
+		float x0 = rect.width / -2 + rect.center.x + columnWidth / 2;
+		float y0 = rect.height / -2 + rect.center.y + rowHeight / 2;
+
+		float x, y, xOffset;
+		float randomVariation = 0.4f;
+		Vector2 point;
+		for (int i = 0; i < rows; i++) {
+			y = y0 + i * rowHeight;
+			xOffset = i % 2 == 0 ? -columnWidth / 4 : columnWidth / 4;
+			for (int j = 0; j < columns; j++) {
+				x = x0 + j * columnWidth + xOffset;
+				point = new Vector2 (
+					Random.Range (randomVariation * columnWidth / -2 + x, randomVariation * columnWidth / 2 + x), 
+					Random.Range (randomVariation * rowHeight / -2 + y, randomVariation * rowHeight / 2 + y)
+				);
+				if (sourceCollider != null && sourceCollider.OverlapPoint (point)) {
+					points.Add (new Point (point, i, j));
+				}
+			}
+		}
+
+		//reset transform information
+		source.transform.localScale = origScale;
+		source.transform.localRotation = origRotation;
+
+		PointsResult result = new PointsResult (points, borderPoints, rows, columns);
+		result.GenerateMap (rect);
+		return result;
+	}
+
+	public class Point
+	{
+		public Vector2 point;
+		public int row;
+		public int column;
+
+		public Point (Vector2 point, int row, int column)
+		{
+			this.point = point;
+			this.row = row;
+			this.column = column;
+		}
+	}
+
 	public class PointsResult
 	{
-		public List<Vector2> points;
+		public List<Point> points;
 		public List<Vector2> borderPoints;
+		public int rows;
+		public int columns;
+		public int[,] map;
+		public string seed = "";
+		public bool useRandomSeed = true;
+		public int randomFillPercent = 50;
 
-		public PointsResult (List<Vector2> points, List<Vector2> borderPoints)
+		public PointsResult (List<Point> points, List<Vector2> borderPoints, int rows, int columns)
 		{
 			this.points = points;
 			this.borderPoints = borderPoints;
+			this.rows = rows;
+			this.columns = columns;
+		}
+
+		public bool isWall (Point point)
+		{
+			return map != null && point.column < columns && point.row < rows && map [point.column, point.row] > 0;
+		}
+
+		public void GenerateMap (Rect rect)
+		{
+			map = new int[columns, rows];
+			RandomFillMap (rect);
+
+			for (int i = 0; i < 1; i++) {
+				//SmoothMap ();
+			}
+		}
+
+
+		void RandomFillMap (Rect rect)
+		{
+			if (useRandomSeed) {
+				seed = Time.time.ToString ();
+			}
+
+			System.Random pseudoRandom = new System.Random (seed.GetHashCode ());
+
+			float rowHeight = rect.height / rows;
+			float columnWidth = rect.width / columns;
+
+			float x0 = rect.width / -2 + rect.center.x + columnWidth / 2;
+			float y0 = rect.height / -2 + rect.center.y + rowHeight / 2;
+
+			Vector2 wave1Vector = Random.insideUnitCircle.normalized;
+			Vector2 wave2Vector = Random.insideUnitCircle.normalized;
+
+			float x, y, xOffset;
+			for (int i = 0; i < rows; i++) {
+				y = y0 + i * rowHeight;
+				xOffset = i % 2 == 0 ? -columnWidth / 4 : columnWidth / 4;
+				for (int j = 0; j < columns; j++) {
+					x = x0 + j * columnWidth + xOffset;
+					Vector2 point = new Vector2 (x, y);
+					float magnitude = point.magnitude;
+					float wave1 = 80 + Mathf.Sin (4 * Mathf.Deg2Rad * Vector2.Angle (wave1Vector, point)) * 20f;
+					float wave2 = 80 + Mathf.Sin (2 * Mathf.Deg2Rad * Vector2.Angle (wave2Vector, point)) * 30f;
+					bool isCell = magnitude > 130;
+					bool isMiddle = Mathf.Abs(magnitude - wave1) < 7 || Mathf.Abs(magnitude - wave2) < 5;
+					bool isUnderWater = magnitude < 30;
+					if (isCell || isUnderWater) {
+						map [j, i] = 1;
+					} else if (isMiddle) {
+						map [j, i] = 0;
+					} else {
+						map[j,i] = (pseudoRandom.Next (0, 100) < 65) ? 1 : 0;
+					}
+				}
+			}
+		}
+
+		void SmoothMap ()
+		{
+			for (int x = 0; x < columns; x++) {
+				for (int y = 0; y < rows; y++) {
+					int neighbourWallTiles = GetSurroundingWallCount (x, y);
+
+					if (neighbourWallTiles > 5)
+						map [x, y] = 1;
+					else if (neighbourWallTiles < 3)
+						map [x, y] = 0;
+
+				}
+			}
+		}
+
+		int GetSurroundingWallCount (int gridX, int gridY)
+		{
+			int wallCount = 0;
+			for (int neighbourX = gridX - 1; neighbourX <= gridX + 1; neighbourX++) {
+				for (int neighbourY = gridY - 1; neighbourY <= gridY + 1; neighbourY++) {
+					if (neighbourX >= 0 && neighbourX < columns && neighbourY >= 0 && neighbourY < rows) {
+						if (neighbourX != gridX || neighbourY != gridY) {
+							wallCount += map [neighbourX, neighbourY];
+						}
+					} else {
+						wallCount++;
+					}
+				}
+			}
+
+			return wallCount;
 		}
 	}
 }

@@ -25,7 +25,7 @@ public class Explodable : MonoBehaviour
 
 	public ShatterType shatterType;
 	public List<GameObject> fragments = new List<GameObject> ();
-	private SpriteExploder.PointsResult pointsResult = new SpriteExploder.PointsResult (new List<Vector2> (), new List<Vector2> ());
+	private SpriteExploder.PointsResult pointsResult = new SpriteExploder.PointsResult (new List<SpriteExploder.Point> (), new List<Vector2> (), 0, 0);
 	private List<List<Vector2>> polygons = new List<List<Vector2>> ();
 	private List<Vector2> points = new List<Vector2> ();
 
@@ -134,11 +134,13 @@ public class Explodable : MonoBehaviour
 		}
 
 		points.Clear ();
-		foreach (Vector2 point in pointsResult.points) {
-			Vector2 offset = rotateAroundPivot ((Vector2)transform.position, (Vector2)transform.position, Quaternion.Inverse (transform.rotation)) - (Vector2)transform.position;
-			offset.x /= transform.localScale.x;
-			offset.y /= transform.localScale.y;
-			points.Add (point + offset);
+		foreach (SpriteExploder.Point point in pointsResult.points) {
+			if (pointsResult.isWall (point)) {
+				Vector2 offset = rotateAroundPivot ((Vector2)transform.position, (Vector2)transform.position, Quaternion.Inverse (transform.rotation)) - (Vector2)transform.position;
+				offset.x /= transform.localScale.x;
+				offset.y /= transform.localScale.y;
+				points.Add (point.point + offset);
+			}
 		}
 	}
 

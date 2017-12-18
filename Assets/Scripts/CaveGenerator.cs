@@ -39,7 +39,7 @@ public class CaveGenerator : ExplodableAddon
 			Explodable fragExp = fragment.AddComponent<Explodable> ();
 			fragExp.shatterType = Explodable.ShatterType.Voronoi;
 			fragExp.allowRuntimeFragmentation = true;
-			fragExp.extraPoints = 3;
+			fragExp.extraPoints = 1;
 			fragExp.fragmentLayer = _explodable.fragmentLayer;
 			fragExp.sortingLayerName = _explodable.sortingLayerName;
 			fragExp.orderInLayer = _explodable.orderInLayer;
