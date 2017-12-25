@@ -103,8 +103,7 @@ public class PlayerController : MonoBehaviour
 		Vector2 thrusters = transform.up * thursterForceMagnitude;
 
 		rb.AddForce (thrusters + gravity);
-		// TODO use rb.AddTorque and angularDrag to turn the ship
-		rb.angularVelocity = -turn * 90f;
+		rb.angularVelocity = -turn * 300f;
 	}
 
 	public void respawn ()
