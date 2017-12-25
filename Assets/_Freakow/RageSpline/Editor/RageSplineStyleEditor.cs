@@ -19,7 +19,7 @@ public class RageSplineStyleEditor : Editor
         GUI.Label(new Rect(10f, 110f, 200f, 50f), "every instance with this style.");
 
         
-        if (Event.current.type == EventType.mouseDown) {
+        if (Event.current.type == EventType.MouseDown) {
 //          Undo.CreateSnapshot(); Undo.RegisterSnapshot();
 			Undo.RecordObject(target,"RageSpline Style change");
         }

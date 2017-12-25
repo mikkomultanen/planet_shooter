@@ -267,7 +267,7 @@ public class RageSplineEditor : Editor {
 
 		if (GUI.changed) EditorUtility.SetDirty(rageSpline);
 
-		if (Event.current.type == EventType.ExecuteCommand || Event.current.type == EventType.KeyUp || Event.current.type == EventType.used) {
+		if (Event.current.type == EventType.ExecuteCommand || Event.current.type == EventType.KeyUp || Event.current.type == EventType.Used) {
 			var spMesh = target as RageSpline;
 			if (rageSpline.style != null) {
 				EditorUtility.SetDirty(rageSpline.style);
@@ -496,15 +496,15 @@ public class RageSplineEditor : Editor {
 		bool keyUp = false;
 
 		KeyCode keyCode = KeyCode.None;
-		if (Event.current.type == EventType.keyUp) {
+		if (Event.current.type == EventType.KeyUp) {
 			keyUp = true;
 			keyCode = Event.current.keyCode;
 		}
 
-		if (Event.current.type == EventType.mouseUp)
+		if (Event.current.type == EventType.MouseUp)
 			mouseUp = true;
 
-		if (Event.current.type == EventType.mouseDrag)
+		if (Event.current.type == EventType.MouseDrag)
 			mouseDrag = true;
 
 		//Undo.SetSnapshotTarget(target, "Modified object");
@@ -685,7 +685,7 @@ public class RageSplineEditor : Editor {
 
 		if (RageSpline.showSplineGizmos) {
 
-			if (Event.current.type == EventType.mouseDown) {
+			if (Event.current.type == EventType.MouseDown) {
 				Vector3 clickPosition = rageSpline.transform.InverseTransformPoint(HandleUtility.GUIPointToWorldRay(Event.current.mousePosition).GetPoint((rageSpline.transform.position - Camera.current.transform.position).magnitude));
 				if (Event.current.control || Event.current.clickCount > 1) {
 					clickPosition.z = rageSpline.transform.position.z;
@@ -881,7 +881,7 @@ public class RageSplineEditor : Editor {
 
 		}
 
-		if (Event.current.type == EventType.mouseDown)
+		if (Event.current.type == EventType.MouseDown)
 			UndoRecord();
 
 		if (mouseUp || (keyUp && keyCode != KeyCode.Delete) || mouseDrag) {
