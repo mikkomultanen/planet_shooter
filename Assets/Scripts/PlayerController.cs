@@ -21,6 +21,7 @@ public class PlayerController : MonoBehaviour
 	public float fireRate = 0.2f;
 	public float missileFireRate = 1f;
 	public ParticleSystem thruster;
+	public ParticleSystem flamer;
 
 	private Rigidbody2D rb;
 	private float originalDrag;
@@ -32,6 +33,7 @@ public class PlayerController : MonoBehaviour
 	private string yAxis;
 	private string fire1Button;
 	private string fire2Button;
+	private string fire3Button;
 
 	// Use this for initialization
 	void Start ()
@@ -44,6 +46,7 @@ public class PlayerController : MonoBehaviour
 		yAxis = playerNumber.ToString () + " Vertical";
 		fire1Button = playerNumber.ToString () + " Fire1";
 		fire2Button = playerNumber.ToString () + " Fire2";
+		fire3Button = playerNumber.ToString () + " Fire3";
 	}
 
 	void OnTriggerEnter2D (Collider2D other)
@@ -74,6 +77,13 @@ public class PlayerController : MonoBehaviour
 			nextMissileFire = Time.time + missileFireRate;
 			GameObject clone = Instantiate (missile, gunPoint.position, gunPoint.rotation) as GameObject;
 			clone.GetComponent<Rigidbody2D> ().velocity = rb.velocity;
+		}
+		bool flamerOn = Input.GetButton (fire3Button);
+		if (flamerOn != flamer.isEmitting) {
+			if (flamerOn)
+				flamer.Play ();
+			else
+				flamer.Stop ();
 		}
 		bool thrustersOn = Input.GetAxis (yAxis) > 0f;
 		if (thrustersOn != thruster.isPlaying) {
