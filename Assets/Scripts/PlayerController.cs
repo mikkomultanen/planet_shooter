@@ -2,17 +2,18 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum PlayerNumber
+public enum Controls
 {
-	P1,
-	P2,
-	P3,
-	P4
+	Keyboard,
+	Joystick1,
+	Joystick2,
+	Joystick3,
+	Joystick4
 }
 
 public class PlayerController : MonoBehaviour
 {
-	public PlayerNumber playerNumber;
+	public Controls controls;
 	public GameObject projectile;
 	public GameObject missile;
 	public Transform gunPoint;
@@ -29,11 +30,12 @@ public class PlayerController : MonoBehaviour
 	private float nextMissileFire = 0.0f;
 	private float gravityForceMagnitude;
 	private bool isInWater = false;
-	private string xAxis;
-	private string yAxis;
+	private string turnAxis;
+	private string thrustAxis;
 	private string fire1Button;
 	private string fire2Button;
 	private string fire3Button;
+	private string fire4Button;
 
 	// Use this for initialization
 	void Start ()
@@ -42,11 +44,12 @@ public class PlayerController : MonoBehaviour
 		transform.up = rb.position.normalized;
 		originalDrag = rb.drag;
 		gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
-		xAxis = playerNumber.ToString () + " Horizontal";
-		yAxis = playerNumber.ToString () + " Vertical";
-		fire1Button = playerNumber.ToString () + " Fire1";
-		fire2Button = playerNumber.ToString () + " Fire2";
-		fire3Button = playerNumber.ToString () + " Fire3";
+		turnAxis = controls.ToString () + " Turn";
+		thrustAxis = controls.ToString () + " Thrust";
+		fire1Button = controls.ToString () + " Fire1";
+		fire2Button = controls.ToString () + " Fire2";
+		fire3Button = controls.ToString () + " Fire3";
+		fire4Button = controls.ToString () + " Fire4";
 	}
 
 	void OnTriggerEnter2D (Collider2D other)
@@ -85,8 +88,8 @@ public class PlayerController : MonoBehaviour
 			else
 				flamer.Stop ();
 		}
-		bool thrustersOn = Input.GetAxis (yAxis) > 0f;
-		if (thrustersOn != thruster.isPlaying) {
+		bool thrustersOn = Input.GetAxis (thrustAxis) > 0f;
+		if (thrustersOn != thruster.isEmitting) {
 			if (thrustersOn)
 				thruster.Play ();
 			else
@@ -96,12 +99,12 @@ public class PlayerController : MonoBehaviour
 
 	void FixedUpdate ()
 	{
-		float turn = Input.GetAxis (xAxis);
+		float turn = Input.GetAxis (turnAxis);
 
 		float floatingAndGravityForceMagnitude = (isInWater ? -1.2f : 1f) * gravityForceMagnitude;
 		float thursterForceMagnitude = 0f;
 		if (Vector2.Dot (rb.velocity, transform.up) < maxSpeed) {
-			float thrust = Mathf.Max (Input.GetAxis (yAxis), 0f);
+			float thrust = Mathf.Max (Input.GetAxis (thrustAxis), 0f);
 			float athmosphereCoefficient = Mathf.Clamp ((120f - rb.position.magnitude) / 20f, 0f, 1f);
 			thursterForceMagnitude = thrust * athmosphereCoefficient * maxThrustPower;
 			if (isInWater) {
