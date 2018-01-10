@@ -11,6 +11,14 @@ public class SceneLoader : MonoBehaviour {
 
 	private bool isLoading = false;
 
+	public void quitApplication() {
+		#if UNITY_EDITOR
+		UnityEditor.EditorApplication.isPlaying = false;
+		#else
+		Application.Quit();
+		#endif
+	}
+
 	public void loadScene(string sceneName) {
 		if (!isLoading) {
 			isLoading = true;

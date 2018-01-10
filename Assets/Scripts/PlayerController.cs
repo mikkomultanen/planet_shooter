@@ -13,6 +13,9 @@ public enum Controls
 
 public class PlayerController : MonoBehaviour
 {
+	public Camera camera;
+	public float cameraMinDistance = 55f;
+	public float cameraMaxDistance = 105f;
 	public Controls controls;
 	public GameObject projectile;
 	public GameObject missile;
@@ -24,6 +27,7 @@ public class PlayerController : MonoBehaviour
 	public ParticleSystem thruster;
 	public ParticleSystem flamer;
 
+	private Vector3 cameraOffset;
 	private Rigidbody2D rb;
 	private float originalDrag;
 	private float nextFire = 0.0f;
@@ -40,6 +44,7 @@ public class PlayerController : MonoBehaviour
 	// Use this for initialization
 	void Start ()
 	{
+		cameraOffset = new Vector3(0, 0, -10);
 		rb = gameObject.GetComponent<Rigidbody2D> ();
 		transform.up = rb.position.normalized;
 		originalDrag = rb.drag;
@@ -117,6 +122,14 @@ public class PlayerController : MonoBehaviour
 
 		rb.AddForce (thrusters + gravity);
 		rb.angularVelocity = -turn * 300f;
+	}
+
+	void LateUpdate () 
+	{
+		Vector3 up = transform.position.normalized;
+		Vector3 lookAt = up * Mathf.Clamp(transform.position.magnitude, cameraMinDistance, cameraMaxDistance);
+		camera.transform.position = lookAt + cameraOffset;
+		camera.transform.LookAt (lookAt, up);
 	}
 
 	public void respawn ()

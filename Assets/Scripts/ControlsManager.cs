@@ -7,11 +7,12 @@ using UnityEngine.UI;
 public class ControlsManager : SceneLoader {
 
 	public List<PlayerWizard> playerWizards;
+	public Text startGameCountdown;
 	public string gameScene;
 	public string previousScene;
 	private List<Controls> playerControls = new List<Controls>();
 	private List<Controls> availableControls;
-	
+
 	private void Awake() {
 		availableControls = new List<Controls>((Controls[])System.Enum.GetValues(typeof(Controls)));
 	}
@@ -37,14 +38,31 @@ public class ControlsManager : SceneLoader {
 	}
 
 	public void startGameSceneIfAllReady() {
-		if (playerWizards.TrueForAll(x => x.isReady())) {
-			controls = playerControls;
-			loadSceneAsync(gameScene);
+		int readyWizardsCount = playerWizards.FindAll(x => x.isReady()).Count;
+		if (readyWizardsCount > 1 && readyWizardsCount == playerControls.Count && currentCountdownValue == 0) {
+			StartCoroutine(startCountdown());
 		}
 	}
 
-	private static List<Controls> controls;
+	private float currentCountdownValue = 0;
+	public IEnumerator startCountdown(float countdownValue = 5)
+	{
+		currentCountdownValue = countdownValue;
+		while (currentCountdownValue > 0)
+		{
+			startGameCountdown.text = "Starting in " + currentCountdownValue + "s";
+			yield return new WaitForSeconds(1.0f);
+			currentCountdownValue--;
+		}
+		controls = playerControls;
+		loadSceneAsync(gameScene);
+	}
 
+	private static List<Controls> controls = new List<Controls> {Controls.Keyboard, Controls.Joystick1};
+
+	public static int getPlayerCount() {
+		return controls.Count;
+	}
 	public static Controls getControls(int index) {
 		return controls[index];
 	}
