@@ -15,6 +15,7 @@ public class ControlsManager : SceneLoader {
 
 	private void Awake() {
 		availableControls = new List<Controls>((Controls[])System.Enum.GetValues(typeof(Controls)));
+		Time.timeScale = 1;
 	}
 
 	void Update () {
