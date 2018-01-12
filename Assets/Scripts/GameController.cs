@@ -8,6 +8,8 @@ using UnityEngine.UI;
 public class GameController : MonoBehaviour {
 
 	public List<PlayerController> playerControllers;
+	public Text roundText;
+	public List<Text> scoreTexts;
 	public Canvas canvas;
 
 	private int playerCount;
@@ -31,6 +33,7 @@ public class GameController : MonoBehaviour {
 		eventSystem = GetComponent<EventSystem>();
 		eventSystem.enabled = false;
 		canvas.enabled = false;
+		updateScoreboard();
 		startNewRound();
 	}
 
@@ -76,6 +79,7 @@ public class GameController : MonoBehaviour {
 		}
 		if (numberOfAlivePlayers == 1 && lastAlivePlayer != null) {
 			lastAlivePlayer.wins++;
+			updateScoreboard();
 		}
 		endingRound = false;
 		startNewRound();
@@ -83,9 +87,17 @@ public class GameController : MonoBehaviour {
 
 	private void startNewRound() {
 		Debug.Log ("Start new round");
+		round++;
+		roundText.text = "Round " + round;
 		for (int i = 0; i < playerCount; i++) {
 			playerControllers[i].gameObject.SetActive (true);
 			playerControllers[i].respawn(playerControllers[i].transform.parent.position);
+		}
+	}
+
+	private void updateScoreboard() {
+		for (int i = 0; i < playerCount; i++) {
+			scoreTexts[i].text = players[i].wins.ToString();
 		}
 	}
 
@@ -103,6 +115,7 @@ public class GameController : MonoBehaviour {
 		playerControllers.ForEach(c => c.enabled = true);
 	}
 
+	private static int round = 0;
 	private static List<Player> players = new List<Player> {new Player(Controls.Keyboard), new Player(Controls.Joystick1)};
 
 	public static void setPlayers(List<Player> players) {
