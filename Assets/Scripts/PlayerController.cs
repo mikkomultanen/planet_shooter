@@ -11,22 +11,27 @@ public enum Controls
 	Joystick4
 }
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour, Damageable
 {
 	public Camera camera;
 	public float cameraMinDistance = 55f;
 	public float cameraMaxDistance = 105f;
+	public GameController gameController;
 	public Controls controls;
 	public GameObject projectile;
 	public GameObject missile;
 	public Transform gunPoint;
+	public float maxHealth = 100;
 	public float maxThrustPower = 2000f;
 	public float maxSpeed = 10f;
 	public float fireRate = 0.2f;
 	public float missileFireRate = 1f;
 	public ParticleSystem thruster;
 	public ParticleSystem flamer;
+	public ParticleSystem smoke;
+	public ParticleSystem explosion;
 
+	private float health;
 	private Vector3 cameraOffset;
 	private Rigidbody2D rb;
 	private float originalDrag;
@@ -44,6 +49,7 @@ public class PlayerController : MonoBehaviour
 	// Use this for initialization
 	void Start ()
 	{
+		health = maxHealth;
 		cameraOffset = new Vector3(0, 0, -10);
 		rb = gameObject.GetComponent<Rigidbody2D> ();
 		transform.up = rb.position.normalized;
@@ -73,7 +79,22 @@ public class PlayerController : MonoBehaviour
 		}
 	}
 
-	// Update is called once per frame
+	void OnCollisionEnter2D (Collision2D collision)
+	{
+		doDamage (collision.relativeVelocity.sqrMagnitude / 100);
+	}
+
+	public void doDamage (float damage)
+	{
+		float oldHealt = health;
+		health -= damage;
+		if (health < 0 && oldHealt >= 0) {
+			Instantiate (explosion, transform.position, transform.rotation);
+			gameObject.SetActive (false);
+			gameController.playerDied();
+		}
+	}
+
 	void Update ()
 	{
 		if (Input.GetButton (fire1Button) && Time.time > nextFire) {
@@ -99,6 +120,13 @@ public class PlayerController : MonoBehaviour
 				thruster.Play ();
 			else
 				thruster.Stop ();
+		}
+		bool lowHealth = this.health < 20;
+		if (lowHealth != smoke.isEmitting) {
+			if (lowHealth)
+				smoke.Play ();
+			else
+				smoke.Stop ();
 		}
 	}
 
@@ -132,10 +160,14 @@ public class PlayerController : MonoBehaviour
 		camera.transform.LookAt (lookAt, up);
 	}
 
-	public void respawn ()
+	public bool isAlive() {
+		return health > 0;
+	}
+
+	public void respawn (Vector3 position)
 	{
-		Debug.Log ("respawn " + transform.parent.position);
-		transform.localPosition = new Vector3 (0, 0, 0);
-		transform.up = rb.position.normalized;
+		health = maxHealth;
+		transform.position = position;
+		transform.up = position.normalized;
 	}
 }

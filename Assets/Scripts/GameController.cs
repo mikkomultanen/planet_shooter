@@ -10,13 +10,15 @@ public class GameController : MonoBehaviour {
 	public List<PlayerController> playerControllers;
 	public Canvas canvas;
 
+	private int playerCount;
 	private EventSystem eventSystem;
 
 	private void Awake() {
-		int playerCount = players.Count;
+		playerCount = players.Count;
 		for (int i = 0; i < playerControllers.Count; i++) {
 			if (i < playerCount) {
 				playerControllers[i].controls = players[i].controls;
+				playerControllers[i].gameController = this;
 			} else {
 				playerControllers[i].camera.gameObject.SetActive(false);
 				playerControllers[i].gameObject.SetActive(false);
@@ -29,6 +31,7 @@ public class GameController : MonoBehaviour {
 		eventSystem = GetComponent<EventSystem>();
 		eventSystem.enabled = false;
 		canvas.enabled = false;
+		startNewRound();
 	}
 
 	private void Update() {
@@ -38,6 +41,51 @@ public class GameController : MonoBehaviour {
 			} else {
 				pause();
 			}
+		}
+	}
+
+	public void playerDied() {
+		Debug.Log ("playerDied");
+		int numberOfAlivePlayers = 0;
+		for (int i = 0; i < playerCount; i++) {
+			if (playerControllers[i].isAlive()) {
+				numberOfAlivePlayers++;
+			}
+		}
+		if (numberOfAlivePlayers <= 1) {
+			if (!endingRound) {
+				Debug.Log ("playerDied endRoundAfter 2");
+				StartCoroutine (endRoundAfter (2));
+			}
+		}
+	}
+
+	private bool endingRound = false;
+
+	private IEnumerator endRoundAfter (float seconds)
+	{
+		yield return new WaitForSeconds (seconds);
+
+		int numberOfAlivePlayers = 0;
+		Player lastAlivePlayer = null;
+		for (int i = 0; i < playerCount; i++) {
+			if (playerControllers[i].isAlive()) {
+				numberOfAlivePlayers++;
+				lastAlivePlayer = players[i];
+			}
+		}
+		if (numberOfAlivePlayers == 1 && lastAlivePlayer != null) {
+			lastAlivePlayer.wins++;
+		}
+		endingRound = false;
+		startNewRound();
+	}
+
+	private void startNewRound() {
+		Debug.Log ("Start new round");
+		for (int i = 0; i < playerCount; i++) {
+			playerControllers[i].gameObject.SetActive (true);
+			playerControllers[i].respawn(playerControllers[i].transform.parent.position);
 		}
 	}
 
@@ -63,6 +111,7 @@ public class GameController : MonoBehaviour {
 
 	public class Player {
 		public Controls controls;
+		public int wins = 0;
 
 		public Player(Controls controls) {
 			this.controls = controls;
