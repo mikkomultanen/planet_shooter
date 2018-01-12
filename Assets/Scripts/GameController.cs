@@ -13,10 +13,10 @@ public class GameController : MonoBehaviour {
 	private EventSystem eventSystem;
 
 	private void Awake() {
-		int playerCount = ControlsManager.getPlayerCount();
+		int playerCount = players.Count;
 		for (int i = 0; i < playerControllers.Count; i++) {
 			if (i < playerCount) {
-				playerControllers[i].controls = ControlsManager.getControls(i);
+				playerControllers[i].controls = players[i].controls;
 			} else {
 				playerControllers[i].camera.gameObject.SetActive(false);
 				playerControllers[i].gameObject.SetActive(false);
@@ -53,5 +53,19 @@ public class GameController : MonoBehaviour {
 		canvas.enabled = false;
 		Time.timeScale = 1;
 		playerControllers.ForEach(c => c.enabled = true);
+	}
+
+	private static List<Player> players = new List<Player> {new Player(Controls.Keyboard), new Player(Controls.Joystick1)};
+
+	public static void setPlayers(List<Player> players) {
+		GameController.players = players;
+	}
+
+	public class Player {
+		public Controls controls;
+
+		public Player(Controls controls) {
+			this.controls = controls;
+		}
 	}
 }

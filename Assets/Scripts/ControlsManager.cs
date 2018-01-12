@@ -10,7 +10,7 @@ public class ControlsManager : SceneLoader {
 	public Text startGameCountdown;
 	public string gameScene;
 	public string previousScene;
-	private List<Controls> playerControls = new List<Controls>();
+	private List<GameController.Player> players = new List<GameController.Player>();
 	private List<Controls> availableControls;
 
 	private void Awake() {
@@ -27,11 +27,11 @@ public class ControlsManager : SceneLoader {
 				Input.GetButton(x.ToString() + " Fire3") ||
 				Input.GetButton(x.ToString() + " Fire4"));
 		if (index > -1) {
-			var wizardIndex = playerControls.Count;
+			var wizardIndex = players.Count;
 			var wizard = playerWizards.Count > wizardIndex ? playerWizards[wizardIndex] : null;
 			if (wizard != null) {
 				var controls = availableControls[index];
-				playerControls.Add(controls);
+				players.Add(new GameController.Player(controls));
 				availableControls.Remove(controls);
 				wizard.setControls(controls);
 			}
@@ -40,7 +40,7 @@ public class ControlsManager : SceneLoader {
 
 	public void startGameSceneIfAllReady() {
 		int readyWizardsCount = playerWizards.FindAll(x => x.isReady()).Count;
-		if (readyWizardsCount > 1 && readyWizardsCount == playerControls.Count && currentCountdownValue == 0) {
+		if (readyWizardsCount > 1 && readyWizardsCount == players.Count && currentCountdownValue == 0) {
 			StartCoroutine(startCountdown());
 		}
 	}
@@ -55,16 +55,7 @@ public class ControlsManager : SceneLoader {
 			yield return new WaitForSeconds(1.0f);
 			currentCountdownValue--;
 		}
-		controls = playerControls;
+		GameController.setPlayers(players);
 		loadSceneAsync(gameScene);
-	}
-
-	private static List<Controls> controls = new List<Controls> {Controls.Keyboard, Controls.Joystick1};
-
-	public static int getPlayerCount() {
-		return controls.Count;
-	}
-	public static Controls getControls(int index) {
-		return controls[index];
 	}
 }
