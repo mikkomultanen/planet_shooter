@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Flamer : MonoBehaviour {
 
-	public float damagePerSecond = 20f;
+	public float damage = 1f;
 
 	private ParticleSystem part;
 	private List<ParticleCollisionEvent> collisionEvents;
@@ -19,7 +19,10 @@ public class Flamer : MonoBehaviour {
 	{
 		Damageable damageable = other.GetComponent<Damageable> ();
 		if (damageable != null) {
-			damageable.doDamage (damagePerSecond * Time.smoothDeltaTime);
+			int numCollisionEvents = part.GetCollisionEvents(other, collisionEvents);
+			for (int i = 0; i < numCollisionEvents; i++) {
+				damageable.doDamage (damage);
+			}
 		}
 	}
 }

@@ -13,7 +13,7 @@ public enum Controls
 
 public class PlayerController : MonoBehaviour, Damageable
 {
-	public Camera camera;
+	public Camera playerCamera;
 	public float cameraMinDistance = 55f;
 	public float cameraMaxDistance = 105f;
 	public GameController gameController;
@@ -156,8 +156,8 @@ public class PlayerController : MonoBehaviour, Damageable
 	{
 		Vector3 up = transform.position.normalized;
 		Vector3 lookAt = up * Mathf.Clamp(transform.position.magnitude, cameraMinDistance, cameraMaxDistance);
-		camera.transform.position = lookAt + cameraOffset;
-		camera.transform.LookAt (lookAt, up);
+		playerCamera.transform.position = lookAt + cameraOffset;
+		playerCamera.transform.LookAt (lookAt, up);
 	}
 
 	public bool isAlive() {

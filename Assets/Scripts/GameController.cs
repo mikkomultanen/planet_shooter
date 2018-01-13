@@ -7,28 +7,37 @@ using UnityEngine.UI;
 
 public class GameController : MonoBehaviour {
 
-	public List<PlayerController> playerControllers;
+	public GameObject shipTemplate;
+	public List<Camera> cameras;
+	public List<Color> colors;
+	public List<Transform> startPositions;
 	public Text roundText;
 	public List<Text> scoreTexts;
 	public Canvas canvas;
 
 	private int playerCount;
 	private EventSystem eventSystem;
+	private List<PlayerController> playerControllers;
 
 	private void Awake() {
 		playerCount = players.Count;
-		for (int i = 0; i < playerControllers.Count; i++) {
+		playerControllers = new List<PlayerController>();
+		for (int i = 0; i < cameras.Count; i++) {
 			if (i < playerCount) {
-				playerControllers[i].controls = players[i].controls;
-				playerControllers[i].gameController = this;
+				GameObject ship = Instantiate (shipTemplate, startPositions[i].position, startPositions[i].rotation) as GameObject;
+				var playerController = ship.GetComponent<PlayerController> (); 
+				playerController.playerCamera = cameras[i];
+				playerController.controls = players[i].controls;
+				playerController.gameController = this;
+				ship.GetComponent<SpriteRenderer>().color = colors[i];
+				playerControllers.Add(playerController);
 			} else {
-				playerControllers[i].camera.gameObject.SetActive(false);
-				playerControllers[i].gameObject.SetActive(false);
+				cameras[i].gameObject.SetActive(false);
 			}
 		}
 		if (playerCount == 2) {
-			playerControllers[0].camera.rect = new Rect(0.25f, 0.5f, 0.5f, 0.5f);
-			playerControllers[1].camera.rect = new Rect(0.25f, 0f, 0.5f, 0.5f);
+			playerControllers[0].playerCamera.rect = new Rect(0.25f, 0.5f, 0.5f, 0.5f);
+			playerControllers[1].playerCamera.rect = new Rect(0.25f, 0f, 0.5f, 0.5f);
 		}
 		eventSystem = GetComponent<EventSystem>();
 		eventSystem.enabled = false;
@@ -91,7 +100,7 @@ public class GameController : MonoBehaviour {
 		roundText.text = "Round " + round;
 		for (int i = 0; i < playerCount; i++) {
 			playerControllers[i].gameObject.SetActive (true);
-			playerControllers[i].respawn(playerControllers[i].transform.parent.position);
+			playerControllers[i].respawn(startPositions[i].position);
 		}
 	}
 
