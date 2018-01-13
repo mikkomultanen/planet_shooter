@@ -855,7 +855,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 088a7ef85c411400f85c29bd366896ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shipTemplate: {fileID: 1625073874146504, guid: 58b4f0ff4d32742f3a46eae2305c98d3,
+  shipTemplate: {fileID: 1304003519068954, guid: af588b31af5414699a33b802957e0410,
     type: 2}
   cameras:
   - {fileID: 2023641012}
@@ -1307,7 +1307,7 @@ Prefab:
         type: 2}
       propertyPath: shipTemplate
       value: 
-      objectReference: {fileID: 1625073874146504, guid: 58b4f0ff4d32742f3a46eae2305c98d3,
+      objectReference: {fileID: 1304003519068954, guid: af588b31af5414699a33b802957e0410,
         type: 2}
     - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
         type: 2}
