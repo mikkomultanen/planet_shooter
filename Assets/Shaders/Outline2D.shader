@@ -40,7 +40,7 @@ Shader "PlanetShooter/Outline2D"
             struct appdata_t 
             {
 				float4 vertex : POSITION;
-				float4 color : COLOR;
+				float3 normal : NORMAL;
 			};
 
 			struct v2f 
@@ -55,7 +55,7 @@ Shader "PlanetShooter/Outline2D"
             {
                 v2f o;
 			    o.pos = v.vertex;
-				float2 n = normalize(v.vertex.xy) *_Outline;
+				float2 n = normalize(v.normal.xy) *_Outline;
 			    o.pos.xyz += float3(n, 0.01);
 			    o.pos = UnityObjectToClipPos(o.pos);
 			    return o;

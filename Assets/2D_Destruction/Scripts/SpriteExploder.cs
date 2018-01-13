@@ -599,7 +599,7 @@ public static class SpriteExploder
 		for (int i = 0; i < vertices.Length; i++) {
 			Vector2 dir = vertices[i];
 			dir.Normalize();
-			var normal = new Vector3(dir.x, dir.y, -0.1f);
+			var normal = new Vector3(dir.x, dir.y, 0);
 			normal.Normalize();
 			normals [i] = normal;
 		}
