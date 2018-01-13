@@ -68,6 +68,5 @@ public class SquareMesh : MonoBehaviour
         uv[3] = new Vector2(textureScaleU, textureScaleV);
 
         mesh.uv = uv;
-		SpriteExploder.calcOutlineDirToColor(gameObject);
     }
 }

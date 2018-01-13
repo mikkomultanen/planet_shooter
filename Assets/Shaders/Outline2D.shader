@@ -55,9 +55,8 @@ Shader "PlanetShooter/Outline2D"
             {
                 v2f o;
 			    o.pos = v.vertex;
-				float3 n = v.color.xyz;
-				n.z = o.pos.z + 0.1;
-			    o.pos.xyz += normalize(n) *_Outline*0.01;
+				float2 n = normalize(v.vertex.xy) *_Outline;
+			    o.pos.xyz += float3(n, 0.01);
 			    o.pos = UnityObjectToClipPos(o.pos);
 			    return o;
             }

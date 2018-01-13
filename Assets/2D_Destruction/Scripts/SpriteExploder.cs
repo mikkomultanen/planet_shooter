@@ -313,7 +313,6 @@ public static class SpriteExploder
 		centerMeshPivot (piece, diff);
 		uMesh.RecalculateBounds ();
 		calcNormals (piece);
-		calcOutlineDirToColor (piece);
 
 		//setFragmentMaterial(piece, source);
 		piece.GetComponent<MeshRenderer> ().sharedMaterial = mat;
@@ -606,23 +605,6 @@ public static class SpriteExploder
 		}
 		//set adjusted vertices
 		uMesh.normals = normals;
-
-	}
-
-	public static void calcOutlineDirToColor(GameObject target) {
-				//initialize mesh and vertices variables from source
-		Mesh uMesh = target.GetComponent<MeshFilter> ().sharedMesh;
-		Vector3[] vertices = uMesh.vertices;
-		Color[] colors = new Color[vertices.Length];
-
-		//calculate adjusted vertices
-		for (int i = 0; i < vertices.Length; i++) {
-			Vector2 dir = vertices[i];
-			dir.Normalize();
-			colors [i] = new Vector4(dir.x, dir.y, 0, 0);
-		}
-		//set adjusted vertices
-		uMesh.colors = colors;
 
 	}
 
