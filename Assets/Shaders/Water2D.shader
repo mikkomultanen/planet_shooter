@@ -60,10 +60,14 @@ Shader "PlanetShooter/Water"
                
                 v2f vert (appdata_base0 v)
                 {
+					const float PI = 3.14159;
                     v2f o;
 					o.pos = v.vertex;
-					float phase = _Time * 100.0 + 40 * atan2(v.vertex.y, v.vertex.x);
-					o.pos.xy += normalize(v.vertex.xy) * sin(phase) * 0.25;
+					if (abs(v.vertex.x) > 0.1 || abs(v.vertex.y) > 0.1) {
+						float phase = _Time.y + 40 * atan2(v.vertex.y, v.vertex.x);
+						float scale = sin(fmod(phase, 2.0*PI)) * 0.25 * sin(fmod(_Time.w, 2.0*PI));
+						o.pos.xy += normalize(v.vertex.xy) * scale;
+					}
                     o.pos = UnityObjectToClipPos ( o.pos );
                     float3 n = mul((float3x3)UNITY_MATRIX_IT_MV, normalize(v.normal));
 					normalize(n);
