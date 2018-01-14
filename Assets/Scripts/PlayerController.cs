@@ -115,14 +115,20 @@ public class PlayerController : MonoBehaviour, Damageable
 			else
 				flamer.Stop ();
 		}
+		var smokeEmission = smoke.emission;
 		bool thrustersOn = Input.GetAxis (thrustAxis) > 0f;
 		if (thrustersOn != thruster.isEmitting) {
-			if (thrustersOn)
+			if (thrustersOn) {
 				thruster.Play ();
-			else
+				smokeEmission.rateOverDistanceMultiplier = 5.0f;
+			} else {
 				thruster.Stop ();
+				
+				smokeEmission.rateOverDistanceMultiplier = 0.0f;
+			}
 		}
-		bool lowHealth = this.health < 20;
+		bool lowHealth = this.health < 30;
+		smokeEmission.rateOverTimeMultiplier = 10 * Mathf.Clamp01(1.0f - this.health / 30);
 		if (lowHealth != smoke.isEmitting) {
 			if (lowHealth)
 				smoke.Play ();
