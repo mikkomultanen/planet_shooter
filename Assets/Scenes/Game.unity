@@ -2304,6 +2304,11 @@ Prefab:
       propertyPath: m_Mesh
       value: 
       objectReference: {fileID: 997652964}
+    - target: {fileID: 114148110986512810, guid: 50b7978f83baa468a9091c3d34f152da,
+        type: 2}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 50b7978f83baa468a9091c3d34f152da, type: 2}
   m_IsPrefabParent: 0
@@ -2473,7 +2478,7 @@ MonoBehaviour:
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: StartMenu
+          m_StringArgument: Scenes/StartMenu
           m_BoolArgument: 0
         m_CallState: 2
     m_TypeName: UnityEngine.UI.Button+ButtonClickedEvent, UnityEngine.UI, Version=1.0.0.0,

@@ -1179,8 +1179,8 @@ MonoBehaviour:
   - {fileID: 493828117}
   - {fileID: 1337783722}
   startGameCountdown: {fileID: 450194711}
-  gameScene: Game
-  previousScene: StartMenu
+  gameScene: Scenes/Game
+  previousScene: Scenes/StartMenu
 --- !u!4 &1218820493
 Transform:
   m_ObjectHideFlags: 0
