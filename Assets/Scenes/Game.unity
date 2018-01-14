@@ -989,7 +989,7 @@ MeshRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 2
+  m_SortingOrder: 3
 --- !u!33 &972957425
 MeshFilter:
   m_ObjectHideFlags: 0
@@ -1037,7 +1037,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   layerName: Default
-  order: 2
+  order: 3
 --- !u!43 &997652964
 Mesh:
   m_ObjectHideFlags: 0
