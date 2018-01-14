@@ -11,6 +11,7 @@ public class GameController : MonoBehaviour {
 	public List<Camera> cameras;
 	public List<Color> colors;
 	public List<Transform> startPositions;
+	public Collider2D water;
 	public Text roundText;
 	public List<Text> scoreTexts;
 	public Canvas canvas;
@@ -29,6 +30,8 @@ public class GameController : MonoBehaviour {
 				playerController.playerCamera = cameras[i];
 				playerController.controls = players[i].controls;
 				playerController.gameController = this;
+				var flamerTrigger = playerController.flamer.trigger;
+				flamerTrigger.SetCollider(0, water);
 				ship.GetComponent<SpriteRenderer>().color = colors[i];
 				playerControllers.Add(playerController);
 			} else {
