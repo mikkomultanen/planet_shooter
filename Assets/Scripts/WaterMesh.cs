@@ -6,7 +6,8 @@ using UnityEngine;
 public class WaterMesh : MonoBehaviour
 {
 
-    public float radius = 1;
+    public float outerRadius = 1;
+	public float innerRadius = 0.1f;	
     public int steps = 128;
     public float textureScaleU = 1;
     public float textureScaleV = 1;
@@ -36,34 +37,50 @@ public class WaterMesh : MonoBehaviour
             mesh = meshFilter.sharedMesh;
         }
 
-        var vertices = new Vector3[1 + steps + 1];
-        var normals = new Vector3[1 + steps + 1];
-        var uv = new Vector2[1 + steps + 1];
+		var verticesCount = 2 * (steps + 1);
+        var vertices = new Vector3[verticesCount];
+        var normals = new Vector3[verticesCount];
+        var uv = new Vector2[verticesCount];
 
-        vertices[0] = new Vector3(0, 0, 0);
-        normals[0] = new Vector3(0, 0, -1);
-        uv[0] = new Vector2(0.5f, 0);
-		var direction = new Vector2(radius, 0);
+		var direction = new Vector2(1, 0);
         for (int i = 0; i < steps; i++)
         {
-			vertices[1 + i] = new Vector3(direction.x, direction.y, 0);
-			normals[1 + i] = vertices[1 + i].normalized;
-			uv[1 + i] = new Vector2(textureScaleU * i / steps, textureScaleV);
-			direction = Quaternion.Euler(0, 0, -360.0f / steps) * direction;
+			var j = 2 * i;
+			vertices[j] = new Vector3(direction.x, direction.y, 0) * outerRadius;
+			normals[j] = vertices[2 * i].normalized;
+			uv[j] = new Vector2(textureScaleU * i / steps, textureScaleV);
+			direction = Quaternion.Euler(0, 0, -180.0f / steps) * direction;
+			vertices[j + 1] = new Vector3(direction.x, direction.y, 0) * innerRadius;
+			normals[j + 1] = new Vector3(0, 0, -1);
+			uv[j + 1] = new Vector2(textureScaleU * (i + 0.5f) / steps, 0);
+			direction = Quaternion.Euler(0, 0, -180.0f / steps) * direction;
         }
-        vertices[1 + steps] = vertices[1];
-        normals[1 + steps] = normals[1];
-        uv[1 + steps] = new Vector2(textureScaleU, textureScaleV);
+        vertices[2 * steps] = vertices[0];
+        normals[2 * steps] = normals[0];
+        uv[2 * steps] = new Vector2(textureScaleU, textureScaleV);
+        vertices[2 * steps + 1] = vertices[1];
+        normals[2 * steps + 1] = normals[1];
+        uv[2 * steps + 1] = new Vector2(textureScaleU * (steps + 0.5f) / steps, 0);
         mesh.vertices = vertices;
         mesh.normals = normals;
         mesh.uv = uv;
 
-        var tri = new int[steps * 3];
+        var tri = new int[steps * 6];
         for (int i = 0; i < steps; i++)
         {
-			tri[3 * i] = 0;
-			tri[3 * i + 1] = 1 + i; 
-			tri[3 * i + 2] = 1 + (i + 1); 
+			var j = 2 * i;
+			var index1 = j;
+			var index2 = j + 1;
+			var index3 = (j + 2) % verticesCount;
+			var index4 = (j + 3) % verticesCount;
+
+			tri[3 * j] = index1;
+			tri[3 * j + 1] = index3; 
+			tri[3 * j + 2] = index2; 
+
+			tri[3 * j + 3] = index2;
+			tri[3 * j + 4] = index3; 
+			tri[3 * j + 5] = index4; 
         }
         mesh.triangles = tri;
 		mesh.RecalculateBounds();
