@@ -80,19 +80,19 @@ class Cave {
 		return Mathf.Abs(magnitude - ceilingMagnitude(angle)) < 0.1f;
 	}
 
-	private float ceilingMagnitude(float angle) {
+	public float ceilingMagnitude(float angle) {
 		return waveValue(angle) + thicknessValue(angle) / 2;
 	}
 
-	private float floorMagnitude(float angle) {
+	public float floorMagnitude(float angle) {
 		return waveValue(angle) - thicknessValue(angle) / 2;
 	}
 
-	private float waveValue(float angle) {
+	public float waveValue(float angle) {
 		return wave.value(angle) + r;
 	}
 
-	private float thicknessValue(float angle) {
+	public float thicknessValue(float angle) {
 		return thickness.value(angle);
 	}
 }
@@ -193,13 +193,18 @@ public class TerrainMesh : MonoBehaviour {
         for (int i = 0; i < steps; i++)
         {
 			if (i % innerStepsMod == 0) {
-				points.Add(new Vector2(direction.x, direction.y) * innerRadius);
+				points.Add(direction * innerRadius);
 			}
+			var angle = Mathf.Atan2(direction.x, direction.y);
 			foreach (Cave cave in caves) {
-				points.Add(cave.floor(direction));
-				points.Add(cave.ceiling(direction));
+				var ceiling = cave.ceilingMagnitude(angle);
+				var floor = cave.floorMagnitude(angle);
+				points.Add(direction * (ceiling + 1));
+				points.Add(direction * ceiling);
+				points.Add(direction * floor);
+				points.Add(direction * (floor - 1));
 			}
-			points.Add(new Vector2(direction.x, direction.y) * outerRadius);
+			points.Add(direction * outerRadius);
 			direction = Quaternion.Euler(0, 0, -360.0f / steps) * direction;
         }
 		var shaftSteps = Mathf.RoundToInt(steps / (2 * Mathf.PI));
