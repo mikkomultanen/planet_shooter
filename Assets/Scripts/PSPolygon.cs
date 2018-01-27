@@ -9,7 +9,7 @@ sealed class PSPolygon
     private float[] constant = null;
     private float[] multiple = null;
 
-    public PSPolygon(List<Vector2> points)
+    public PSPolygon(IEnumerable<Vector2> points)
     {
         this.points = points.ToArray();
     }

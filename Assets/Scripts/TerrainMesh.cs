@@ -78,20 +78,25 @@ class Cave
 
     public Vector3 caveNormal(float angle, float magnitude)
     {
-		var floor = floorMagnitude(angle);
-		var ceiling = ceilingMagnitude(angle);
-		if (magnitude < floor) {
-			// Under
-			var position = 1 - Mathf.Clamp01(floor - magnitude); // from 1 floor to 0 under the floor
-			return Quaternion.Euler(90 * position, 0, 0) * Vector3.back * position;
-		} else if (magnitude <= ceiling) {
-			// Inside
-			var position = (magnitude - floor) / (ceiling - floor); // from 0 floor to 1 ceiling
-			return Quaternion.Euler(-180 * (position - 0.5F), 0, 0) * Vector3.back;
-		} else {
-			var position = 1 - Mathf.Clamp01(magnitude - ceiling); // from 1 ceiling to 0 over the ceiling
-			return Quaternion.Euler(-90 * position, 0, 0) * Vector3.back * position;
-		}
+        var floor = floorMagnitude(angle);
+        var ceiling = ceilingMagnitude(angle);
+        if (magnitude < floor)
+        {
+            // Under
+            var position = 1 - Mathf.Clamp01(floor - magnitude); // from 1 floor to 0 under the floor
+            return Quaternion.Euler(90 * position, 0, 0) * Vector3.back * position;
+        }
+        else if (magnitude <= ceiling)
+        {
+            // Inside
+            var position = (magnitude - floor) / (ceiling - floor); // from 0 floor to 1 ceiling
+            return Quaternion.Euler(-180 * (position - 0.5F), 0, 0) * Vector3.back;
+        }
+        else
+        {
+            var position = 1 - Mathf.Clamp01(magnitude - ceiling); // from 1 ceiling to 0 over the ceiling
+            return Quaternion.Euler(-90 * position, 0, 0) * Vector3.back * position;
+        }
     }
 
     public float ceilingMagnitude(float angle)
@@ -167,11 +172,14 @@ public class TerrainMesh : MonoBehaviour
     public float textureScaleU = 6;
     public float textureScaleV = 1;
 
+    public List<GameObject> fragments = new List<GameObject>();
+
     private List<Cave> caves = new List<Cave>();
     private Shafts shafts;
     private List<Vector2> points = new List<Vector2>();
     private List<Vector2> additionalPoints = new List<Vector2>();
     private List<PSPolygon> polygons = new List<PSPolygon>();
+    private List<PSPolygon> piecePolygons = new List<PSPolygon>();
 
     private void Awake()
     {
@@ -252,8 +260,11 @@ public class TerrainMesh : MonoBehaviour
         });
         additionalPoints = additionalPoints.Where(point => polygons.Any(p => p.PointInPolygon(point))).ToList();
 
-        GenerateMesh();
-        GenerateColliders();
+        GeneratePiecePolygons();
+        GenerateFragments();
+
+        //GenerateMesh();
+        //GenerateColliders();
     }
 
     private int indexOf(List<Vector2> coords, Vector2 coord)
@@ -338,18 +349,26 @@ public class TerrainMesh : MonoBehaviour
         // Loop through edge vertices in order
         int startVert = 0;
         int nextVert = startVert;
-        List<Vector2> colliderPath = new List<Vector2>();
+        List<int> colliderPath = new List<int>();
         while (true)
         {
 
             // Add vertex to collider path
-            colliderPath.Add(vertices[nextVert]);
+            colliderPath.Add(nextVert);
             var removed = validVertices.Remove(nextVert);
             if (!removed)
             {
                 // Edges share a vertex
+                var loop = colliderPath.SkipWhile(index => index != nextVert).Skip(1).ToList();
+                if (loop.Count > 5)
+                {
+                    var polygon = new PSPolygon(loop.Select(index => vertices[index]));
+                    if (polygon.Area > 20)
+                    {
+                        polygons.Add(polygon);
+                    }
+                }
                 colliderPath.Clear();
-                Debug.Log("ColliderPath invalid validVertices " + validVertices.Count);
 
                 // Go to next shape if one exists
                 if (validVertices.Count > 0)
@@ -375,7 +394,7 @@ public class TerrainMesh : MonoBehaviour
 
                 if (colliderPath.Count > 5)
                 {
-                    var polygon = new PSPolygon(colliderPath);
+                    var polygon = new PSPolygon(colliderPath.Select(index => vertices[index]));
                     if (polygon.Area > 20)
                     {
                         polygons.Add(polygon);
@@ -398,6 +417,62 @@ public class TerrainMesh : MonoBehaviour
                 break;
             }
         }
+    }
+
+    private void GeneratePiecePolygons()
+    {
+        piecePolygons.Clear();
+        var expectedArea = 20;
+        foreach (var polygon in polygons)
+        {
+            piecePolygons.AddRange(SplitPolygon(polygon, expectedArea));
+        }
+    }
+
+    private List<PSPolygon> SplitPolygon(PSPolygon polygon, float maxArea)
+    {
+        var pointCount = Mathf.Max(Mathf.RoundToInt(polygon.Area / maxArea), 6);
+        var points = new List<Vector2>();
+        var rect = polygon.Bounds;
+        var tries = pointCount * 100;
+        for (int i = 0; i < tries; i++)
+        {
+            var point = new Vector2(Random.Range(rect.xMin, rect.xMax), Random.Range(rect.yMin, rect.yMax));
+            if (polygon.PointInPolygon(point))
+            {
+                points.Add(point);
+                if (points.Count == pointCount)
+                {
+                    break;
+                }
+            }
+        }
+        var result = new List<PSPolygon>();
+        if (points.Count < 6)
+        {
+            Debug.LogError("Split points count " + points.Count + " too small");
+            result.Add(polygon);
+            return result;
+        }
+
+        var borderPoints = polygon.points.ToList();
+        Voronoi voronoi = new Delaunay.Voronoi(points, null, rect);
+        var newPolygons = voronoi.Regions()
+            .SelectMany(region => ClipperHelper.clip(borderPoints, region))
+            .Select(clippedRegion => new PSPolygon(clippedRegion));
+        foreach (var p in newPolygons)
+        {
+            if (p.Area < maxArea)
+            {
+                result.Add(p);
+            }
+            else
+            {
+                var b = SplitPolygon(p, maxArea);
+                result.AddRange(b);
+            }
+        }
+        return result;
     }
 
     private void GenerateMesh()
@@ -448,18 +523,21 @@ public class TerrainMesh : MonoBehaviour
 
     private Vector3 caveNormal(Vector2 coord)
     {
-		var angle = Mathf.Atan2(coord.x, coord.y);
+        var angle = Mathf.Atan2(coord.x, coord.y);
         var magnitude = coord.magnitude;
-		var normal = Vector3.zero;
+        var normal = Vector3.zero;
         foreach (Cave cave in caves)
         {
-			normal += cave.caveNormal(angle, magnitude);
+            normal += cave.caveNormal(angle, magnitude);
         }
-		if (normal.magnitude < 0.01) {
-			return Vector3.back;
-		} else {
-			return Quaternion.FromToRotation(Vector3.up, coord) * normal.normalized;
-		}
+        if (normal.magnitude < 0.01)
+        {
+            return Vector3.back;
+        }
+        else
+        {
+            return Quaternion.FromToRotation(Vector3.up, coord) * normal.normalized;
+        }
     }
 
     private Vector2 getUV(Vector2 coord)
@@ -489,32 +567,152 @@ public class TerrainMesh : MonoBehaviour
     }
 
 #if UNITY_EDITOR
+    [ContextMenu("Delete fragments")]
+#endif
+    private void DeleteFragments()
+    {
+        foreach (GameObject frag in fragments)
+        {
+#if UNITY_EDITOR
+            DestroyImmediate(frag);
+#else
+				Destroy (frag);
+#endif
+        }
+        fragments.Clear();
+    }
+    private void GenerateFragments()
+    {
+        DeleteFragments();
+        var mat = GetComponent<MeshRenderer>().sharedMaterial;
+        foreach (PSPolygon piecePolygon in piecePolygons)
+        {
+            var extraPoints = additionalPoints.Where(piecePolygon.PointInPolygon);
+            fragments.Add(GenerateVoronoiPiece(piecePolygon, extraPoints, mat));
+        }
+
+        Resources.UnloadUnusedAssets();
+    }
+
+    private GameObject GenerateVoronoiPiece(PSPolygon polygon, IEnumerable<Vector2> extraPoints, Material mat)
+    {
+        GameObject piece = new GameObject(gameObject.name + " piece");
+        piece.transform.position = gameObject.transform.position;
+        piece.transform.rotation = gameObject.transform.rotation;
+        piece.transform.localScale = gameObject.transform.localScale;
+
+        //Create and Add Mesh Components
+        MeshFilter meshFilter = (MeshFilter)piece.AddComponent(typeof(MeshFilter));
+        piece.AddComponent(typeof(MeshRenderer));
+
+        Mesh uMesh = piece.GetComponent<MeshFilter>().sharedMesh;
+        if (uMesh == null)
+        {
+            meshFilter.mesh = new Mesh();
+            uMesh = meshFilter.sharedMesh;
+        }
+
+        var points = polygon.points.ToList();
+        points.AddRange(extraPoints);
+        Voronoi voronoi = new Voronoi(points.ToList(), null, polygon.Bounds);
+
+        var vertices = voronoi.SiteCoords();
+        var triangles = new List<int>();
+        foreach (Triangle triangle in voronoi.Triangles())
+        {
+            if (polygon.PointInPolygon(getCenter(triangle)))
+            {
+                foreach (Site site in triangle.sites)
+                {
+                    triangles.Add(indexOf(vertices, site.Coord));
+                }
+            }
+        }
+        var center = vertices.Aggregate(Vector2.zero, (c, v) => c + v) / vertices.Count;
+
+        uMesh.vertices = vertices.Select(p => new Vector3(p.x - center.x, p.y - center.y, 0)).ToArray();
+        uMesh.triangles = triangles.ToArray();
+        var uvs = new Vector2[vertices.Count];
+        var normals = new Vector3[vertices.Count];
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            uvs[i] = getUV(vertices[i]);
+            normals[i] = caveNormal(vertices[i]);
+        }
+        uMesh.uv = uvs;
+        uMesh.normals = normals;
+
+        //calculate and assign adjusted trasnsform position
+        piece.transform.position += new Vector3(center.x, center.y, 0); 
+
+
+        //set transform properties before fixing the pivot for easier rotation
+        //piece.transform.localScale = origScale;
+        //piece.transform.localRotation = origRotation;
+
+        uMesh.RecalculateBounds();
+
+        piece.GetComponent<MeshRenderer>().sharedMaterial = mat;
+
+        //assign mesh
+        meshFilter.mesh = uMesh;
+
+        //Create and Add Polygon Collider
+        PolygonCollider2D collider = piece.AddComponent<PolygonCollider2D>();
+        collider.SetPath(0, polygon.points.Select(p => p - center).ToArray());
+
+        //Create and Add Rigidbody
+        Rigidbody2D rigidbody = piece.AddComponent<Rigidbody2D>();
+        rigidbody.mass = polygon.Area * 100;
+        rigidbody.bodyType = RigidbodyType2D.Static;
+
+        Explodable fragExp = piece.AddComponent<Explodable>();
+        fragExp.shatterType = Explodable.ShatterType.Voronoi;
+        fragExp.allowRuntimeFragmentation = true;
+        fragExp.extraPoints = 1;
+        //fragExp.fragmentLayer = ;
+        //fragExp.sortingLayerName = ;
+        //fragExp.orderInLayer = ;
+
+        piece.AddComponent<EarthBlock>();
+        piece.AddComponent<ExplodeOnClick>();
+        piece.layer = gameObject.layer;
+
+        return piece;
+    }
+
+#if UNITY_EDITOR
     void OnDrawGizmos()
     {
         if (Application.isEditor)
         {
-            Gizmos.color = Color.yellow;
             Gizmos.matrix = transform.localToWorldMatrix;
             Vector2 offset = (Vector2)transform.position * 0;
-            foreach (PSPolygon polygon in polygons)
-            {
-                for (int i = 0; i < polygon.points.Length; i++)
-                {
-                    if (i + 1 == polygon.points.Length)
-                    {
-                        Gizmos.DrawLine(polygon.points[i] + offset, polygon.points[0] + offset);
-                    }
-                    else
-                    {
-                        Gizmos.DrawLine(polygon.points[i] + offset, polygon.points[i + 1] + offset);
-                    }
-                }
-            }
+
+            //Gizmos.color = Color.yellow;
+            //polygons.ForEach(p => DrawPolygon(p, offset));
+            Gizmos.color = Color.cyan;
+            piecePolygons.ForEach(p => DrawPolygon(p, offset));
 
             Gizmos.color = Color.red;
             DrawDiamonds(points, offset);
             Gizmos.color = Color.green;
             DrawDiamonds(additionalPoints, offset);
+        }
+    }
+
+    private void DrawPolygon(PSPolygon polygon, Vector2 offset)
+    {
+        for (int i = 0; i < polygon.points.Length; i++)
+        {
+            if (i + 1 == polygon.points.Length)
+            {
+                Gizmos.DrawLine(polygon.points[i] + offset, polygon.points[0] + offset);
+            }
+            else
+            {
+                Gizmos.DrawLine(polygon.points[i] + offset, polygon.points[i + 1] + offset);
+            }
         }
     }
 
