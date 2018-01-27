@@ -80,18 +80,17 @@ class Cave
     {
 		var floor = floorMagnitude(angle);
 		var ceiling = ceilingMagnitude(angle);
-		var normal = new Vector3(0, 0, -1);
 		if (magnitude < floor) {
 			// Under
 			var position = 1 - Mathf.Clamp01(floor - magnitude); // from 1 floor to 0 under the floor
-			return Quaternion.Euler(90 * position, 0, 0) * normal * position;
+			return Quaternion.Euler(90 * position, 0, 0) * Vector3.back * position;
 		} else if (magnitude <= ceiling) {
 			// Inside
 			var position = (magnitude - floor) / (ceiling - floor); // from 0 floor to 1 ceiling
-			return Quaternion.Euler(-180 * (position - 0.5F), 0, 0) * normal;
+			return Quaternion.Euler(-180 * (position - 0.5F), 0, 0) * Vector3.back;
 		} else {
 			var position = 1 - Mathf.Clamp01(magnitude - ceiling); // from 1 ceiling to 0 over the ceiling
-			return Quaternion.Euler(-90 * position, 0, 0) * normal * position;
+			return Quaternion.Euler(-90 * position, 0, 0) * Vector3.back * position;
 		}
     }
 
@@ -132,24 +131,24 @@ class Shafts
     {
         var result = new List<Vector2>();
         var d = radius / steps;
-        var dir1 = new Vector2(1, 0);
-        var dir2 = new Vector2(0, 1);
-        var dir3 = new Vector2(-1, 0);
-        var dir4 = new Vector2(0, -1);
+        var right = Vector2.right;
+        var up = Vector2.up;
+        var left = Vector2.left;
+        var down = Vector2.down;
         float p;
         float angle;
         for (int i = 1; i <= steps; i++)
         {
             p = i * d;
             angle = p * w;
-            result.Add(dir1 * p + dir2 * thicknessX.value(angle));
-            result.Add(dir1 * p + dir4 * thicknessX.value(angle));
-            result.Add(dir3 * p + dir2 * thicknessX.value(-angle));
-            result.Add(dir3 * p + dir4 * thicknessX.value(-angle));
-            result.Add(dir2 * p + dir1 * thicknessY.value(angle));
-            result.Add(dir2 * p + dir3 * thicknessY.value(angle));
-            result.Add(dir4 * p + dir1 * thicknessY.value(-angle));
-            result.Add(dir4 * p + dir3 * thicknessY.value(-angle));
+            result.Add(right * p + up * thicknessX.value(angle));
+            result.Add(right * p + down * thicknessX.value(angle));
+            result.Add(left * p + up * thicknessX.value(-angle));
+            result.Add(left * p + down * thicknessX.value(-angle));
+            result.Add(up * p + right * thicknessY.value(angle));
+            result.Add(up * p + left * thicknessY.value(angle));
+            result.Add(down * p + right * thicknessY.value(-angle));
+            result.Add(down * p + left * thicknessY.value(-angle));
         }
         return result;
     }
@@ -271,7 +270,7 @@ public class TerrainMesh : MonoBehaviour
 
     private Vector2 getCenter(Triangle triangle)
     {
-        return triangle.sites.Aggregate(new Vector2(0, 0), (center, next) => center + next.Coord) / 3;
+        return triangle.sites.Aggregate(Vector2.zero, (center, next) => center + next.Coord) / 3;
     }
 
     private bool shouldAdd(Triangle triangle)
@@ -451,13 +450,13 @@ public class TerrainMesh : MonoBehaviour
     {
 		var angle = Mathf.Atan2(coord.x, coord.y);
         var magnitude = coord.magnitude;
-		var normal = new Vector3(0, 0, 0);
+		var normal = Vector3.zero;
         foreach (Cave cave in caves)
         {
 			normal += cave.caveNormal(angle, magnitude);
         }
 		if (normal.magnitude < 0.01) {
-			return new Vector3(0, 0, -1);
+			return Vector3.back;
 		} else {
 			return Quaternion.FromToRotation(Vector3.up, coord) * normal.normalized;
 		}
