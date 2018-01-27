@@ -76,18 +76,23 @@ class Cave
         return magnitude - 0.005f > floorMagnitude(angle) && magnitude + 0.005f < ceilingMagnitude(angle);
     }
 
-    public bool isFloor(Vector2 coord)
+    public Vector3 caveNormal(float angle, float magnitude)
     {
-        var angle = Mathf.Atan2(coord.x, coord.y);
-        var magnitude = coord.magnitude;
-        return Mathf.Abs(magnitude - floorMagnitude(angle)) < 0.1f;
-    }
-
-    public bool isCeiling(Vector2 coord)
-    {
-        var angle = Mathf.Atan2(coord.x, coord.y);
-        var magnitude = coord.magnitude;
-        return Mathf.Abs(magnitude - ceilingMagnitude(angle)) < 0.1f;
+		var floor = floorMagnitude(angle);
+		var ceiling = ceilingMagnitude(angle);
+		var normal = new Vector3(0, 0, -1);
+		if (magnitude < floor) {
+			// Under
+			var position = 1 - Mathf.Clamp01(floor - magnitude); // from 1 floor to 0 under the floor
+			return Quaternion.Euler(90 * position, 0, 0) * normal * position;
+		} else if (magnitude <= ceiling) {
+			// Inside
+			var position = (magnitude - floor) / (ceiling - floor); // from 0 floor to 1 ceiling
+			return Quaternion.Euler(-180 * (position - 0.5F), 0, 0) * normal;
+		} else {
+			var position = 1 - Mathf.Clamp01(magnitude - ceiling); // from 1 ceiling to 0 over the ceiling
+			return Quaternion.Euler(-90 * position, 0, 0) * normal * position;
+		}
     }
 
     public float ceilingMagnitude(float angle)
@@ -444,21 +449,18 @@ public class TerrainMesh : MonoBehaviour
 
     private Vector3 caveNormal(Vector2 coord)
     {
+		var angle = Mathf.Atan2(coord.x, coord.y);
+        var magnitude = coord.magnitude;
+		var normal = new Vector3(0, 0, 0);
         foreach (Cave cave in caves)
         {
-            if (cave.isFloor(coord))
-            {
-                return new Vector3(coord.x, coord.y, 0).normalized;
-            }
+			normal += cave.caveNormal(angle, magnitude);
         }
-        foreach (Cave cave in caves)
-        {
-            if (cave.isCeiling(coord))
-            {
-                return new Vector3(-coord.x, -coord.y, 0).normalized;
-            }
-        }
-        return new Vector3(0, 0, 0);
+		if (normal.magnitude < 0.01) {
+			return new Vector3(0, 0, -1);
+		} else {
+			return Quaternion.FromToRotation(Vector3.up, coord) * normal.normalized;
+		}
     }
 
     private Vector2 getUV(Vector2 coord)
