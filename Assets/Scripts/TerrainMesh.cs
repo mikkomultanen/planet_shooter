@@ -177,7 +177,6 @@ public class TerrainMesh : MonoBehaviour
     private List<Cave> caves = new List<Cave>();
     private Shafts shafts;
     private List<Vector2> points = new List<Vector2>();
-    private List<Vector2> additionalPoints = new List<Vector2>();
     private List<PSPolygon> polygons = new List<PSPolygon>();
     private List<PSPolygon> piecePolygons = new List<PSPolygon>();
 
@@ -209,7 +208,6 @@ public class TerrainMesh : MonoBehaviour
     {
         GenerateCaves();
         points.Clear();
-        additionalPoints.Clear();
 
         var direction = new Vector2(1, 0);
         var innerStepsMod = Mathf.CeilToInt(outerRadius / innerRadius);
@@ -224,10 +222,8 @@ public class TerrainMesh : MonoBehaviour
             {
                 var ceiling = cave.ceilingMagnitude(angle);
                 var floor = cave.floorMagnitude(angle);
-                additionalPoints.Add(direction * (ceiling + 1));
                 points.Add(direction * ceiling);
                 points.Add(direction * floor);
-                additionalPoints.Add(direction * (floor - 1));
             }
             points.Add(direction * outerRadius);
             direction = Quaternion.Euler(0, 0, -360.0f / steps) * direction;
@@ -235,7 +231,6 @@ public class TerrainMesh : MonoBehaviour
         var shaftSteps = Mathf.RoundToInt(steps / (2 * Mathf.PI));
         points.AddRange(shafts.coords(shaftSteps));
         points = points.Where(p => shouldAdd(p)).ToList();
-        additionalPoints = additionalPoints.Where(p => shouldAdd(p)).ToList();
 
         Rect rect = new Rect(-outerRadius, -outerRadius, 2 * outerRadius, 2 * outerRadius);
         Voronoi voronoi = new Delaunay.Voronoi(points, null, rect);
@@ -258,7 +253,6 @@ public class TerrainMesh : MonoBehaviour
             list.AddRange(polygon.points);
             return list;
         });
-        additionalPoints = additionalPoints.Where(point => polygons.Any(p => p.PointInPolygon(point))).ToList();
 
         GeneratePiecePolygons();
         GenerateFragments();
@@ -489,14 +483,10 @@ public class TerrainMesh : MonoBehaviour
         var allVertices = new List<Vector2>();
         var allTriangles = new List<int>();
         int currentIndex = 0;
-        List<Vector2> points = new List<Vector2>();
         foreach (PSPolygon polygon in polygons)
         {
-            points.Clear();
-            Rect rect = polygon.Bounds;
-            points.AddRange(polygon.points);
-            points.AddRange(additionalPoints.Where(polygon.PointInPolygon));
-            Voronoi voronoi = new Delaunay.Voronoi(points, null, rect);
+			// TODO use better trianglator
+            Voronoi voronoi = new Delaunay.Voronoi(polygon.points.ToList(), null, polygon.Bounds);
             var coords = voronoi.SiteCoords();
             var triangles = new List<int>();
             foreach (Triangle triangle in voronoi.Triangles())
@@ -515,9 +505,11 @@ public class TerrainMesh : MonoBehaviour
         }
 
         mesh.vertices = allVertices.Select(c => new Vector3(c.x, c.y, 0)).ToArray();
-        mesh.normals = allVertices.Select(caveNormal).ToArray();
+        //mesh.normals = allVertices.Select(caveNormal).ToArray();
         mesh.uv = allVertices.Select(getUV).ToArray();
+        mesh.uv2 = allVertices.Select(getUV2).ToArray();
         mesh.triangles = allTriangles.ToArray();
+		mesh.RecalculateNormals();
         mesh.RecalculateBounds();
     }
 
@@ -546,6 +538,22 @@ public class TerrainMesh : MonoBehaviour
         var magnitude = coord.magnitude;
         return new Vector2(angle / (2 * Mathf.PI) * textureScaleU, Mathf.Clamp01((magnitude - innerRadius) / (outerRadius - innerRadius)) * textureScaleV);
     }
+
+	private Vector2 getUV2(Vector2 coord)
+	{
+        var angle = Mathf.Atan2(coord.x, coord.y);
+        var magnitude = coord.magnitude;
+		var u = angle / (2 * Mathf.PI) * textureScaleU * (outerRadius - innerRadius);
+		var v = caves.Aggregate(outerRadius - innerRadius, (d, cave) => {
+			var floorMagnitude = cave.floorMagnitude(angle);
+			if (magnitude <= floorMagnitude + 0.1) {
+				return Mathf.Clamp(floorMagnitude - magnitude, 0, d);
+			} else {
+				return d;
+			}
+		}) * textureScaleV;
+		return new Vector2(u, v);
+	}
 
     private void GenerateColliders()
     {
@@ -587,14 +595,13 @@ public class TerrainMesh : MonoBehaviour
         var mat = GetComponent<MeshRenderer>().sharedMaterial;
         foreach (PSPolygon piecePolygon in piecePolygons)
         {
-            var extraPoints = additionalPoints.Where(piecePolygon.PointInPolygon);
-            fragments.Add(GenerateVoronoiPiece(piecePolygon, extraPoints, mat));
+            fragments.Add(GenerateVoronoiPiece(piecePolygon, mat));
         }
 
         Resources.UnloadUnusedAssets();
     }
 
-    private GameObject GenerateVoronoiPiece(PSPolygon polygon, IEnumerable<Vector2> extraPoints, Material mat)
+    private GameObject GenerateVoronoiPiece(PSPolygon polygon, Material mat)
     {
         GameObject piece = new GameObject(gameObject.name + " piece");
         piece.transform.position = gameObject.transform.position;
@@ -612,9 +619,8 @@ public class TerrainMesh : MonoBehaviour
             uMesh = meshFilter.sharedMesh;
         }
 
-        var points = polygon.points.ToList();
-        points.AddRange(extraPoints);
-        Voronoi voronoi = new Voronoi(points.ToList(), null, polygon.Bounds);
+		// TODO replace with better triangulator
+        Voronoi voronoi = new Voronoi(polygon.points.ToList(), null, polygon.Bounds);
 
         var vertices = voronoi.SiteCoords();
         var triangles = new List<int>();
@@ -633,14 +639,18 @@ public class TerrainMesh : MonoBehaviour
         uMesh.vertices = vertices.Select(p => new Vector3(p.x - center.x, p.y - center.y, 0)).ToArray();
         uMesh.triangles = triangles.ToArray();
         var uvs = new Vector2[vertices.Count];
+        var uv2s = new Vector2[vertices.Count];
         var normals = new Vector3[vertices.Count];
         for (int i = 0; i < vertices.Count; i++)
         {
             uvs[i] = getUV(vertices[i]);
-            normals[i] = caveNormal(vertices[i]);
+			uv2s[i] = getUV2(vertices[i]);
+            //normals[i] = caveNormal(vertices[i]);
         }
         uMesh.uv = uvs;
-        uMesh.normals = normals;
+		uMesh.uv2 = uv2s;
+        //uMesh.normals = normals;
+		uMesh.RecalculateNormals();
 
         //calculate and assign adjusted trasnsform position
         piece.transform.position += new Vector3(center.x, center.y, 0); 
@@ -696,8 +706,6 @@ public class TerrainMesh : MonoBehaviour
 
             Gizmos.color = Color.red;
             DrawDiamonds(points, offset);
-            Gizmos.color = Color.green;
-            DrawDiamonds(additionalPoints, offset);
         }
     }
 
