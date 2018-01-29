@@ -177,6 +177,7 @@ public class TerrainMesh : MonoBehaviour
     private List<Cave> caves = new List<Cave>();
     private Shafts shafts;
     private List<Vector2> points = new List<Vector2>();
+    private List<Vector2> gridPoints = new List<Vector2>();
     private List<PSPolygon> polygons = new List<PSPolygon>();
     private List<PSPolygon> piecePolygons = new List<PSPolygon>();
 
@@ -253,6 +254,8 @@ public class TerrainMesh : MonoBehaviour
             list.AddRange(polygon.points);
             return list;
         });
+
+        GenerateGridPoints();
 
         GeneratePiecePolygons();
         GenerateFragments();
@@ -413,60 +416,57 @@ public class TerrainMesh : MonoBehaviour
         }
     }
 
-    private void GeneratePiecePolygons()
+    private void GenerateGridPoints()
     {
-        piecePolygons.Clear();
-        var expectedArea = 20;
-        foreach (var polygon in polygons)
-        {
-            piecePolygons.AddRange(SplitPolygon(polygon, expectedArea));
-        }
-    }
+        gridPoints.Clear();
 
-    private List<PSPolygon> SplitPolygon(PSPolygon polygon, float maxArea)
-    {
-        var pointCount = Mathf.Max(Mathf.RoundToInt(polygon.Area / maxArea), 6);
-        var points = new List<Vector2>();
-        var rect = polygon.Bounds;
-        var tries = pointCount * 100;
-        for (int i = 0; i < tries; i++)
+        Rect rect = new Rect(-outerRadius, -outerRadius, 2 * outerRadius, 2 * outerRadius);
+        float ratio = Mathf.Sqrt(3) / 2;
+        float n = Mathf.Sqrt(20000 / ratio);
+        int rows = Mathf.RoundToInt(n);
+        float rowHeight = rect.height / rows;
+        int columns = Mathf.RoundToInt(n * ratio);
+        float columnWidth = rect.width / columns;
+
+        float x0 = rect.width / -2 + rect.center.x + columnWidth / 2;
+        float y0 = rect.height / -2 + rect.center.y + rowHeight / 2;
+
+        float x, y, xOffset;
+        float randomVariation = 0.4f;
+        Vector2 point;
+        for (int i = 0; i < rows; i++)
         {
-            var point = new Vector2(Random.Range(rect.xMin, rect.xMax), Random.Range(rect.yMin, rect.yMax));
-            if (polygon.PointInPolygon(point))
+            y = y0 + i * rowHeight;
+            xOffset = i % 2 == 0 ? -columnWidth / 4 : columnWidth / 4;
+            for (int j = 0; j < columns; j++)
             {
-                points.Add(point);
-                if (points.Count == pointCount)
+                x = x0 + j * columnWidth + xOffset;
+                point = new Vector2(
+                    Random.Range(randomVariation * columnWidth / -2 + x, randomVariation * columnWidth / 2 + x),
+                    Random.Range(randomVariation * rowHeight / -2 + y, randomVariation * rowHeight / 2 + y)
+                );
+                if (polygons.Any(p => p.PointInPolygon(point)))
                 {
-                    break;
+                    gridPoints.Add(point);
                 }
             }
         }
-        var result = new List<PSPolygon>();
-        if (points.Count < 6)
-        {
-            Debug.LogError("Split points count " + points.Count + " too small");
-            result.Add(polygon);
-            return result;
-        }
+    }
 
+    private void GeneratePiecePolygons()
+    {
+        piecePolygons.Clear();
+        piecePolygons.AddRange(polygons.SelectMany(SplitPolygon));
+    }
+
+    private IEnumerable<PSPolygon> SplitPolygon(PSPolygon polygon)
+    {
+        var points = gridPoints.Where(polygon.PointInPolygon).ToList();
         var borderPoints = polygon.points.ToList();
-        Voronoi voronoi = new Delaunay.Voronoi(points, null, rect);
-        var newPolygons = voronoi.Regions()
+        Voronoi voronoi = new Delaunay.Voronoi(points, null, polygon.Bounds);
+        return voronoi.Regions()
             .SelectMany(region => ClipperHelper.clip(borderPoints, region))
             .Select(clippedRegion => new PSPolygon(clippedRegion));
-        foreach (var p in newPolygons)
-        {
-            if (p.Area < maxArea)
-            {
-                result.Add(p);
-            }
-            else
-            {
-                var b = SplitPolygon(p, maxArea);
-                result.AddRange(b);
-            }
-        }
-        return result;
     }
 
     private void GenerateMesh()
@@ -485,7 +485,7 @@ public class TerrainMesh : MonoBehaviour
         int currentIndex = 0;
         foreach (PSPolygon polygon in polygons)
         {
-			// TODO use better trianglator
+            // TODO use better trianglator
             Voronoi voronoi = new Delaunay.Voronoi(polygon.points.ToList(), null, polygon.Bounds);
             var coords = voronoi.SiteCoords();
             var triangles = new List<int>();
@@ -509,7 +509,7 @@ public class TerrainMesh : MonoBehaviour
         mesh.uv = allVertices.Select(getUV).ToArray();
         mesh.uv2 = allVertices.Select(getUV2).ToArray();
         mesh.triangles = allTriangles.ToArray();
-		mesh.RecalculateNormals();
+        mesh.RecalculateNormals();
         mesh.RecalculateBounds();
     }
 
@@ -539,21 +539,25 @@ public class TerrainMesh : MonoBehaviour
         return new Vector2(angle / (2 * Mathf.PI) * textureScaleU, Mathf.Clamp01((magnitude - innerRadius) / (outerRadius - innerRadius)) * textureScaleV);
     }
 
-	private Vector2 getUV2(Vector2 coord)
-	{
+    private Vector2 getUV2(Vector2 coord)
+    {
         var angle = Mathf.Atan2(coord.x, coord.y);
         var magnitude = coord.magnitude;
-		var u = angle / (2 * Mathf.PI) * textureScaleU * (outerRadius - innerRadius);
-		var v = caves.Aggregate(outerRadius - innerRadius, (d, cave) => {
-			var floorMagnitude = cave.floorMagnitude(angle);
-			if (magnitude <= floorMagnitude + 0.1) {
-				return Mathf.Clamp(floorMagnitude - magnitude, 0, d);
-			} else {
-				return d;
-			}
-		}) * textureScaleV;
-		return new Vector2(u, v);
-	}
+        var u = angle / (2 * Mathf.PI) * textureScaleU * (outerRadius - innerRadius);
+        var v = caves.Aggregate(outerRadius - innerRadius, (d, cave) =>
+        {
+            var floorMagnitude = cave.floorMagnitude(angle);
+            if (magnitude <= floorMagnitude + 0.1)
+            {
+                return Mathf.Clamp(floorMagnitude - magnitude, 0, d);
+            }
+            else
+            {
+                return d;
+            }
+        }) * textureScaleV;
+        return new Vector2(u, v);
+    }
 
     private void GenerateColliders()
     {
@@ -619,7 +623,7 @@ public class TerrainMesh : MonoBehaviour
             uMesh = meshFilter.sharedMesh;
         }
 
-		// TODO replace with better triangulator
+        // TODO replace with better triangulator
         Voronoi voronoi = new Voronoi(polygon.points.ToList(), null, polygon.Bounds);
 
         var vertices = voronoi.SiteCoords();
@@ -637,23 +641,13 @@ public class TerrainMesh : MonoBehaviour
         var center = vertices.Aggregate(Vector2.zero, (c, v) => c + v) / vertices.Count;
 
         uMesh.vertices = vertices.Select(p => new Vector3(p.x - center.x, p.y - center.y, 0)).ToArray();
+        uMesh.uv = vertices.Select(getUV).ToArray();
+        uMesh.uv2 = vertices.Select(getUV2).ToArray();
         uMesh.triangles = triangles.ToArray();
-        var uvs = new Vector2[vertices.Count];
-        var uv2s = new Vector2[vertices.Count];
-        var normals = new Vector3[vertices.Count];
-        for (int i = 0; i < vertices.Count; i++)
-        {
-            uvs[i] = getUV(vertices[i]);
-			uv2s[i] = getUV2(vertices[i]);
-            //normals[i] = caveNormal(vertices[i]);
-        }
-        uMesh.uv = uvs;
-		uMesh.uv2 = uv2s;
-        //uMesh.normals = normals;
-		uMesh.RecalculateNormals();
+        uMesh.RecalculateNormals();
 
         //calculate and assign adjusted trasnsform position
-        piece.transform.position += new Vector3(center.x, center.y, 0); 
+        piece.transform.position += new Vector3(center.x, center.y, 0);
 
 
         //set transform properties before fixing the pivot for easier rotation
@@ -679,13 +673,12 @@ public class TerrainMesh : MonoBehaviour
         Explodable fragExp = piece.AddComponent<Explodable>();
         fragExp.shatterType = Explodable.ShatterType.Voronoi;
         fragExp.allowRuntimeFragmentation = true;
-        fragExp.extraPoints = 1;
+        fragExp.extraPoints = 0;
         //fragExp.fragmentLayer = ;
         //fragExp.sortingLayerName = ;
         //fragExp.orderInLayer = ;
 
         piece.AddComponent<EarthBlock>();
-        piece.AddComponent<ExplodeOnClick>();
         piece.layer = gameObject.layer;
 
         return piece;
@@ -706,6 +699,8 @@ public class TerrainMesh : MonoBehaviour
 
             Gizmos.color = Color.red;
             DrawDiamonds(points, offset);
+            Gizmos.color = Color.green;
+            DrawDiamonds(gridPoints, offset);
         }
     }
 
