@@ -46,16 +46,23 @@ public class WeaponCrate : MonoBehaviour, Damageable
             PlayerController player = other.rigidbody.GetComponent<PlayerController>();
             if (player != null)
             {
-				if (Random.Range(0, 2) == 0) {
-					player.secondaryWeapon = SecondaryWeapon.Missiles;
-					player.missiles = 5;
-					player.flamerFuel = 0;
-				} else {
-					player.secondaryWeapon = SecondaryWeapon.Flamer;
-					player.missiles = 0;
-					player.flamerFuel = 10;
-				}
-				Destroy(gameObject);
+                player.removeSecondaryWeapon();
+                switch (Random.Range(0, 3))
+                {
+                    case 0:
+                        player.secondaryWeapon = SecondaryWeapon.Missiles;
+                        player.missiles = 5;
+                        break;
+                    case 1:
+                        player.secondaryWeapon = SecondaryWeapon.Flamer;
+                        player.flamerFuel = 10;
+                        break;
+                    case 2:
+                        player.secondaryWeapon = SecondaryWeapon.Laser;
+                        player.laserEnergy = 10;
+                        break;
+                }
+                Destroy(gameObject);
             }
         }
     }
@@ -67,13 +74,14 @@ public class WeaponCrate : MonoBehaviour, Damageable
         rb.AddForce(gravity);
     }
 
-	private bool alive = true;
+    private bool alive = true;
     public void doDamage(float damage)
     {
-		if (!alive) {
-			return;
-		}
-		alive = false;
+        if (!alive)
+        {
+            return;
+        }
+        alive = false;
         Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
         Vector2 dir;
         float wearoff;

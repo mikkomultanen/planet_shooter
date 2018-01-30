@@ -13,8 +13,10 @@ public enum Controls
 
 public enum SecondaryWeapon
 {
+    None,
     Missiles,
-    Flamer
+    Flamer,
+    Laser
 }
 
 public class PlayerController : MonoBehaviour, Damageable
@@ -32,10 +34,13 @@ public class PlayerController : MonoBehaviour, Damageable
     public float maxSpeed = 10f;
     public float fireRate = 0.2f;
     public float missileFireRate = 1f;
+    public float laserDamagePerSecond = 20f;
+
     public ParticleSystem thruster;
     public ParticleSystem flamer;
     public ParticleSystem smoke;
     public ParticleSystem explosion;
+    public LineRenderer laserRay;
 
     private float health;
     private Vector3 cameraOffset;
@@ -54,6 +59,7 @@ public class PlayerController : MonoBehaviour, Damageable
     public SecondaryWeapon secondaryWeapon = SecondaryWeapon.Missiles;
     public int missiles = 0;
     public float flamerFuel = 0;
+    public float laserEnergy = 0;
 
     // Use this for initialization
     void Start()
@@ -115,6 +121,8 @@ public class PlayerController : MonoBehaviour, Damageable
             GameObject clone = Instantiate(projectile, gunPoint.position, gunPoint.rotation) as GameObject;
             clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
         }
+        bool flamerOn = false;
+        bool laserOn = false;
         switch (secondaryWeapon)
         {
             case SecondaryWeapon.Missiles:
@@ -127,20 +135,50 @@ public class PlayerController : MonoBehaviour, Damageable
                 }
                 break;
             case SecondaryWeapon.Flamer:
-                bool flamerOn = Input.GetButton(fire2Button) && flamerFuel > 0;
-                if (flamerOn)
-                {
-                    flamerFuel -= Time.deltaTime;
-                }
-                if (flamerOn != flamer.isEmitting)
-                {
-                    if (flamerOn)
-                        flamer.Play();
-                    else
-                        flamer.Stop();
-                }
+                flamerOn = Input.GetButton(fire2Button) && flamerFuel > 0;
+                break;
+            case SecondaryWeapon.Laser:
+                laserOn = Input.GetButton(fire2Button) && laserEnergy > 0;
                 break;
         }
+        if (flamerOn)
+        {
+            flamerFuel -= Time.deltaTime;
+        }
+        if (flamerOn != flamer.isEmitting)
+        {
+            if (flamerOn)
+                flamer.Play();
+            else
+                flamer.Stop();
+        }
+        if (laserOn)
+        {
+            laserEnergy -= Time.deltaTime;
+            Vector2 position = laserRay.transform.position;
+            laserRay.useWorldSpace = true;
+            RaycastHit2D hit = Physics2D.Raycast(position, transform.up, 100);
+            if (hit.collider != null)
+            {
+                laserRay.SetPosition(0, position);
+                laserRay.SetPosition(1, hit.point);
+                Damageable damageable = hit.collider.GetComponent<Damageable>();
+                if (damageable != null)
+                {
+                    damageable.doDamage(laserDamagePerSecond * Time.smoothDeltaTime);
+                }
+            }
+            else
+            {
+                laserRay.SetPosition(0, position);
+                laserRay.SetPosition(1, Vector3.up * 100);
+            }
+        }
+        if (laserOn != laserRay.enabled)
+        {
+            laserRay.enabled = laserOn;
+        }
+
         var smokeEmission = smoke.emission;
         bool thrustersOn = Input.GetAxis(thrustAxis) > 0f;
         if (thrustersOn != thruster.isEmitting)
@@ -205,11 +243,18 @@ public class PlayerController : MonoBehaviour, Damageable
         return health > 0;
     }
 
+    public void removeSecondaryWeapon()
+    {
+        secondaryWeapon = SecondaryWeapon.None;
+        missiles = 0;
+        flamerFuel = 0;
+        laserEnergy = 0;
+    }
+
     public void respawn(Vector3 position)
     {
         health = maxHealth;
-        flamerFuel = 0;
-        missiles = 0;
+        removeSecondaryWeapon();
         transform.position = position;
         transform.up = position.normalized;
     }
