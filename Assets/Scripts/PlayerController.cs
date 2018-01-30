@@ -46,6 +46,8 @@ public class PlayerController : MonoBehaviour, Damageable
 	private string fire2Button;
 	private string fire3Button;
 	private string fire4Button;
+	public float flamerFuel = 0;
+	public int missiles = 0;
 
 	// Use this for initialization
 	void Start ()
@@ -103,12 +105,16 @@ public class PlayerController : MonoBehaviour, Damageable
 			GameObject clone = Instantiate (projectile, gunPoint.position, gunPoint.rotation) as GameObject;
 			clone.GetComponent<Rigidbody2D> ().velocity = rb.velocity;
 		}
-		if (Input.GetButton (fire2Button) && Time.time > nextMissileFire) {
+		if (Input.GetButton (fire2Button) && Time.time > nextMissileFire && missiles > 0) {
+			missiles--;
 			nextMissileFire = Time.time + missileFireRate;
 			GameObject clone = Instantiate (missile, missilePoint.position, missilePoint.rotation) as GameObject;
 			clone.GetComponent<Rigidbody2D> ().velocity = rb.velocity;
 		}
-		bool flamerOn = Input.GetButton (fire3Button);
+		bool flamerOn = Input.GetButton (fire3Button) && flamerFuel > 0;
+		if (flamerOn) {
+			flamerFuel -= Time.deltaTime;
+		}
 		if (flamerOn != flamer.isEmitting) {
 			if (flamerOn)
 				flamer.Play ();
