@@ -180,6 +180,8 @@ public class PlayerController : MonoBehaviour, Damageable
 	public void respawn (Vector3 position)
 	{
 		health = maxHealth;
+		flamerFuel = 0;
+		missiles = 0;
 		transform.position = position;
 		transform.up = position.normalized;
 	}

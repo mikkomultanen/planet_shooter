@@ -63,6 +63,12 @@ class Cave
         return direction.normalized * ceilingMagnitude(angle);
     }
 
+    public Vector2 center(Vector2 direction)
+    {
+        var angle = Mathf.Atan2(direction.x, direction.y);
+        return direction.normalized * centerMagnitude(angle);
+    }
+
     public Vector2 floor(Vector2 direction)
     {
         var angle = Mathf.Atan2(direction.x, direction.y);
@@ -102,6 +108,11 @@ class Cave
     public float ceilingMagnitude(float angle)
     {
         return waveValue(angle) + thicknessValue(angle) / 2;
+    }
+
+    public float centerMagnitude(float angle)
+    {
+        return waveValue(angle);
     }
 
     public float floorMagnitude(float angle)
@@ -187,6 +198,19 @@ public class TerrainMesh : MonoBehaviour
 #else
         GenerateTerrain();
 #endif
+    }
+
+    public static Vector2 RandomPointOnUnitCircle()
+    {
+        float angle = Random.Range(0f, Mathf.PI * 2);
+        float x = Mathf.Sin(angle);
+        float y = Mathf.Cos(angle);
+        return new Vector2(x, y);
+    }
+
+    public Vector2 randomCaveCenter()
+    {
+        return caves[Random.Range(0, caves.Count)].center(RandomPointOnUnitCircle());
     }
 
     private void GenerateCaves()
