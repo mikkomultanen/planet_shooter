@@ -47,9 +47,13 @@ public class WeaponCrate : MonoBehaviour, Damageable
             if (player != null)
             {
 				if (Random.Range(0, 2) == 0) {
-					player.flamerFuel = 10;
-				} else {
+					player.secondaryWeapon = SecondaryWeapon.Missiles;
 					player.missiles = 5;
+					player.flamerFuel = 0;
+				} else {
+					player.secondaryWeapon = SecondaryWeapon.Flamer;
+					player.missiles = 0;
+					player.flamerFuel = 10;
 				}
 				Destroy(gameObject);
             }
