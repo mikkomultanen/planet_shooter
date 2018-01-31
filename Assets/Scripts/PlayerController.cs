@@ -15,6 +15,7 @@ public enum SecondaryWeapon
 {
     None,
     Missiles,
+    Bombs,
     Flamer,
     Laser
 }
@@ -29,11 +30,12 @@ public class PlayerController : MonoBehaviour, Damageable
     public GameObject projectile;
     public Transform gunPoint;
     public GameObject missile;
+    public GameObject bomb;
     public float maxHealth = 100;
     public float maxThrustPower = 2000f;
     public float maxSpeed = 10f;
     public float fireRate = 0.2f;
-    public float missileFireRate = 1f;
+    public float secondaryFireRate = 1f;
     public float laserDamagePerSecond = 20f;
 
     public ParticleSystem thruster;
@@ -44,11 +46,11 @@ public class PlayerController : MonoBehaviour, Damageable
     public ParticleSystem laserSparkles;
 
     private float health;
-    private Vector3 cameraOffset;
+    private static Vector3 cameraOffset = new Vector3(0, 0, -10);
     private Rigidbody2D rb;
     private float originalDrag;
     private float nextFire = 0.0f;
-    private float nextMissileFire = 0.0f;
+    private float nextSecondaryFire = 0.0f;
     private int lasetLayerMask = ~(1 << 1);
     private float gravityForceMagnitude;
     private bool isInWater = false;
@@ -59,19 +61,20 @@ public class PlayerController : MonoBehaviour, Damageable
     private string fire3Button;
     private string fire4Button;
     public SecondaryWeapon secondaryWeapon = SecondaryWeapon.Missiles;
-    public int missiles = 0;
-    public float flamerFuel = 0;
-    public float laserEnergy = 0;
+    public int secondaryAmmunition = 0;
+    public float secondaryEnergy = 0;
 
+    private void Awake()
+    {
+        rb = gameObject.GetComponent<Rigidbody2D>();
+        originalDrag = rb.drag;
+        gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
+    }
     // Use this for initialization
     void Start()
     {
         health = maxHealth;
-        cameraOffset = new Vector3(0, 0, -10);
-        rb = gameObject.GetComponent<Rigidbody2D>();
         transform.up = rb.position.normalized;
-        originalDrag = rb.drag;
-        gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
         turnAxis = controls.ToString() + " Turn";
         thrustAxis = controls.ToString() + " Thrust";
         fire1Button = controls.ToString() + " Fire1";
@@ -128,24 +131,33 @@ public class PlayerController : MonoBehaviour, Damageable
         switch (secondaryWeapon)
         {
             case SecondaryWeapon.Missiles:
-                if (Input.GetButton(fire2Button) && Time.time > nextMissileFire && missiles > 0)
+                if (Input.GetButton(fire2Button) && Time.time > nextSecondaryFire && secondaryAmmunition > 0)
                 {
-                    missiles--;
-                    nextMissileFire = Time.time + missileFireRate;
+                    secondaryAmmunition--;
+                    nextSecondaryFire = Time.time + secondaryFireRate;
                     GameObject clone = Instantiate(missile, gunPoint.position, gunPoint.rotation) as GameObject;
                     clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
                 }
                 break;
+            case SecondaryWeapon.Bombs:
+                if (Input.GetButton(fire2Button) && Time.time > nextSecondaryFire && secondaryAmmunition > 0)
+                {
+                    secondaryAmmunition--;
+                    nextSecondaryFire = Time.time + secondaryFireRate;
+                    GameObject clone = Instantiate(bomb, gunPoint.position, gunPoint.rotation) as GameObject;
+                    clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
+                }
+                break;
             case SecondaryWeapon.Flamer:
-                flamerOn = Input.GetButton(fire2Button) && flamerFuel > 0;
+                flamerOn = Input.GetButton(fire2Button) && secondaryEnergy > 0;
                 break;
             case SecondaryWeapon.Laser:
-                laserOn = Input.GetButton(fire2Button) && laserEnergy > 0;
+                laserOn = Input.GetButton(fire2Button) && secondaryEnergy > 0;
                 break;
         }
         if (flamerOn)
         {
-            flamerFuel -= Time.deltaTime;
+            secondaryEnergy -= Time.deltaTime;
         }
         if (flamerOn != flamer.isEmitting)
         {
@@ -157,7 +169,7 @@ public class PlayerController : MonoBehaviour, Damageable
         bool laserSparklesOn = false;
         if (laserOn)
         {
-            laserEnergy -= Time.deltaTime;
+            secondaryEnergy -= Time.deltaTime;
             Vector2 position = laserRay.transform.position;
             RaycastHit2D hit = Physics2D.Raycast(position, transform.up, 100, lasetLayerMask);
             if (hit.collider != null)
@@ -255,9 +267,8 @@ public class PlayerController : MonoBehaviour, Damageable
     public void removeSecondaryWeapon()
     {
         secondaryWeapon = SecondaryWeapon.None;
-        missiles = 0;
-        flamerFuel = 0;
-        laserEnergy = 0;
+        secondaryAmmunition = 0;
+        secondaryEnergy = 0;
     }
 
     public void respawn(Vector3 position)
@@ -265,6 +276,8 @@ public class PlayerController : MonoBehaviour, Damageable
         health = maxHealth;
         removeSecondaryWeapon();
         transform.position = position;
+        rb.velocity = Vector2.zero;
+        rb.angularVelocity = 0;
         transform.up = position.normalized;
     }
 }

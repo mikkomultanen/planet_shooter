@@ -2,13 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class WeaponCrate : MonoBehaviour, Damageable
+public class WeaponCrate : Explosive, Damageable
 {
-
-    public float explosionDamage = 100f;
-    public float explosionForce = 50000f;
-    public float explosionRadius = 5f;
-    public ParticleSystem explosion;
 
     private Rigidbody2D rb;
     private float originalDrag;
@@ -47,19 +42,23 @@ public class WeaponCrate : MonoBehaviour, Damageable
             if (player != null)
             {
                 player.removeSecondaryWeapon();
-                switch (Random.Range(0, 3))
+                switch (Random.Range(0, 4))
                 {
                     case 0:
                         player.secondaryWeapon = SecondaryWeapon.Missiles;
-                        player.missiles = 5;
+                        player.secondaryAmmunition = 5;
                         break;
-                    case 1:
-                        player.secondaryWeapon = SecondaryWeapon.Flamer;
-                        player.flamerFuel = 10;
-                        break;
+					case 1:
+                        player.secondaryWeapon = SecondaryWeapon.Bombs;
+                        player.secondaryAmmunition = 5;
+						break;
                     case 2:
+                        player.secondaryWeapon = SecondaryWeapon.Flamer;
+                        player.secondaryEnergy = 10;
+                        break;
+                    case 3:
                         player.secondaryWeapon = SecondaryWeapon.Laser;
-                        player.laserEnergy = 10;
+                        player.secondaryEnergy = 10;
                         break;
                 }
                 Destroy(gameObject);
@@ -74,33 +73,8 @@ public class WeaponCrate : MonoBehaviour, Damageable
         rb.AddForce(gravity);
     }
 
-    private bool alive = true;
     public void doDamage(float damage)
     {
-        if (!alive)
-        {
-            return;
-        }
-        alive = false;
-        Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
-        Vector2 dir;
-        float wearoff;
-        Damageable damageable;
-        foreach (Collider2D coll in colliders)
-        {
-            damageable = coll.GetComponent<Damageable>();
-            if (damageable != null)
-            {
-                dir = (coll.transform.position - transform.position);
-                wearoff = 1 - (dir.magnitude / explosionRadius);
-                damageable.doDamage(explosionDamage * wearoff);
-            }
-        }
-
-        Instantiate(explosion, transform.position, transform.rotation);
-        ExplosionForce ef = GameObject.FindObjectOfType<ExplosionForce>();
-        ef.doExplosion(transform.position, explosionForce, explosionRadius);
-        Destroy(gameObject);
+		explode();
     }
-
 }
