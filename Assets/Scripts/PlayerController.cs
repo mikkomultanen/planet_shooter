@@ -41,6 +41,7 @@ public class PlayerController : MonoBehaviour, Damageable
     public ParticleSystem smoke;
     public ParticleSystem explosion;
     public LineRenderer laserRay;
+    public ParticleSystem laserSparkles;
 
     private float health;
     private Vector3 cameraOffset;
@@ -48,7 +49,7 @@ public class PlayerController : MonoBehaviour, Damageable
     private float originalDrag;
     private float nextFire = 0.0f;
     private float nextMissileFire = 0.0f;
-	private int lasetLayerMask = ~(1 << 1);
+    private int lasetLayerMask = ~(1 << 1);
     private float gravityForceMagnitude;
     private bool isInWater = false;
     private string turnAxis;
@@ -153,6 +154,7 @@ public class PlayerController : MonoBehaviour, Damageable
             else
                 flamer.Stop();
         }
+        bool laserSparklesOn = false;
         if (laserOn)
         {
             laserEnergy -= Time.deltaTime;
@@ -161,6 +163,8 @@ public class PlayerController : MonoBehaviour, Damageable
             if (hit.collider != null)
             {
                 laserRay.SetPosition(1, laserRay.transform.InverseTransformPoint(hit.point));
+                laserSparkles.transform.position = hit.point;
+                laserSparklesOn = true;
                 Damageable damageable = hit.collider.GetComponent<Damageable>();
                 if (damageable != null)
                 {
@@ -175,6 +179,13 @@ public class PlayerController : MonoBehaviour, Damageable
         if (laserOn != laserRay.enabled)
         {
             laserRay.enabled = laserOn;
+        }
+        if (laserSparklesOn != laserSparkles.isEmitting)
+        {
+            if (laserSparklesOn)
+                laserSparkles.Play();
+            else
+                laserSparkles.Stop();
         }
 
         var smokeEmission = smoke.emission;
