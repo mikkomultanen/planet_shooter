@@ -156,12 +156,10 @@ public class PlayerController : MonoBehaviour, Damageable
         {
             laserEnergy -= Time.deltaTime;
             Vector2 position = laserRay.transform.position;
-            laserRay.useWorldSpace = true;
             RaycastHit2D hit = Physics2D.Raycast(position, transform.up, 100);
             if (hit.collider != null)
             {
-                laserRay.SetPosition(0, position);
-                laserRay.SetPosition(1, hit.point);
+                laserRay.SetPosition(1, laserRay.transform.InverseTransformPoint(hit.point));
                 Damageable damageable = hit.collider.GetComponent<Damageable>();
                 if (damageable != null)
                 {
@@ -170,7 +168,6 @@ public class PlayerController : MonoBehaviour, Damageable
             }
             else
             {
-                laserRay.SetPosition(0, position);
                 laserRay.SetPosition(1, Vector3.up * 100);
             }
         }
