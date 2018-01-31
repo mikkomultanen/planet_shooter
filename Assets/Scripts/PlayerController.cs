@@ -48,6 +48,7 @@ public class PlayerController : MonoBehaviour, Damageable
     private float originalDrag;
     private float nextFire = 0.0f;
     private float nextMissileFire = 0.0f;
+	private int lasetLayerMask = ~(1 << 1);
     private float gravityForceMagnitude;
     private bool isInWater = false;
     private string turnAxis;
@@ -156,7 +157,7 @@ public class PlayerController : MonoBehaviour, Damageable
         {
             laserEnergy -= Time.deltaTime;
             Vector2 position = laserRay.transform.position;
-            RaycastHit2D hit = Physics2D.Raycast(position, transform.up, 100);
+            RaycastHit2D hit = Physics2D.Raycast(position, transform.up, 100, lasetLayerMask);
             if (hit.collider != null)
             {
                 laserRay.SetPosition(1, laserRay.transform.InverseTransformPoint(hit.point));
