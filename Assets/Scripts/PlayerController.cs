@@ -74,7 +74,6 @@ public class PlayerController : MonoBehaviour, Damageable
     void Start()
     {
         health = maxHealth;
-        transform.up = rb.position.normalized;
         turnAxis = controls.ToString() + " Turn";
         thrustAxis = controls.ToString() + " Thrust";
         fire1Button = controls.ToString() + " Fire1";
@@ -278,6 +277,6 @@ public class PlayerController : MonoBehaviour, Damageable
         transform.position = position;
         rb.velocity = Vector2.zero;
         rb.angularVelocity = 0;
-        transform.up = position.normalized;
+        rb.rotation = -Mathf.Atan2(position.x, position.y) * Mathf.Rad2Deg;
     }
 }
