@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using Delaunay;
-using Delaunay.Geo;
+using TriangleNet.Geometry;
+using TriangleNet.Meshing;
+using TriangleNet.Topology;
 
 class Noise
 {
@@ -257,42 +258,52 @@ public class TerrainMesh : MonoBehaviour
         points.AddRange(shafts.coords(shaftSteps));
         points = points.Where(p => shouldAdd(p)).ToList();
 
-        Rect rect = new Rect(-outerRadius, -outerRadius, 2 * outerRadius, 2 * outerRadius);
-        Voronoi voronoi = new Delaunay.Voronoi(points, null, rect);
-        var coords = voronoi.SiteCoords();
+        var imesh = new GenericMesher().Triangulate(points.Select(toVertex).ToList());
+        var coords = new List<Vector2>();
         var triangles = new List<int>();
-        foreach (Triangle triangle in voronoi.Triangles())
+        foreach (var triangle in imesh.Triangles)
         {
-            if (shouldAdd(triangle))
-            {
-                foreach (Site site in triangle.sites)
+            var list = triangle.vertices.Select(toVector2).Reverse().ToList();
+            if (shouldAdd(list))
+            {   
+                foreach (var v in list)
                 {
-                    triangles.Add(indexOf(coords, site.Coord));
+                    var index = indexOf(coords, v);
+                    if (index < 0) {
+                        index = coords.Count;
+                        coords.Add(v);
+                    }
+                    triangles.Add(index);
                 }
             }
         }
         GeneratePolygons(coords, triangles);
 
-        points = polygons.Aggregate(new List<Vector2>(), (list, polygon) =>
+        points = polygons.Aggregate(new List<Vector2>(), (list, p) =>
         {
-            list.AddRange(polygon.points);
+            list.AddRange(p.points);
             return list;
         });
 
-        GenerateGridPoints();
+        //GenerateGridPoints();
 
-        GeneratePiecePolygons();
-        GenerateFragments();
+        //GeneratePiecePolygons();
+        //GenerateFragments();
 
-        //GenerateMesh();
-        //GenerateColliders();
+        GenerateMesh();
+        GenerateColliders();
+    }
+
+    private static Contour createContour(IEnumerable<Vector2> points)
+    {
+        return new Contour(points.Select(toVertex));
     }
 
     private int indexOf(List<Vector2> coords, Vector2 coord)
     {
         for (int i = 0; i < coords.Count; i++)
         {
-            if (Site.CloseEnough(coords[i], coord))
+            if ((coords[i] - coord).sqrMagnitude < 0.01)
             {
                 return i;
             }
@@ -300,16 +311,25 @@ public class TerrainMesh : MonoBehaviour
         return -1;
     }
 
-    private Vector2 getCenter(Triangle triangle)
+    private Vector2 getCenter(List<Vector2> triangle)
     {
-        return triangle.sites.Aggregate(Vector2.zero, (center, next) => center + next.Coord) / 3;
+        return triangle.Aggregate(Vector2.zero, (center, next) => center + next) / 3;
     }
 
-    private bool shouldAdd(Triangle triangle)
+    private static Vertex toVertex(Vector2 vector)
+    {
+        return new Vertex(vector.x, vector.y);
+    }
+    private static Vector2 toVector2(Vertex vertex)
+    {
+        return new Vector2((float)vertex.X, (float)vertex.Y);
+    }
+
+    private bool shouldAdd(List<Vector2> triangle)
     {
         return shouldAdd(getCenter(triangle));
     }
-
+    
     private bool shouldAdd(Vector2 coord)
     {
         var magnitude = coord.magnitude;
@@ -440,6 +460,7 @@ public class TerrainMesh : MonoBehaviour
         }
     }
 
+    /*
     private void GenerateGridPoints()
     {
         gridPoints.Clear();
@@ -493,6 +514,7 @@ public class TerrainMesh : MonoBehaviour
             .Select(clippedRegion => new PSPolygon(clippedRegion));
     }
 
+*/
     private void GenerateMesh()
     {
         MeshFilter meshFilter = GetComponent<MeshFilter>();
@@ -509,18 +531,25 @@ public class TerrainMesh : MonoBehaviour
         int currentIndex = 0;
         foreach (PSPolygon polygon in polygons)
         {
-            // TODO use better trianglator
-            Voronoi voronoi = new Delaunay.Voronoi(polygon.points.ToList(), null, polygon.Bounds);
-            var coords = voronoi.SiteCoords();
+            var poly = new Polygon();
+            poly.Add(createContour(polygon.points));
+            var quality = new QualityOptions();
+            quality.MinimumAngle = 36;
+            quality.MaximumAngle = 91;
+            var imesh = poly.Triangulate(quality);
+            var coords = new List<Vector2>();
             var triangles = new List<int>();
-            foreach (Triangle triangle in voronoi.Triangles())
+            foreach (Triangle triangle in imesh.Triangles)
             {
-                if (polygon.PointInPolygon(getCenter(triangle)))
+                var list = triangle.vertices.Select(toVector2).Reverse().ToList();
+                foreach (var v in list)
                 {
-                    foreach (Site site in triangle.sites)
-                    {
-                        triangles.Add(currentIndex + indexOf(coords, site.Coord));
+                    var index = indexOf(coords, v);
+                    if (index < 0) {
+                        index = coords.Count;
+                        coords.Add(v);
                     }
+                    triangles.Add(currentIndex + index);
                 }
             }
             allVertices.AddRange(coords);
@@ -601,7 +630,7 @@ public class TerrainMesh : MonoBehaviour
             polygonCollider.SetPath(polygonCollider.pathCount - 1, polygon.points);
         }
     }
-
+    /*
 #if UNITY_EDITOR
     [ContextMenu("Delete fragments")]
 #endif
@@ -707,7 +736,7 @@ public class TerrainMesh : MonoBehaviour
 
         return piece;
     }
-
+     */
 #if UNITY_EDITOR
     void OnDrawGizmos()
     {
@@ -716,8 +745,8 @@ public class TerrainMesh : MonoBehaviour
             Gizmos.matrix = transform.localToWorldMatrix;
             Vector2 offset = (Vector2)transform.position * 0;
 
-            //Gizmos.color = Color.yellow;
-            //polygons.ForEach(p => DrawPolygon(p, offset));
+            Gizmos.color = Color.yellow;
+            polygons.ForEach(p => DrawPolygon(p, offset));
             Gizmos.color = Color.cyan;
             piecePolygons.ForEach(p => DrawPolygon(p, offset));
 
