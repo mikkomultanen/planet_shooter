@@ -2,8 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using ClipperLib;
+using ClipperLibPolygon = System.Collections.Generic.List<ClipperLib.IntPoint>;
+using ClipperLibPolygons = System.Collections.Generic.List<System.Collections.Generic.List<ClipperLib.IntPoint>>;
 
-sealed class PSPolygon
+public sealed class PSPolygon
 {
     public readonly Vector2[] points;
     private float[] constant = null;
@@ -107,5 +110,45 @@ sealed class PSPolygon
             maxY = Mathf.Max(maxY, point.y);
         }
         return new Rect(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    private static float multiplier = 1000;
+    public static List<PSPolygon> remove(PSPolygon polygon, PSPolygon remove)
+    {
+        ClipperLibPolygons polygonPoly = createPolygons(polygon.points);
+        ClipperLibPolygons removePoly = createPolygons(remove.points);
+
+        //clip triangular polygon against the boundary polygon
+        ClipperLibPolygons result = new ClipperLibPolygons();
+        Clipper c = new Clipper();
+        c.AddPaths(removePoly, PolyType.ptClip, true);
+        c.AddPaths(polygonPoly, PolyType.ptSubject, true);
+        c.Execute(ClipType.ctDifference, result, PolyFillType.pftEvenOdd, PolyFillType.pftEvenOdd);
+
+        List<PSPolygon> clippedPolygons = new List<PSPolygon>();
+
+        foreach (ClipperLibPolygon poly in result)
+        {
+            List<Vector2> clippedPoly = new List<Vector2>();
+            foreach (IntPoint p in poly)
+            {
+                clippedPoly.Add(new Vector2(p.X, p.Y) / multiplier);
+            }
+            clippedPolygons.Add(new PSPolygon(clippedPoly));
+
+        }
+        return clippedPolygons;
+    }
+
+    private static ClipperLibPolygons createPolygons(ICollection<Vector2> source)
+    {
+        ClipperLibPolygons poly = new ClipperLibPolygons(1);
+        poly.Add(new ClipperLibPolygon(source.Count));
+        foreach (Vector2 p in source)
+        {
+            poly[0].Add(new IntPoint(p.x * multiplier, p.y * multiplier));
+        }
+
+        return poly;
     }
 }

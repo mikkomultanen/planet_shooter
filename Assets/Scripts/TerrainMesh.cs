@@ -5,6 +5,9 @@ using UnityEngine;
 using TriangleNet.Geometry;
 using TriangleNet.Meshing;
 using TriangleNet.Topology;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 class Noise
 {
@@ -175,6 +178,49 @@ class Shafts
     }
 }
 
+public class TerrainBlock 
+{
+    public PSPolygon polygon;
+    public List<List<Vector2>> meshTriangles = new List<List<Vector2>>();
+
+    public List<Vector2> vertices = new List<Vector2>();
+    public List<int> triangles = new List<int>();
+    public TerrainBlock(PSPolygon polygon)
+    {
+        this.polygon = polygon;
+        GenerateMeshTriangles();
+        GenerateMesh();
+    }
+
+    private void GenerateMeshTriangles()
+    {
+        var poly = new Polygon();
+        poly.Add(TerrainMesh.createContour(polygon.points));
+        var quality = new QualityOptions();
+        quality.MinimumAngle = 36;
+        quality.MaximumAngle = 91;
+        var imesh = poly.Triangulate(quality);
+        meshTriangles = imesh.Triangles.Select(t => t.vertices.Select(TerrainMesh.toVector2).Reverse().ToList()).ToList();
+    }
+
+    private void GenerateMesh() {
+        vertices.Clear();
+        triangles.Clear();
+        foreach (var triangle in meshTriangles)
+        {
+            foreach (var v in triangle)
+            {
+                var index = TerrainMesh.indexOf(vertices, v);
+                if (index < 0) {
+                    index = vertices.Count;
+                    vertices.Add(v);
+                }
+                triangles.Add(index);
+            }
+        }
+    }
+}
+
 [RequireComponent(typeof(MeshFilter))]
 public class TerrainMesh : MonoBehaviour
 {
@@ -189,16 +235,11 @@ public class TerrainMesh : MonoBehaviour
     private List<Cave> caves = new List<Cave>();
     private Shafts shafts;
     private List<Vector2> points = new List<Vector2>();
-    private List<Vector2> gridPoints = new List<Vector2>();
-    private List<PSPolygon> polygons = new List<PSPolygon>();
-    private List<PSPolygon> piecePolygons = new List<PSPolygon>();
+    private List<TerrainBlock> terrainBlocks = new List<TerrainBlock>();
 
     private void Awake()
     {
-#if UNITY_EDITOR
-#else
         GenerateTerrain();
-#endif
     }
 
     public static Vector2 RandomPointOnUnitCircle()
@@ -277,29 +318,23 @@ public class TerrainMesh : MonoBehaviour
                 }
             }
         }
-        GeneratePolygons(coords, triangles);
+        GenerateTerrainBlocks(coords, triangles);
 
-        points = polygons.Aggregate(new List<Vector2>(), (list, p) =>
+        points = terrainBlocks.Aggregate(new List<Vector2>(), (list, p) =>
         {
-            list.AddRange(p.points);
+            list.AddRange(p.polygon.points);
             return list;
         });
 
-        //GenerateGridPoints();
-
-        //GeneratePiecePolygons();
-        //GenerateFragments();
-
-        GenerateMesh();
-        GenerateColliders();
+        GenerateFragments();
     }
 
-    private static Contour createContour(IEnumerable<Vector2> points)
+    public static Contour createContour(IEnumerable<Vector2> points)
     {
         return new Contour(points.Select(toVertex));
     }
 
-    private int indexOf(List<Vector2> coords, Vector2 coord)
+    public static int indexOf(List<Vector2> coords, Vector2 coord)
     {
         for (int i = 0; i < coords.Count; i++)
         {
@@ -311,16 +346,16 @@ public class TerrainMesh : MonoBehaviour
         return -1;
     }
 
-    private Vector2 getCenter(List<Vector2> triangle)
+    public static Vector2 getCenter(List<Vector2> coords)
     {
-        return triangle.Aggregate(Vector2.zero, (center, next) => center + next) / 3;
+        return coords.Aggregate(Vector2.zero, (center, next) => center + next) / coords.Count;
     }
 
-    private static Vertex toVertex(Vector2 vector)
+    public static Vertex toVertex(Vector2 vector)
     {
         return new Vertex(vector.x, vector.y);
     }
-    private static Vector2 toVector2(Vertex vertex)
+    public static Vector2 toVector2(Vertex vertex)
     {
         return new Vector2((float)vertex.X, (float)vertex.Y);
     }
@@ -351,7 +386,7 @@ public class TerrainMesh : MonoBehaviour
         return false;
     }
 
-    private void GeneratePolygons(List<Vector2> vertices, List<int> triangles)
+    private void GenerateTerrainBlocks(List<Vector2> vertices, List<int> triangles)
     {
         // Get just the outer edges from the mesh's triangles (ignore or remove any shared edges)
         Dictionary<string, KeyValuePair<int, int>> edges = new Dictionary<string, KeyValuePair<int, int>>();
@@ -385,7 +420,7 @@ public class TerrainMesh : MonoBehaviour
             }
         }
 
-        polygons.Clear();
+        terrainBlocks.Clear();
 
         // Loop through edge vertices in order
         int startVert = 0;
@@ -406,7 +441,7 @@ public class TerrainMesh : MonoBehaviour
                     var polygon = new PSPolygon(loop.Select(index => vertices[index]));
                     if (polygon.Area > 20)
                     {
-                        polygons.Add(polygon);
+                        terrainBlocks.Add(new TerrainBlock(polygon));
                     }
                 }
                 colliderPath.Clear();
@@ -438,7 +473,7 @@ public class TerrainMesh : MonoBehaviour
                     var polygon = new PSPolygon(colliderPath.Select(index => vertices[index]));
                     if (polygon.Area > 20)
                     {
-                        polygons.Add(polygon);
+                        terrainBlocks.Add(new TerrainBlock(polygon));
                     }
                 }
                 colliderPath.Clear();
@@ -460,112 +495,6 @@ public class TerrainMesh : MonoBehaviour
         }
     }
 
-    /*
-    private void GenerateGridPoints()
-    {
-        gridPoints.Clear();
-
-        Rect rect = new Rect(-outerRadius, -outerRadius, 2 * outerRadius, 2 * outerRadius);
-        float ratio = Mathf.Sqrt(3) / 2;
-        float n = Mathf.Sqrt(20000 / ratio);
-        int rows = Mathf.RoundToInt(n);
-        float rowHeight = rect.height / rows;
-        int columns = Mathf.RoundToInt(n * ratio);
-        float columnWidth = rect.width / columns;
-
-        float x0 = rect.width / -2 + rect.center.x + columnWidth / 2;
-        float y0 = rect.height / -2 + rect.center.y + rowHeight / 2;
-
-        float x, y, xOffset;
-        float randomVariation = 0.4f;
-        Vector2 point;
-        for (int i = 0; i < rows; i++)
-        {
-            y = y0 + i * rowHeight;
-            xOffset = i % 2 == 0 ? -columnWidth / 4 : columnWidth / 4;
-            for (int j = 0; j < columns; j++)
-            {
-                x = x0 + j * columnWidth + xOffset;
-                point = new Vector2(
-                    Random.Range(randomVariation * columnWidth / -2 + x, randomVariation * columnWidth / 2 + x),
-                    Random.Range(randomVariation * rowHeight / -2 + y, randomVariation * rowHeight / 2 + y)
-                );
-                if (polygons.Any(p => p.PointInPolygon(point)))
-                {
-                    gridPoints.Add(point);
-                }
-            }
-        }
-    }
-
-    private void GeneratePiecePolygons()
-    {
-        piecePolygons.Clear();
-        piecePolygons.AddRange(polygons.SelectMany(SplitPolygon));
-    }
-
-    private IEnumerable<PSPolygon> SplitPolygon(PSPolygon polygon)
-    {
-        var points = gridPoints.Where(polygon.PointInPolygon).ToList();
-        var borderPoints = polygon.points.ToList();
-        Voronoi voronoi = new Delaunay.Voronoi(points, null, polygon.Bounds);
-        return voronoi.Regions()
-            .SelectMany(region => ClipperHelper.clip(borderPoints, region))
-            .Select(clippedRegion => new PSPolygon(clippedRegion));
-    }
-
-*/
-    private void GenerateMesh()
-    {
-        MeshFilter meshFilter = GetComponent<MeshFilter>();
-        Mesh mesh = meshFilter.sharedMesh;
-        if (mesh == null)
-        {
-            meshFilter.mesh = new Mesh();
-            mesh = meshFilter.sharedMesh;
-        }
-        mesh.Clear();
-
-        var allVertices = new List<Vector2>();
-        var allTriangles = new List<int>();
-        int currentIndex = 0;
-        foreach (PSPolygon polygon in polygons)
-        {
-            var poly = new Polygon();
-            poly.Add(createContour(polygon.points));
-            var quality = new QualityOptions();
-            quality.MinimumAngle = 36;
-            quality.MaximumAngle = 91;
-            var imesh = poly.Triangulate(quality);
-            var coords = new List<Vector2>();
-            var triangles = new List<int>();
-            foreach (Triangle triangle in imesh.Triangles)
-            {
-                var list = triangle.vertices.Select(toVector2).Reverse().ToList();
-                foreach (var v in list)
-                {
-                    var index = indexOf(coords, v);
-                    if (index < 0) {
-                        index = coords.Count;
-                        coords.Add(v);
-                    }
-                    triangles.Add(currentIndex + index);
-                }
-            }
-            allVertices.AddRange(coords);
-            allTriangles.AddRange(triangles);
-            currentIndex = allVertices.Count;
-        }
-
-        mesh.vertices = allVertices.Select(c => new Vector3(c.x, c.y, 0)).ToArray();
-        //mesh.normals = allVertices.Select(caveNormal).ToArray();
-        mesh.uv = allVertices.Select(getUV).ToArray();
-        mesh.uv2 = allVertices.Select(getUV2).ToArray();
-        mesh.triangles = allTriangles.ToArray();
-        mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
-    }
-
     private Vector3 caveNormal(Vector2 coord)
     {
         var angle = Mathf.Atan2(coord.x, coord.y);
@@ -585,14 +514,14 @@ public class TerrainMesh : MonoBehaviour
         }
     }
 
-    private Vector2 getUV(Vector2 coord)
+    public Vector2 getUV(Vector2 coord)
     {
         var angle = Mathf.Atan2(coord.x, coord.y);
         var magnitude = coord.magnitude;
         return new Vector2(angle / (2 * Mathf.PI) * textureScaleU, Mathf.Clamp01((magnitude - innerRadius) / (outerRadius - innerRadius)) * textureScaleV);
     }
 
-    private Vector2 getUV2(Vector2 coord)
+    public Vector2 getUV2(Vector2 coord)
     {
         var angle = Mathf.Atan2(coord.x, coord.y);
         var magnitude = coord.magnitude;
@@ -612,25 +541,6 @@ public class TerrainMesh : MonoBehaviour
         return new Vector2(u, v);
     }
 
-    private void GenerateColliders()
-    {
-#if UNITY_EDITOR
-        DestroyImmediate(GetComponent<PolygonCollider2D>());
-#else
-		Destroy(GetComponent<PolygonCollider2D>());
-#endif
-        // Create empty polygon collider
-        PolygonCollider2D polygonCollider = gameObject.AddComponent<PolygonCollider2D>();
-        polygonCollider.pathCount = 0;
-
-        foreach (PSPolygon polygon in polygons)
-        {
-            // Add path to polygon collider
-            polygonCollider.pathCount++;
-            polygonCollider.SetPath(polygonCollider.pathCount - 1, polygon.points);
-        }
-    }
-    /*
 #if UNITY_EDITOR
     [ContextMenu("Delete fragments")]
 #endif
@@ -650,22 +560,17 @@ public class TerrainMesh : MonoBehaviour
     {
         DeleteFragments();
         var mat = GetComponent<MeshRenderer>().sharedMaterial;
-        foreach (PSPolygon piecePolygon in piecePolygons)
-        {
-            fragments.Add(GenerateVoronoiPiece(piecePolygon, mat));
-        }
-
+        fragments.AddRange(terrainBlocks.Select(b => GenerateFragment(b, mat)));
         Resources.UnloadUnusedAssets();
     }
 
-    private GameObject GenerateVoronoiPiece(PSPolygon polygon, Material mat)
+    private GameObject GenerateFragment(TerrainBlock block, Material mat)
     {
         GameObject piece = new GameObject(gameObject.name + " piece");
         piece.transform.position = gameObject.transform.position;
         piece.transform.rotation = gameObject.transform.rotation;
         piece.transform.localScale = gameObject.transform.localScale;
 
-        //Create and Add Mesh Components
         MeshFilter meshFilter = (MeshFilter)piece.AddComponent(typeof(MeshFilter));
         piece.AddComponent(typeof(MeshRenderer));
 
@@ -676,67 +581,29 @@ public class TerrainMesh : MonoBehaviour
             uMesh = meshFilter.sharedMesh;
         }
 
-        // TODO replace with better triangulator
-        Voronoi voronoi = new Voronoi(polygon.points.ToList(), null, polygon.Bounds);
-
-        var vertices = voronoi.SiteCoords();
-        var triangles = new List<int>();
-        foreach (Triangle triangle in voronoi.Triangles())
-        {
-            if (polygon.PointInPolygon(getCenter(triangle)))
-            {
-                foreach (Site site in triangle.sites)
-                {
-                    triangles.Add(indexOf(vertices, site.Coord));
-                }
-            }
-        }
-        var center = vertices.Aggregate(Vector2.zero, (c, v) => c + v) / vertices.Count;
-
-        uMesh.vertices = vertices.Select(p => new Vector3(p.x - center.x, p.y - center.y, 0)).ToArray();
-        uMesh.uv = vertices.Select(getUV).ToArray();
-        uMesh.uv2 = vertices.Select(getUV2).ToArray();
-        uMesh.triangles = triangles.ToArray();
+        uMesh.vertices = block.vertices.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
+        uMesh.uv = block.vertices.Select(getUV).ToArray();
+        uMesh.uv2 = block.vertices.Select(getUV2).ToArray();
+        uMesh.triangles = block.triangles.ToArray();
         uMesh.RecalculateNormals();
-
-        //calculate and assign adjusted trasnsform position
-        piece.transform.position += new Vector3(center.x, center.y, 0);
-
-
-        //set transform properties before fixing the pivot for easier rotation
-        //piece.transform.localScale = origScale;
-        //piece.transform.localRotation = origRotation;
-
         uMesh.RecalculateBounds();
 
         piece.GetComponent<MeshRenderer>().sharedMaterial = mat;
-
-        //assign mesh
         meshFilter.mesh = uMesh;
 
-        //Create and Add Polygon Collider
         PolygonCollider2D collider = piece.AddComponent<PolygonCollider2D>();
-        collider.SetPath(0, polygon.points.Select(p => p - center).ToArray());
+        collider.SetPath(0, block.polygon.points);
 
-        //Create and Add Rigidbody
-        Rigidbody2D rigidbody = piece.AddComponent<Rigidbody2D>();
-        rigidbody.mass = polygon.Area * 100;
-        rigidbody.bodyType = RigidbodyType2D.Static;
+        var terrainPiece = piece.AddComponent<TerrainPiece>();
+        terrainPiece.terrainMesh = this;
+        terrainPiece.terrainBlocks = new List<TerrainBlock>();
+        terrainPiece.terrainBlocks.Add(block);
 
-        Explodable fragExp = piece.AddComponent<Explodable>();
-        fragExp.shatterType = Explodable.ShatterType.Voronoi;
-        fragExp.allowRuntimeFragmentation = true;
-        fragExp.extraPoints = 0;
-        //fragExp.fragmentLayer = ;
-        //fragExp.sortingLayerName = ;
-        //fragExp.orderInLayer = ;
-
-        piece.AddComponent<EarthBlock>();
         piece.layer = gameObject.layer;
 
         return piece;
     }
-     */
+
 #if UNITY_EDITOR
     void OnDrawGizmos()
     {
@@ -746,14 +613,10 @@ public class TerrainMesh : MonoBehaviour
             Vector2 offset = (Vector2)transform.position * 0;
 
             Gizmos.color = Color.yellow;
-            polygons.ForEach(p => DrawPolygon(p, offset));
-            Gizmos.color = Color.cyan;
-            piecePolygons.ForEach(p => DrawPolygon(p, offset));
+            terrainBlocks.ForEach(b => DrawPolygon(b.polygon, offset));
 
             Gizmos.color = Color.red;
             DrawDiamonds(points, offset);
-            Gizmos.color = Color.green;
-            DrawDiamonds(gridPoints, offset);
         }
     }
 
