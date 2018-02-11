@@ -12,6 +12,8 @@ using UnityEditor;
 
 public class TerrainPiece : MonoBehaviour
 {
+	private CompositeDisposable disposeBag = new CompositeDisposable();
+
     private sealed class MeshData
     {
         public Vector2[] vertices;
@@ -37,8 +39,15 @@ public class TerrainPiece : MonoBehaviour
         .ObserveOn(Scheduler.ThreadPool)
         .Scan(initialMeshData, (data, clipPolygon) => UpdateMeshData(data, clipPolygon))
         .ObserveOnMainThread()
-        .Subscribe(onNext: result => UpdateMesh(result));
+        .Subscribe(onNext: result => UpdateMesh(result))
+		.AddTo(disposeBag);
     }
+
+	private void OnDestroy() {
+		disposeBag.Dispose();
+		disposeBag = null;
+	}
+
     public TerrainMesh terrainMesh;
     public void destroyTerrain(Vector2 position, float radius)
     {
