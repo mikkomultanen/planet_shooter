@@ -113,31 +113,18 @@ public sealed class PSPolygon
     }
 
     private static float multiplier = 1000;
-    public static List<PSPolygon> remove(PSPolygon polygon, PSPolygon remove)
+    public static List<PSPolygon> difference(PSPolygon subject, PSPolygon clip)
     {
-        ClipperLibPolygons polygonPoly = createPolygons(polygon.points);
-        ClipperLibPolygons removePoly = createPolygons(remove.points);
-
-        //clip triangular polygon against the boundary polygon
+        return PSPolygon.difference(subject.points, clip.points).Select(p => new PSPolygon(p)).ToList();
+    }
+    public static IEnumerable<IEnumerable<Vector2>> difference(ICollection<Vector2> subject, ICollection<Vector2> clip)
+    {
         ClipperLibPolygons result = new ClipperLibPolygons();
         Clipper c = new Clipper();
-        c.AddPaths(removePoly, PolyType.ptClip, true);
-        c.AddPaths(polygonPoly, PolyType.ptSubject, true);
+        c.AddPaths(createPolygons(clip), PolyType.ptClip, true);
+        c.AddPaths(createPolygons(subject), PolyType.ptSubject, true);
         c.Execute(ClipType.ctDifference, result, PolyFillType.pftEvenOdd, PolyFillType.pftEvenOdd);
-
-        List<PSPolygon> clippedPolygons = new List<PSPolygon>();
-
-        foreach (ClipperLibPolygon poly in result)
-        {
-            List<Vector2> clippedPoly = new List<Vector2>();
-            foreach (IntPoint p in poly)
-            {
-                clippedPoly.Add(new Vector2(p.X, p.Y) / multiplier);
-            }
-            clippedPolygons.Add(new PSPolygon(clippedPoly));
-
-        }
-        return clippedPolygons;
+        return result.Select(poly => poly.Select(p => new Vector2(p.X, p.Y) / multiplier));
     }
 
     private static ClipperLibPolygons createPolygons(ICollection<Vector2> source)

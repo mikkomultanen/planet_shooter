@@ -178,49 +178,6 @@ class Shafts
     }
 }
 
-public class TerrainBlock 
-{
-    public PSPolygon polygon;
-    public List<List<Vector2>> meshTriangles = new List<List<Vector2>>();
-
-    public List<Vector2> vertices = new List<Vector2>();
-    public List<int> triangles = new List<int>();
-    public TerrainBlock(PSPolygon polygon)
-    {
-        this.polygon = polygon;
-        GenerateMeshTriangles();
-        GenerateMesh();
-    }
-
-    private void GenerateMeshTriangles()
-    {
-        var poly = new Polygon();
-        poly.Add(TerrainMesh.createContour(polygon.points));
-        var quality = new QualityOptions();
-        quality.MinimumAngle = 36;
-        quality.MaximumAngle = 91;
-        var imesh = poly.Triangulate(quality);
-        meshTriangles = imesh.Triangles.Select(t => t.vertices.Select(TerrainMesh.toVector2).Reverse().ToList()).ToList();
-    }
-
-    private void GenerateMesh() {
-        vertices.Clear();
-        triangles.Clear();
-        foreach (var triangle in meshTriangles)
-        {
-            foreach (var v in triangle)
-            {
-                var index = TerrainMesh.indexOf(vertices, v);
-                if (index < 0) {
-                    index = vertices.Count;
-                    vertices.Add(v);
-                }
-                triangles.Add(index);
-            }
-        }
-    }
-}
-
 [RequireComponent(typeof(MeshFilter))]
 public class TerrainMesh : MonoBehaviour
 {
@@ -234,8 +191,9 @@ public class TerrainMesh : MonoBehaviour
 
     private List<Cave> caves = new List<Cave>();
     private Shafts shafts;
-    private List<Vector2> points = new List<Vector2>();
-    private List<TerrainBlock> terrainBlocks = new List<TerrainBlock>();
+#if UNITY_EDITOR
+    private List<PSPolygon> polygons = new List<PSPolygon>();
+#endif
 
     private void Awake()
     {
@@ -274,7 +232,7 @@ public class TerrainMesh : MonoBehaviour
     private void GenerateTerrain()
     {
         GenerateCaves();
-        points.Clear();
+        var points = new List<Vector2>();
 
         var direction = new Vector2(1, 0);
         var innerStepsMod = Mathf.CeilToInt(outerRadius / innerRadius);
@@ -306,11 +264,12 @@ public class TerrainMesh : MonoBehaviour
         {
             var list = triangle.vertices.Select(toVector2).Reverse().ToList();
             if (shouldAdd(list))
-            {   
+            {
                 foreach (var v in list)
                 {
                     var index = indexOf(coords, v);
-                    if (index < 0) {
+                    if (index < 0)
+                    {
                         index = coords.Count;
                         coords.Add(v);
                     }
@@ -318,15 +277,13 @@ public class TerrainMesh : MonoBehaviour
                 }
             }
         }
-        GenerateTerrainBlocks(coords, triangles);
+        var polygons = GeneratePolygons(coords, triangles);
 
-        points = terrainBlocks.Aggregate(new List<Vector2>(), (list, p) =>
-        {
-            list.AddRange(p.polygon.points);
-            return list;
-        });
+#if UNITY_EDITOR
+        this.polygons = polygons;
+#endif
 
-        GenerateFragments();
+        GenerateFragments(polygons);
     }
 
     public static Contour createContour(IEnumerable<Vector2> points)
@@ -364,7 +321,7 @@ public class TerrainMesh : MonoBehaviour
     {
         return shouldAdd(getCenter(triangle));
     }
-    
+
     private bool shouldAdd(Vector2 coord)
     {
         var magnitude = coord.magnitude;
@@ -386,7 +343,7 @@ public class TerrainMesh : MonoBehaviour
         return false;
     }
 
-    private void GenerateTerrainBlocks(List<Vector2> vertices, List<int> triangles)
+    private List<PSPolygon> GeneratePolygons(List<Vector2> vertices, List<int> triangles)
     {
         // Get just the outer edges from the mesh's triangles (ignore or remove any shared edges)
         Dictionary<string, KeyValuePair<int, int>> edges = new Dictionary<string, KeyValuePair<int, int>>();
@@ -420,7 +377,7 @@ public class TerrainMesh : MonoBehaviour
             }
         }
 
-        terrainBlocks.Clear();
+        var polygons = new List<PSPolygon>();
 
         // Loop through edge vertices in order
         int startVert = 0;
@@ -441,7 +398,7 @@ public class TerrainMesh : MonoBehaviour
                     var polygon = new PSPolygon(loop.Select(index => vertices[index]));
                     if (polygon.Area > 20)
                     {
-                        terrainBlocks.Add(new TerrainBlock(polygon));
+                        polygons.Add(polygon);
                     }
                 }
                 colliderPath.Clear();
@@ -473,7 +430,7 @@ public class TerrainMesh : MonoBehaviour
                     var polygon = new PSPolygon(colliderPath.Select(index => vertices[index]));
                     if (polygon.Area > 20)
                     {
-                        terrainBlocks.Add(new TerrainBlock(polygon));
+                        polygons.Add(polygon);
                     }
                 }
                 colliderPath.Clear();
@@ -493,6 +450,8 @@ public class TerrainMesh : MonoBehaviour
                 break;
             }
         }
+
+        return polygons;
     }
 
     private Vector3 caveNormal(Vector2 coord)
@@ -556,15 +515,15 @@ public class TerrainMesh : MonoBehaviour
         }
         fragments.Clear();
     }
-    private void GenerateFragments()
+    private void GenerateFragments(List<PSPolygon> polygons)
     {
         DeleteFragments();
         var mat = GetComponent<MeshRenderer>().sharedMaterial;
-        fragments.AddRange(terrainBlocks.Select(b => GenerateFragment(b, mat)));
+        fragments.AddRange(polygons.Select(p => GenerateFragment(p, mat)));
         Resources.UnloadUnusedAssets();
     }
 
-    private GameObject GenerateFragment(TerrainBlock block, Material mat)
+    private GameObject GenerateFragment(PSPolygon polygon, Material mat)
     {
         GameObject piece = new GameObject(gameObject.name + " piece");
         piece.transform.position = gameObject.transform.position;
@@ -581,10 +540,31 @@ public class TerrainMesh : MonoBehaviour
             uMesh = meshFilter.sharedMesh;
         }
 
-        uMesh.vertices = block.vertices.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
-        uMesh.uv = block.vertices.Select(getUV).ToArray();
-        uMesh.uv2 = block.vertices.Select(getUV2).ToArray();
-        uMesh.triangles = block.triangles.ToArray();
+        var poly = new Polygon();
+        poly.Add(TerrainMesh.createContour(polygon.points));
+        var quality = new QualityOptions();
+        quality.MinimumAngle = 36;
+        quality.MaximumAngle = 91;
+        var imesh = poly.Triangulate(quality);
+        var meshVectices = imesh.Triangles.SelectMany(t => t.vertices.Select(TerrainMesh.toVector2).Reverse());
+
+        var vertices = new List<Vector2>();
+        var triangles = new List<int>();
+        foreach (var v in meshVectices)
+        {
+            var index = TerrainMesh.indexOf(vertices, v);
+            if (index < 0)
+            {
+                index = vertices.Count;
+                vertices.Add(v);
+            }
+            triangles.Add(index);
+        }
+
+        uMesh.vertices = vertices.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
+        uMesh.uv = vertices.Select(getUV).ToArray();
+        uMesh.uv2 = vertices.Select(getUV2).ToArray();
+        uMesh.triangles = triangles.ToArray();
         uMesh.RecalculateNormals();
         uMesh.RecalculateBounds();
 
@@ -592,12 +572,10 @@ public class TerrainMesh : MonoBehaviour
         meshFilter.mesh = uMesh;
 
         PolygonCollider2D collider = piece.AddComponent<PolygonCollider2D>();
-        collider.SetPath(0, block.polygon.points);
+        collider.SetPath(0, polygon.points);
 
         var terrainPiece = piece.AddComponent<TerrainPiece>();
         terrainPiece.terrainMesh = this;
-        terrainPiece.terrainBlocks = new List<TerrainBlock>();
-        terrainPiece.terrainBlocks.Add(block);
 
         piece.layer = gameObject.layer;
 
@@ -613,9 +591,14 @@ public class TerrainMesh : MonoBehaviour
             Vector2 offset = (Vector2)transform.position * 0;
 
             Gizmos.color = Color.yellow;
-            terrainBlocks.ForEach(b => DrawPolygon(b.polygon, offset));
+            polygons.ForEach(p => DrawPolygon(p, offset));
 
             Gizmos.color = Color.red;
+            var points = polygons.Aggregate(new List<Vector2>(), (list, p) =>
+            {
+                list.AddRange(p.points);
+                return list;
+            });
             DrawDiamonds(points, offset);
         }
     }
