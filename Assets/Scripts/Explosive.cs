@@ -5,8 +5,6 @@ using UnityEngine;
 public class Explosive : MonoBehaviour
 {
     public float explosionDamage = 100f;
-    public float explosionForce = 20000f;
-    public float explosionRadius = 5f;
     public ParticleSystem explosion;
 
     private bool alive = true;
@@ -17,10 +15,13 @@ public class Explosive : MonoBehaviour
             return;
         }
         alive = false;
+        float explosionForce = explosionDamage * 200f;
+        float explosionRadius = Mathf.Sqrt(explosionDamage) * 0.7f;
         Collider2D[] colliders = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
         Vector2 dir;
         float wearoff;
         Damageable damageable;
+        TerrainPiece terrainPiece;
         foreach (Collider2D coll in colliders)
         {
             damageable = coll.GetComponent<Damageable>();
@@ -29,6 +30,11 @@ public class Explosive : MonoBehaviour
                 dir = (coll.transform.position - transform.position);
                 wearoff = 1 - (dir.magnitude / explosionRadius);
                 damageable.doDamage(explosionDamage * wearoff);
+            }
+            terrainPiece = coll.GetComponent<TerrainPiece>();
+            if (terrainPiece != null)
+            {
+                terrainPiece.destroyTerrain(transform.position, explosionRadius * 0.6f);
             }
         }
 

@@ -2,8 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using ClipperLib;
+using ClipperLibPolygon = System.Collections.Generic.List<ClipperLib.IntPoint>;
+using ClipperLibPolygons = System.Collections.Generic.List<System.Collections.Generic.List<ClipperLib.IntPoint>>;
 
-sealed class PSPolygon
+public sealed class PSPolygon
 {
     public readonly Vector2[] points;
     private float[] constant = null;
@@ -107,5 +110,32 @@ sealed class PSPolygon
             maxY = Mathf.Max(maxY, point.y);
         }
         return new Rect(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    private static float multiplier = 1000;
+    public static List<PSPolygon> difference(PSPolygon subject, PSPolygon clip)
+    {
+        return PSPolygon.difference(subject.points, clip.points).Select(p => new PSPolygon(p)).ToList();
+    }
+    public static IEnumerable<IEnumerable<Vector2>> difference(ICollection<Vector2> subject, ICollection<Vector2> clip)
+    {
+        ClipperLibPolygons result = new ClipperLibPolygons();
+        Clipper c = new Clipper();
+        c.AddPaths(createPolygons(clip), PolyType.ptClip, true);
+        c.AddPaths(createPolygons(subject), PolyType.ptSubject, true);
+        c.Execute(ClipType.ctDifference, result, PolyFillType.pftEvenOdd, PolyFillType.pftEvenOdd);
+        return result.Select(poly => poly.Select(p => new Vector2(p.X, p.Y) / multiplier));
+    }
+
+    private static ClipperLibPolygons createPolygons(ICollection<Vector2> source)
+    {
+        ClipperLibPolygons poly = new ClipperLibPolygons(1);
+        poly.Add(new ClipperLibPolygon(source.Count));
+        foreach (Vector2 p in source)
+        {
+            poly[0].Add(new IntPoint(p.x * multiplier, p.y * multiplier));
+        }
+
+        return poly;
     }
 }

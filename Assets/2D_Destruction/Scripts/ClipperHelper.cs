@@ -2,8 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using ClipperLib;
-using Polygon = System.Collections.Generic.List<ClipperLib.IntPoint>;
-using Polygons = System.Collections.Generic.List<System.Collections.Generic.List<ClipperLib.IntPoint>>;
+using ClipperLibPolygon = System.Collections.Generic.List<ClipperLib.IntPoint>;
+using ClipperLibPolygons = System.Collections.Generic.List<System.Collections.Generic.List<ClipperLib.IntPoint>>;
 using Delaunay;
 
 public static class ClipperHelper {
@@ -11,14 +11,14 @@ public static class ClipperHelper {
 
     public static List<List<Vector2>> clip(List<Vector2> boundary, Triangle piece)
     {
-        //create Boundary Polygon
-        Polygons boundaryPoly = createPolygons(boundary);
+        //create Boundary ClipperLibPolygon
+        ClipperLibPolygons boundaryPoly = createPolygons(boundary);
 
-        //create Polygon from the triangular piece
-        Polygons subjPoly = createPolygons(piece);
+        //create ClipperLibPolygon from the triangular piece
+        ClipperLibPolygons subjPoly = createPolygons(piece);
 
         //clip triangular polygon against the boundary polygon
-        Polygons result = new Polygons();
+        ClipperLibPolygons result = new ClipperLibPolygons();
         Clipper c = new Clipper();
         c.AddPaths(subjPoly, PolyType.ptClip, true);
         c.AddPaths(boundaryPoly, PolyType.ptSubject, true);
@@ -26,7 +26,7 @@ public static class ClipperHelper {
 
         List<List<Vector2>> clippedPolygons = new List<List<Vector2>>();
 
-        foreach (Polygon poly in result)
+        foreach (ClipperLibPolygon poly in result)
         {
             List<Vector2> clippedPoly = new List<Vector2>();
             foreach (IntPoint p in poly)
@@ -41,11 +41,11 @@ public static class ClipperHelper {
     }
     public static List<List<Vector2>> clip(List<Vector2> boundary, List<Vector2> region)
     {
-        Polygons boundaryPoly = createPolygons(boundary);
-        Polygons regionPoly = createPolygons(region);
+        ClipperLibPolygons boundaryPoly = createPolygons(boundary);
+        ClipperLibPolygons regionPoly = createPolygons(region);
 
         //clip triangular polygon against the boundary polygon
-        Polygons result = new Polygons();
+        ClipperLibPolygons result = new ClipperLibPolygons();
         Clipper c = new Clipper();
         c.AddPaths(regionPoly, PolyType.ptClip, true);
         c.AddPaths(boundaryPoly, PolyType.ptSubject, true);
@@ -53,7 +53,7 @@ public static class ClipperHelper {
 
         List<List<Vector2>> clippedPolygons = new List<List<Vector2>>();
 
-        foreach (Polygon poly in result)
+        foreach (ClipperLibPolygon poly in result)
         {
             List<Vector2> clippedPoly = new List<Vector2>();
             foreach (IntPoint p in poly)
@@ -66,10 +66,10 @@ public static class ClipperHelper {
         return clippedPolygons;
     }
 
-    private static Polygons createPolygons(List<Vector2> source)
+    private static ClipperLibPolygons createPolygons(List<Vector2> source)
     {
-        Polygons poly = new Polygons(1);
-        poly.Add(new Polygon(source.Count));
+        ClipperLibPolygons poly = new ClipperLibPolygons(1);
+        poly.Add(new ClipperLibPolygon(source.Count));
         foreach (Vector2 p in source)
         {
             poly[0].Add(new IntPoint(p.x * multiplier, p.y * multiplier));
@@ -77,10 +77,10 @@ public static class ClipperHelper {
 
         return poly;
     }
-    private static Polygons createPolygons(Triangle tri)
+    private static ClipperLibPolygons createPolygons(Triangle tri)
     {
-        Polygons poly = new Polygons(1);
-        poly.Add(new Polygon(3));
+        ClipperLibPolygons poly = new ClipperLibPolygons(1);
+        poly.Add(new ClipperLibPolygon(3));
         for (int i = 0; i < 3; i++)
         {
             poly[0].Add(new IntPoint(tri.sites[i].x * multiplier, tri.sites[i].y * multiplier));
