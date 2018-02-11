@@ -16,17 +16,9 @@ public class TerrainPiece : MonoBehaviour {
         var startTime = Time.realtimeSinceStartup;
         var explosionSteps = Mathf.Max(Mathf.CeilToInt(terrainMesh.steps * radius / terrainMesh.outerRadius * 2), 6);
         var removePolygon = createCirclePolygon(position, radius, explosionSteps);
-        var newBlocks = new List<TerrainBlock>();
-        foreach (var block in terrainBlocks)
-        {   
-            // TODO optimize generating new blocks by using old triangulation
-            PSPolygon.remove(block.polygon, removePolygon).ForEach(p => newBlocks.Add(new TerrainBlock(p)));
-        }
-		terrainBlocks = newBlocks;
 		// TODO optimize re-calculating mesh and colliders by doing it in background
 		// thread and just updating new vertices, triangles and collider paths
-		GenerateMesh();
-		GenerateColliders();
+		UpdateTerrainBlocks(removePolygon);
 		Debug.Log("Updated mesh and colliders took: " + Mathf.RoundToInt((Time.realtimeSinceStartup - startTime) * 1000) + "ms" );
     }
 
@@ -41,6 +33,19 @@ public class TerrainPiece : MonoBehaviour {
         }
         return new PSPolygon(points);
     }
+
+	private void UpdateTerrainBlocks(PSPolygon removePolygon)
+	{
+        var newBlocks = new List<TerrainBlock>();
+        foreach (var block in terrainBlocks)
+        {   
+            // TODO optimize generating new blocks by using old triangulation
+            PSPolygon.remove(block.polygon, removePolygon).ForEach(p => newBlocks.Add(new TerrainBlock(p)));
+        }
+		terrainBlocks = newBlocks;
+		GenerateMesh();
+		GenerateColliders();
+	}
 
     private void GenerateMesh()
     {
