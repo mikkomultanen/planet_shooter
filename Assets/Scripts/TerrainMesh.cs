@@ -213,6 +213,25 @@ public class TerrainMesh : MonoBehaviour
         return caves[Random.Range(0, caves.Count)].center(RandomPointOnUnitCircle());
     }
 
+    public Vector2[] startPositions(int playerCount)
+    {
+        if (caves.Count == 0)
+        {
+            GenerateCaves();
+        }
+        float step = Mathf.PI * 2 / playerCount;
+        float phase = Random.Range(0f, Mathf.PI * 2);
+        float angle, magnitude;
+        Vector2[] result = new Vector2[playerCount];
+        for (int i = 0; i < playerCount; i++)
+        {
+            angle = i * step + phase;
+            magnitude = caves.Select(c => c.centerMagnitude(angle)).Max();
+            result[i] = new Vector2(Mathf.Sin(angle), Mathf.Cos(angle)) * magnitude;
+        }
+        return result;
+    }
+
     private void GenerateCaves()
     {
         shafts = new Shafts(outerRadius);
@@ -231,7 +250,10 @@ public class TerrainMesh : MonoBehaviour
 #endif
     private void GenerateTerrain()
     {
-        GenerateCaves();
+        if (caves.Count == 0)
+        {
+            GenerateCaves();
+        }
         var points = new List<Vector2>();
 
         var direction = new Vector2(1, 0);

@@ -12,7 +12,6 @@ public class GameController : MonoBehaviour
     public GameObject weaponCrateTemplate;
     public List<Camera> cameras;
     public List<Color> colors;
-    public List<Transform> startPositions;
     public Collider2D water;
     public TerrainMesh terrain;
     public Text roundText;
@@ -27,11 +26,12 @@ public class GameController : MonoBehaviour
     {
         playerCount = players.Count;
         playerControllers = new List<PlayerController>();
+        var startPositions = terrain.startPositions(playerCount);
         for (int i = 0; i < cameras.Count; i++)
         {
             if (i < playerCount)
             {
-                GameObject ship = Instantiate(shipTemplate, startPositions[i].position, startPositions[i].rotation) as GameObject;
+                GameObject ship = Instantiate(shipTemplate, startPositions[i], Quaternion.identity) as GameObject;
                 var playerController = ship.GetComponent<PlayerController>();
                 playerController.playerCamera = cameras[i];
                 playerController.controls = players[i].controls;
@@ -126,10 +126,11 @@ public class GameController : MonoBehaviour
         Debug.Log("Start new round");
         round++;
         roundText.text = "Round " + round;
+        var startPositions = terrain.startPositions(playerCount);
         for (int i = 0; i < playerCount; i++)
         {
             playerControllers[i].gameObject.SetActive(true);
-            playerControllers[i].respawn(startPositions[i].position);
+            playerControllers[i].respawn(startPositions[i]);
         }
         foreach (var crate in GameObject.FindObjectsOfType<WeaponCrate>())
         {
