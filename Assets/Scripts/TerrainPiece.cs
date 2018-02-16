@@ -61,7 +61,7 @@ public class TerrainPiece : MonoBehaviour
     public void destroyTerrain(Vector2 position, float radius)
     {
         var startTime = Time.realtimeSinceStartup;
-        var explosionSteps = Mathf.Max(Mathf.CeilToInt(terrainMesh.steps * radius / terrainMesh.outerRadius * 2), 6);
+        var explosionSteps = Mathf.Max(Mathf.FloorToInt(2 * Mathf.PI * radius), 12);
         var clipPolygon = createCirclePolygon(position, radius, explosionSteps);
         clipSubject.OnNext(clipPolygon);
     }

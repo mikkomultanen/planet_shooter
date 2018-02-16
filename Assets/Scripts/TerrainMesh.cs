@@ -79,13 +79,6 @@ class Cave
         return direction.normalized * floorMagnitude(angle);
     }
 
-    public bool inside(Vector2 coord)
-    {
-        var angle = Mathf.Atan2(coord.x, coord.y);
-        var magnitude = coord.magnitude;
-        return magnitude - 0.005f > floorMagnitude(angle) && magnitude + 0.005f < ceilingMagnitude(angle);
-    }
-
     public Vector3 caveNormal(float angle, float magnitude)
     {
         var floor = floorMagnitude(angle);
@@ -135,69 +128,29 @@ class Cave
     }
 }
 
-class Shafts
-{
-    private float radius;
-    private float w;
-    private Noise thicknessX = new Noise(1, 2, 5, 23, 3);
-    private Noise thicknessY = new Noise(1, 2, 5, 23, 3);
-
-    public Shafts(float radius)
-    {
-        this.radius = radius;
-        w = 1.0f / radius * Mathf.PI;
-    }
-    public List<Vector2> coords(int steps)
-    {
-        var result = new List<Vector2>();
-        var d = radius / steps;
-        var right = Vector2.right;
-        var up = Vector2.up;
-        var left = Vector2.left;
-        var down = Vector2.down;
-        float p;
-        float angle;
-        for (int i = 1; i <= steps; i++)
-        {
-            p = i * d;
-            angle = p * w;
-            result.Add(right * p + up * thicknessX.value(angle));
-            result.Add(right * p + down * thicknessX.value(angle));
-            result.Add(left * p + up * thicknessX.value(-angle));
-            result.Add(left * p + down * thicknessX.value(-angle));
-            result.Add(up * p + right * thicknessY.value(angle));
-            result.Add(up * p + left * thicknessY.value(angle));
-            result.Add(down * p + right * thicknessY.value(-angle));
-            result.Add(down * p + left * thicknessY.value(-angle));
-        }
-        return result;
-    }
-    public bool inside(Vector2 coord)
-    {
-        return Mathf.Abs(coord.x) < thicknessY.value(coord.y * w) || Mathf.Abs(coord.y) < thicknessX.value(coord.x * w);
-    }
-}
-
 [RequireComponent(typeof(MeshFilter))]
 public class TerrainMesh : MonoBehaviour
 {
     public float outerRadius = 1;
     public float innerRadius = 0.1f;
-    public int steps = 128;
-    public float textureScaleU = 6;
-    public float textureScaleV = 1;
+    private float textureScaleU = 6;
+    private float textureScaleV = 1;
+    private float threshold = 1f;
 
     public List<GameObject> fragments = new List<GameObject>();
 
     private List<Cave> caves = new List<Cave>();
-    private Shafts shafts;
 #if UNITY_EDITOR
-    private List<PSPolygon> polygons = new List<PSPolygon>();
+    private List<PSPolygon> editorPolygons = new List<PSPolygon>();
+    private List<Vector2> editorPoints = new List<Vector2>();
 #endif
 
     private void Awake()
     {
-        GenerateTerrain();
+        if (caves.Count == 0)
+        {
+            GenerateTerrain();
+        }
     }
 
     public static Vector2 RandomPointOnUnitCircle()
@@ -217,7 +170,7 @@ public class TerrainMesh : MonoBehaviour
     {
         if (caves.Count == 0)
         {
-            GenerateCaves();
+            GenerateTerrain();
         }
         float step = Mathf.PI * 2 / playerCount;
         float phase = Random.Range(0f, Mathf.PI * 2);
@@ -234,7 +187,6 @@ public class TerrainMesh : MonoBehaviour
 
     private void GenerateCaves()
     {
-        shafts = new Shafts(outerRadius);
         float r = (innerRadius + outerRadius) / 2;
         float t = (outerRadius - innerRadius);
         caves.Clear();
@@ -250,67 +202,100 @@ public class TerrainMesh : MonoBehaviour
 #endif
     private void GenerateTerrain()
     {
-        if (caves.Count == 0)
-        {
-            GenerateCaves();
-        }
+        GenerateCaves();
+
         var points = new List<Vector2>();
 
-        var direction = new Vector2(1, 0);
-        var innerStepsMod = Mathf.CeilToInt(outerRadius / innerRadius);
-        for (int i = 0; i < steps; i++)
+        Vector2 v00, v10, v01, v11;
+        float f00, f10, f01, f11;
+        bool b00, b10, b01, b11;
+        var r = outerRadius + 1;
+        for (float x = -r; x < r; x++)
         {
-            if (i % innerStepsMod == 0)
+            for (float y = -r; y < r; y++)
             {
-                points.Add(direction * innerRadius);
-            }
-            var angle = Mathf.Atan2(direction.x, direction.y);
-            foreach (Cave cave in caves)
-            {
-                var ceiling = cave.ceilingMagnitude(angle);
-                var floor = cave.floorMagnitude(angle);
-                points.Add(direction * ceiling);
-                points.Add(direction * floor);
-            }
-            points.Add(direction * outerRadius);
-            direction = Quaternion.Euler(0, 0, -360.0f / steps) * direction;
-        }
-        var shaftSteps = Mathf.RoundToInt(steps / (2 * Mathf.PI));
-        points.AddRange(shafts.coords(shaftSteps));
-        points = points.Where(p => shouldAdd(p)).ToList();
-
-        var imesh = new GenericMesher().Triangulate(points.Select(toVertex).ToList());
-        var coords = new List<Vector2>();
-        var triangles = new List<int>();
-        foreach (var triangle in imesh.Triangles)
-        {
-            var list = triangle.vertices.Select(toVector2).Reverse().ToList();
-            if (shouldAdd(list))
-            {
-                foreach (var v in list)
-                {
-                    var index = indexOf(coords, v);
-                    if (index < 0)
-                    {
-                        index = coords.Count;
-                        coords.Add(v);
-                    }
-                    triangles.Add(index);
+                v00 = new Vector2(x, y);
+                v10 = new Vector2(x + 1, y);
+                v01 = new Vector2(x, y + 1);
+                v11 = new Vector2(x + 1, y + 1);
+                f00 = caveFieldValue(v00);
+                f10 = caveFieldValue(v10);
+                f01 = caveFieldValue(v01);
+                f11 = caveFieldValue(v11);
+                b00 = f00 > threshold;
+                b10 = f10 > threshold;
+                b01 = f01 > threshold;
+                b11 = f11 > threshold;
+                
+                if (b00 != b10) {
+                    addBorderPoint(points, findBorder(v00, f00, v10, f10));
                 }
-            }
+                if (b00 != b01) {
+                    addBorderPoint(points, findBorder(v00, f00, v01, f01));
+                }
+                if (b11 != b10) {
+                    addBorderPoint(points, findBorder(v11, f11, v10, f10));
+                }
+                if (b11 != b01) {
+                    addBorderPoint(points, findBorder(v11, f11, v01, f01));
+                }
+            }            
         }
-        var polygons = GeneratePolygons(coords, triangles);
+
+        var pointSets = new List<List<Vector2>>();
+        pointSets.Add(points.Where(p => p.x >= 0 && p.y >= 0).ToList());
+        pointSets.Add(points.Where(p => p.x >= 0 && p.y <= 0).ToList());
+        pointSets.Add(points.Where(p => p.x <= 0 && p.y >= 0).ToList());
+        pointSets.Add(points.Where(p => p.x <= 0 && p.y <= 0).ToList());
+
+        var polygons = pointSets.SelectMany(s => GenerateMeshAndPolygons(s)).ToList();
 
 #if UNITY_EDITOR
-        this.polygons = polygons;
+        editorPoints = points;
+        editorPolygons = polygons;
 #endif
 
         GenerateFragments(polygons);
     }
 
+    private Vector2 findBorder(Vector2 v0, float f0, Vector2 v1, float f1)
+    {
+        Vector2 minV, maxV, middleV;
+        float middleF;
+        if (f0 < f1) {
+            minV = v0;
+            maxV = v1;
+        } else {
+            minV = v1;
+            maxV = v0;
+        }
+        int iterations = 0;
+        do
+        {
+            middleV = (minV + maxV) * 0.5f;
+            middleF = caveFieldValue(middleV);
+            if (middleF < threshold) {
+                minV = middleV;
+            } else {
+                maxV = middleV;
+            }
+            iterations++;
+        } while ((minV - maxV).sqrMagnitude > 0.0001f && iterations < 10);
+        return (minV + maxV) * 0.5f;
+    }
+
     public static Contour createContour(IEnumerable<Vector2> points)
     {
         return new Contour(points.Select(toVertex));
+    }
+
+    private static void addBorderPoint(List<Vector2> coords, Vector2 coord) {
+        var oldIndex = indexOf(coords, coord);
+        if (oldIndex < 0) {
+            coords.Add(coord);
+        } else if (coord.x == 0 || coord.y == 0) {
+            coords[oldIndex] = coord;
+        }
     }
 
     public static int indexOf(List<Vector2> coords, Vector2 coord)
@@ -341,30 +326,76 @@ public class TerrainMesh : MonoBehaviour
 
     private bool shouldAdd(List<Vector2> triangle)
     {
-        return shouldAdd(getCenter(triangle));
-    }
-
-    private bool shouldAdd(Vector2 coord)
-    {
-        var magnitude = coord.magnitude;
-        var insideTerrain = magnitude + 0.005 > innerRadius && magnitude - 0.005f < outerRadius;
-        var insideCave = this.insideCave(coord);
-        var insideShaft = shafts.inside(coord);
-        return insideTerrain && !insideCave && !insideShaft;
+        return !insideCave(getCenter(triangle));
     }
 
     private bool insideCave(Vector2 coord)
     {
-        foreach (Cave cave in caves)
-        {
-            if (cave.inside(coord))
-            {
-                return true;
-            }
-        }
-        return false;
+        return caveFieldValue(coord) > threshold;
     }
 
+    private float caveFieldValue(Vector2 coord)
+    {
+        var magnitude = coord.magnitude;
+        var innerValue = stepValue(magnitude - innerRadius);
+        var outerValue = stepValue(outerRadius - magnitude);
+        return caves.Select(c => caveFieldValue(c, coord)).Sum() + innerValue + outerValue;
+    }
+
+    private float caveFieldValue(Cave cave, Vector2 coord)
+    {
+        var angle = Mathf.Atan2(coord.x, coord.y);
+        var magnitude = coord.magnitude;
+        var d = Mathf.Abs(magnitude - cave.centerMagnitude(angle));
+        return stepValue(d - cave.thicknessValue(angle) / 2);
+    }
+
+    private static float STEP_V = 5;
+    private static float stepValue(float x)
+    {
+        return -Mathf.Sin(Mathf.Clamp(x / STEP_V, -1f, 1f) * Mathf.PI / 2) + 1;
+    }
+
+    private List<PSPolygon> GenerateMeshAndPolygons(List<Vector2> points)
+    {
+        var imesh = new GenericMesher().Triangulate(points.Select(toVertex).ToList());
+        var coords = new List<Vector2>();
+        var triangles = new List<int>();
+        foreach (var triangle in imesh.Triangles)
+        {
+            var list = triangle.vertices.Select(toVector2).Reverse().ToList();
+            if (!insideCave(getCenter(list)))
+            {
+                foreach (var v in list)
+                {
+                    var index = indexOf(coords, v);
+                    if (index < 0)
+                    {
+                        index = coords.Count;
+                        coords.Add(v);
+                    }
+                    triangles.Add(index);
+                }
+            }
+        }
+/*
+        var meshFilter = GetComponent<MeshFilter>();
+        var mesh = meshFilter.sharedMesh;
+        if (mesh == null)
+        {
+            meshFilter.mesh = new Mesh();
+            mesh = meshFilter.sharedMesh;
+        }
+        mesh.vertices = coords.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
+        mesh.uv = coords.Select(getUV).ToArray();
+        mesh.uv2 = coords.Select(getUV2).ToArray();
+        mesh.triangles = triangles.ToArray();
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        meshFilter.mesh = mesh;
+ */
+        return GeneratePolygons(coords, triangles);
+    }
     private List<PSPolygon> GeneratePolygons(List<Vector2> vertices, List<int> triangles)
     {
         // Get just the outer edges from the mesh's triangles (ignore or remove any shared edges)
@@ -414,15 +445,6 @@ public class TerrainMesh : MonoBehaviour
             if (!removed)
             {
                 // Edges share a vertex
-                var loop = colliderPath.SkipWhile(index => index != nextVert).Skip(1).ToList();
-                if (loop.Count > 5)
-                {
-                    var polygon = new PSPolygon(loop.Select(index => vertices[index]));
-                    if (polygon.Area > 20)
-                    {
-                        polygons.Add(polygon);
-                    }
-                }
                 colliderPath.Clear();
 
                 // Go to next shape if one exists
@@ -446,11 +468,14 @@ public class TerrainMesh : MonoBehaviour
             // Shape complete
             if (nextVert == startVert)
             {
-
-                if (colliderPath.Count > 5)
+                var onAxisBorder = colliderPath.Any(index => {
+                    var v = vertices[index];
+                    return v.x == 0 || v.y == 0;
+                });
+                if (onAxisBorder || colliderPath.Count > 5)
                 {
                     var polygon = new PSPolygon(colliderPath.Select(index => vertices[index]));
-                    if (polygon.Area > 20)
+                    if (onAxisBorder || polygon.Area > 20)
                     {
                         polygons.Add(polygon);
                     }
@@ -613,15 +638,10 @@ public class TerrainMesh : MonoBehaviour
             Vector2 offset = (Vector2)transform.position * 0;
 
             Gizmos.color = Color.yellow;
-            polygons.ForEach(p => DrawPolygon(p, offset));
+            editorPolygons.ForEach(p => DrawPolygon(p, offset));
 
             Gizmos.color = Color.red;
-            var points = polygons.Aggregate(new List<Vector2>(), (list, p) =>
-            {
-                list.AddRange(p.points);
-                return list;
-            });
-            DrawDiamonds(points, offset);
+            DrawDiamonds(editorPoints, offset);
         }
     }
 
