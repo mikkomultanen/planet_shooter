@@ -18,28 +18,37 @@ public class TerrainPiece : MonoBehaviour
     {
         public Vector2[] vertices;
         public int[] triangles;
+        public Vector2[][] paths;
 
-        public MeshData(Vector2[] vertices, int[] triangles)
+        public MeshData(Vector2[] vertices, int[] triangles, Vector2[][] paths)
         {
             this.vertices = vertices;
             this.triangles = triangles;
+            this.paths = paths;
         }
 
-        public static MeshData from(Mesh mesh)
+        public static MeshData from(Mesh mesh, PolygonCollider2D collider)
         {
-            return new MeshData(mesh.vertices.Select(v => (Vector2)v).ToArray(), mesh.triangles);
+            var paths = Enumerable.Range(0, collider.pathCount)
+                .Select(i => collider.GetPath(i))
+                .ToArray();
+
+            return new MeshData(mesh.vertices.Select(v => (Vector2)v).ToArray(), mesh.triangles, paths);
         }
     }
 
     private Subject<PSPolygon> clipSubject = new Subject<PSPolygon>();
     private void Start()
     {
-        var initialMeshData = MeshData.from(GetComponent<MeshFilter>().sharedMesh);
+        var initialMeshData = MeshData.from(GetComponent<MeshFilter>().sharedMesh, GetComponent<PolygonCollider2D>());
         clipSubject
         .ObserveOn(Scheduler.ThreadPool)
         .Scan(initialMeshData, (data, clipPolygon) => UpdateMeshData(data, clipPolygon))
         .ObserveOnMainThread()
-        .Subscribe(onNext: result => UpdateMesh(result))
+        .Subscribe(onNext: result => {
+            UpdateMesh(result);
+            UpdateColliders(result);
+        })
 		.AddTo(disposeBag);
     }
 
@@ -55,7 +64,6 @@ public class TerrainPiece : MonoBehaviour
         var explosionSteps = Mathf.Max(Mathf.CeilToInt(terrainMesh.steps * radius / terrainMesh.outerRadius * 2), 6);
         var clipPolygon = createCirclePolygon(position, radius, explosionSteps);
         clipSubject.OnNext(clipPolygon);
-        UpdateColliders(clipPolygon);
     }
 
     private PSPolygon createCirclePolygon(Vector2 position, float radius, int steps)
@@ -74,6 +82,7 @@ public class TerrainPiece : MonoBehaviour
     {
         var oldVertices = oldData.vertices;
         var oldTriangles = oldData.triangles;
+        var oldPaths = oldData.paths;
 
         var newVertices = new List<Vector2>(oldVertices.Length);
 
@@ -135,7 +144,12 @@ public class TerrainPiece : MonoBehaviour
             }
         }
 
-        return new MeshData(newVertices.ToArray(), newTriangles.ToArray());
+        var newPaths = oldPaths
+            .SelectMany(p => PSPolygon.difference(p, clipPolygon.points))
+            .Select(p => p.ToArray())
+            .ToArray();
+
+        return new MeshData(newVertices.ToArray(), newTriangles.ToArray(), newPaths);
     }
 
     private void UpdateMesh(MeshData data)
@@ -158,19 +172,13 @@ public class TerrainPiece : MonoBehaviour
         mesh.RecalculateBounds();
     }
 
-    private void UpdateColliders(PSPolygon clipPolygon)
+    private void UpdateColliders(MeshData data)
     {
-        var oldCollider = GetComponent<PolygonCollider2D>();
-        var newPaths = Enumerable.Range(0, oldCollider.pathCount)
-        .Select(i => oldCollider.GetPath(i))
-        .SelectMany(p => PSPolygon.difference(p, clipPolygon.points))
-        .ToList();
-        Destroy(oldCollider);
-
+        Destroy(gameObject.GetComponent<PolygonCollider2D>());
         PolygonCollider2D polygonCollider = gameObject.AddComponent<PolygonCollider2D>();
         polygonCollider.pathCount = 0;
 
-        foreach (var p in newPaths)
+        foreach (var p in data.paths)
         {
             polygonCollider.pathCount++;
             polygonCollider.SetPath(polygonCollider.pathCount - 1, p.ToArray());
