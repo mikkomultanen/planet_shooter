@@ -226,20 +226,24 @@ public class TerrainMesh : MonoBehaviour
                 b10 = f10 > threshold;
                 b01 = f01 > threshold;
                 b11 = f11 > threshold;
-                
-                if (b00 != b10) {
+
+                if (b00 != b10)
+                {
                     addBorderPoint(points, findBorder(v00, f00, v10, f10));
                 }
-                if (b00 != b01) {
+                if (b00 != b01)
+                {
                     addBorderPoint(points, findBorder(v00, f00, v01, f01));
                 }
-                if (b11 != b10) {
+                if (b11 != b10)
+                {
                     addBorderPoint(points, findBorder(v11, f11, v10, f10));
                 }
-                if (b11 != b01) {
+                if (b11 != b01)
+                {
                     addBorderPoint(points, findBorder(v11, f11, v01, f01));
                 }
-            }            
+            }
         }
 
         var pointSets = new List<List<Vector2>>();
@@ -262,10 +266,13 @@ public class TerrainMesh : MonoBehaviour
     {
         Vector2 minV, maxV, middleV;
         float middleF;
-        if (f0 < f1) {
+        if (f0 < f1)
+        {
             minV = v0;
             maxV = v1;
-        } else {
+        }
+        else
+        {
             minV = v1;
             maxV = v0;
         }
@@ -274,9 +281,12 @@ public class TerrainMesh : MonoBehaviour
         {
             middleV = (minV + maxV) * 0.5f;
             middleF = caveFieldValue(middleV);
-            if (middleF < threshold) {
+            if (middleF < threshold)
+            {
                 minV = middleV;
-            } else {
+            }
+            else
+            {
                 maxV = middleV;
             }
             iterations++;
@@ -289,11 +299,15 @@ public class TerrainMesh : MonoBehaviour
         return new Contour(points.Select(toVertex));
     }
 
-    private static void addBorderPoint(List<Vector2> coords, Vector2 coord) {
+    private static void addBorderPoint(List<Vector2> coords, Vector2 coord)
+    {
         var oldIndex = indexOf(coords, coord);
-        if (oldIndex < 0) {
+        if (oldIndex < 0)
+        {
             coords.Add(coord);
-        } else if (coord.x == 0 || coord.y == 0) {
+        }
+        else if (coord.x == 0 || coord.y == 0)
+        {
             coords[oldIndex] = coord;
         }
     }
@@ -378,22 +392,22 @@ public class TerrainMesh : MonoBehaviour
                 }
             }
         }
-/*
-        var meshFilter = GetComponent<MeshFilter>();
-        var mesh = meshFilter.sharedMesh;
-        if (mesh == null)
-        {
-            meshFilter.mesh = new Mesh();
-            mesh = meshFilter.sharedMesh;
-        }
-        mesh.vertices = coords.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
-        mesh.uv = coords.Select(getUV).ToArray();
-        mesh.uv2 = coords.Select(getUV2).ToArray();
-        mesh.triangles = triangles.ToArray();
-        mesh.RecalculateNormals();
-        mesh.RecalculateBounds();
-        meshFilter.mesh = mesh;
- */
+        /*
+                var meshFilter = GetComponent<MeshFilter>();
+                var mesh = meshFilter.sharedMesh;
+                if (mesh == null)
+                {
+                    meshFilter.mesh = new Mesh();
+                    mesh = meshFilter.sharedMesh;
+                }
+                mesh.vertices = coords.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
+                mesh.uv = coords.Select(getUV).ToArray();
+                mesh.uv2 = coords.Select(getUV2).ToArray();
+                mesh.triangles = triangles.ToArray();
+                mesh.RecalculateNormals();
+                mesh.RecalculateBounds();
+                meshFilter.mesh = mesh;
+         */
         return GeneratePolygons(coords, triangles);
     }
     private List<PSPolygon> GeneratePolygons(List<Vector2> vertices, List<int> triangles)
@@ -468,7 +482,8 @@ public class TerrainMesh : MonoBehaviour
             // Shape complete
             if (nextVert == startVert)
             {
-                var onAxisBorder = colliderPath.Any(index => {
+                var onAxisBorder = colliderPath.Any(index =>
+                {
                     var v = vertices[index];
                     return v.x == 0 || v.y == 0;
                 });
@@ -520,18 +535,28 @@ public class TerrainMesh : MonoBehaviour
         }
     }
 
-    public Vector2 getUV(Vector2 coord)
+    public Vector2 getUV(Vector2 coord, bool doNotWrap)
     {
         var angle = Mathf.Atan2(coord.x, coord.y);
+        if (doNotWrap && angle > 0)
+        {
+            angle = angle - 2 * Mathf.PI;
+        }
         var magnitude = coord.magnitude;
-        return new Vector2(angle / (2 * Mathf.PI) * textureScaleU, Mathf.Clamp01((magnitude - innerRadius) / (outerRadius - innerRadius)) * textureScaleV);
+        float u = angle / (2 * Mathf.PI) * textureScaleU;
+        float v = Mathf.Clamp01((magnitude - innerRadius) / (outerRadius - innerRadius)) * textureScaleV;
+        return new Vector2(u, v);
     }
 
-    public Vector2 getUV2(Vector2 coord)
+    public Vector2 getUV2(Vector2 coord, bool doNotWrap)
     {
         var angle = Mathf.Atan2(coord.x, coord.y);
+        if (doNotWrap && angle > 0)
+        {
+            angle = angle - 2 * Mathf.PI;
+        }
         var magnitude = coord.magnitude;
-        var u = angle / (2 * Mathf.PI) * textureScaleU * (outerRadius - innerRadius);
+        float u = angle / (2 * Mathf.PI) * textureScaleU;
         var v = caves.Aggregate(outerRadius - innerRadius, (d, cave) =>
         {
             var floorMagnitude = cave.floorMagnitude(angle);
@@ -608,9 +633,12 @@ public class TerrainMesh : MonoBehaviour
             triangles.Add(index);
         }
 
+        var polygonBoundsCenter = polygon.Bounds.center;
+        var doNotWrapUV = polygonBoundsCenter.x < 0 && polygonBoundsCenter.y < 0;
+
         uMesh.vertices = vertices.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
-        uMesh.uv = vertices.Select(getUV).ToArray();
-        uMesh.uv2 = vertices.Select(getUV2).ToArray();
+        uMesh.uv = vertices.Select(v => getUV(v, doNotWrapUV)).ToArray();
+        uMesh.uv2 = vertices.Select(v => getUV2(v, doNotWrapUV)).ToArray();
         uMesh.triangles = triangles.ToArray();
         uMesh.RecalculateNormals();
         uMesh.RecalculateBounds();
@@ -623,6 +651,7 @@ public class TerrainMesh : MonoBehaviour
 
         var terrainPiece = piece.AddComponent<TerrainPiece>();
         terrainPiece.terrainMesh = this;
+        terrainPiece.doNotWrapUV = doNotWrapUV;
 
         piece.layer = gameObject.layer;
 

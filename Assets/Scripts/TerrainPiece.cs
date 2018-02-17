@@ -58,6 +58,7 @@ public class TerrainPiece : MonoBehaviour
 	}
 
     public TerrainMesh terrainMesh;
+    public bool doNotWrapUV;
     public void destroyTerrain(Vector2 position, float radius)
     {
         var startTime = Time.realtimeSinceStartup;
@@ -165,8 +166,8 @@ public class TerrainPiece : MonoBehaviour
 
         mesh.vertices = data.vertices.Select(c => new Vector3(c.x, c.y, 0)).ToArray();
         //mesh.normals = allVertices.Select(caveNormal).ToArray();
-        mesh.uv = data.vertices.Select(terrainMesh.getUV).ToArray();
-        mesh.uv2 = data.vertices.Select(terrainMesh.getUV2).ToArray();
+        mesh.uv = data.vertices.Select(v => terrainMesh.getUV(v, doNotWrapUV)).ToArray();
+        mesh.uv2 = data.vertices.Select(v => terrainMesh.getUV2(v, doNotWrapUV)).ToArray();
         mesh.triangles = data.triangles;
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
