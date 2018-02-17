@@ -61,22 +61,10 @@ class Cave
         this.thickness = new Noise(tMin, tMax, 11, 17, 5);
     }
 
-    public Vector2 ceiling(Vector2 direction)
-    {
-        var angle = Mathf.Atan2(direction.x, direction.y);
-        return direction.normalized * ceilingMagnitude(angle);
-    }
-
     public Vector2 center(Vector2 direction)
     {
         var angle = Mathf.Atan2(direction.x, direction.y);
         return direction.normalized * centerMagnitude(angle);
-    }
-
-    public Vector2 floor(Vector2 direction)
-    {
-        var angle = Mathf.Atan2(direction.x, direction.y);
-        return direction.normalized * floorMagnitude(angle);
     }
 
     public Vector3 caveNormal(float angle, float magnitude)
