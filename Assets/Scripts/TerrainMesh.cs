@@ -142,6 +142,7 @@ public class TerrainMesh : MonoBehaviour
     private List<Cave> caves = new List<Cave>();
 #if UNITY_EDITOR
     private List<PSPolygon> editorPolygons = new List<PSPolygon>();
+    private List<PSEdge> editorEdges = new List<PSEdge>();
     private List<Vector2> editorPoints = new List<Vector2>();
 #endif
 
@@ -255,8 +256,9 @@ public class TerrainMesh : MonoBehaviour
         var polygons = pointSets.SelectMany(s => GenerateMeshAndPolygons(s)).ToList();
 
 #if UNITY_EDITOR
-        editorPoints = points;
+        //editorPoints = points;
         editorPolygons = polygons;
+        editorEdges = editorPolygons.SelectMany(getFloorEdges).ToList();
 #endif
 
         GenerateFragments(polygons);
@@ -516,6 +518,30 @@ public class TerrainMesh : MonoBehaviour
         return polygons;
     }
 
+    private static List<PSEdge> getFloorEdges(PSPolygon polygon)
+    {
+        var floorEdges = new List<PSEdge>();
+        Vector2 previous = polygon.points.Last();
+        bool previousIsFloor = isFloorPoint(previous, polygon);
+        bool currentIsFloor;
+        foreach (var p in polygon.points)
+        {
+            currentIsFloor = isFloorPoint(p, polygon);
+            if ((currentIsFloor || previousIsFloor) && Vector3.Cross(previous, p).sqrMagnitude > 0)
+            {
+                floorEdges.Add(new PSEdge(previous, p));
+            }
+            previous = p;
+            previousIsFloor = currentIsFloor;
+        }
+        return floorEdges;
+    }
+
+    private static bool isFloorPoint(Vector2 point, PSPolygon polygon)
+    {
+        return polygon.PointInPolygon(point + (point.normalized * -0.005f));
+    }
+
     private Vector3 caveNormal(Vector2 coord)
     {
         var angle = Mathf.Atan2(coord.x, coord.y);
@@ -548,7 +574,7 @@ public class TerrainMesh : MonoBehaviour
         return new Vector2(u, v);
     }
 
-    public Vector2 getUV2(Vector2 coord, bool doNotWrap)
+    public Vector2 getUV2(Vector2 coord, bool doNotWrap, List<PSEdge> floorEdges)
     {
         var angle = Mathf.Atan2(coord.x, coord.y);
         if (doNotWrap && angle > 0)
@@ -556,19 +582,11 @@ public class TerrainMesh : MonoBehaviour
             angle = angle - 2 * Mathf.PI;
         }
         var magnitude = coord.magnitude;
-        float u = angle / (2 * Mathf.PI) * textureScaleU;
-        var v = caves.Aggregate(outerRadius - innerRadius, (d, cave) =>
-        {
-            var floorMagnitude = cave.floorMagnitude(angle);
-            if (magnitude <= floorMagnitude + 0.1)
-            {
-                return Mathf.Clamp(floorMagnitude - magnitude, 0, d);
-            }
-            else
-            {
-                return d;
-            }
-        }) * textureScaleV;
+        float u = angle / (2 * Mathf.PI) * textureScaleU * 10;
+        var direction = coord.normalized;
+        var floorMagnitude = floorEdges.Select(e => e.IntersectMagnitude(direction)).FirstOrDefault(m => m > 0f);
+        var d = outerRadius - innerRadius;
+        var v = Mathf.Clamp(floorMagnitude - magnitude, 0, d) / d * textureScaleV * 10;
         return new Vector2(u, v);
     }
 
@@ -635,10 +653,11 @@ public class TerrainMesh : MonoBehaviour
 
         var polygonBoundsCenter = polygon.Bounds.center;
         var doNotWrapUV = polygonBoundsCenter.x < 0 && polygonBoundsCenter.y < 0;
+        var floorEdges = getFloorEdges(polygon);
 
         uMesh.vertices = vertices.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
         uMesh.uv = vertices.Select(v => getUV(v, doNotWrapUV)).ToArray();
-        uMesh.uv2 = vertices.Select(v => getUV2(v, doNotWrapUV)).ToArray();
+        uMesh.uv2 = vertices.Select(v => getUV2(v, doNotWrapUV, floorEdges)).ToArray();
         uMesh.triangles = triangles.ToArray();
         uMesh.RecalculateNormals();
         uMesh.RecalculateBounds();
@@ -652,6 +671,7 @@ public class TerrainMesh : MonoBehaviour
         var terrainPiece = piece.AddComponent<TerrainPiece>();
         terrainPiece.terrainMesh = this;
         terrainPiece.doNotWrapUV = doNotWrapUV;
+        terrainPiece.floorEdges = floorEdges;
 
         piece.layer = gameObject.layer;
 
@@ -668,6 +688,9 @@ public class TerrainMesh : MonoBehaviour
 
             Gizmos.color = Color.yellow;
             editorPolygons.ForEach(p => DrawPolygon(p, offset));
+
+            Gizmos.color = Color.cyan;
+            editorEdges.ForEach(e => DrawEdge(e, offset));
 
             Gizmos.color = Color.red;
             DrawDiamonds(editorPoints, offset);
@@ -687,6 +710,11 @@ public class TerrainMesh : MonoBehaviour
                 Gizmos.DrawLine(polygon.points[i] + offset, polygon.points[i + 1] + offset);
             }
         }
+    }
+
+    private void DrawEdge(PSEdge edge, Vector2 offset)
+    {
+        Gizmos.DrawLine(edge.v0 + offset, edge.v1 + offset);
     }
 
     private void DrawDiamonds(IEnumerable<Vector2> points, Vector2 offset)

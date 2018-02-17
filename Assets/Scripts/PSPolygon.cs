@@ -139,3 +139,35 @@ public sealed class PSPolygon
         return poly;
     }
 }
+
+public sealed class PSEdge
+{
+    public readonly Vector2 v0;
+    public readonly Vector2 v1;
+    private Vector2 s;
+    public PSEdge(Vector2 v0, Vector2 v1)
+    {
+        this.v0 = v0;
+        this.v1 = v1;
+        this.s = v1 - v0;
+    }
+
+    public float IntersectMagnitude(Vector2 direction)
+	{
+		Vector2 r = direction;
+		float rxs = Cross(r, s);
+ 
+		if (rxs == 0f) return 0f; // Parallel with the segment
+		float rxsr = 1f / rxs;
+
+		float u = Cross(v0, r) * rxsr;
+        if (u < 0f || u > 1f) return 0f; // Outside of the segment
+
+        return Cross(v0, s) * rxsr;
+	}
+
+    static float Cross(Vector2 a, Vector2 b)
+    {
+        return a.x * b.y - a.y * b.x;
+    }
+}
