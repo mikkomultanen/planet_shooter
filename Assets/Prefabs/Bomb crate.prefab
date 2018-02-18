@@ -102,7 +102,7 @@ MonoBehaviour:
   explosionDamage: 100
   explosion: {fileID: 198221980394113368, guid: 56e25eb96b97e48ff8a42a34d78bf714,
     type: 2}
-  weapon: 2
+  weapon: 3
 --- !u!212 &212978370495561566
 SpriteRenderer:
   m_ObjectHideFlags: 1

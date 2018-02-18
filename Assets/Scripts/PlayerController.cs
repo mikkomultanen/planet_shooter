@@ -11,13 +11,18 @@ public enum Controls
     Joystick4
 }
 
+public enum PrimaryWeapon
+{
+    MachineGun,
+    Flamer,
+    Laser
+}
+
 public enum SecondaryWeapon
 {
     None,
     Missiles,
-    Bombs,
-    Flamer,
-    Laser
+    Bombs
 }
 
 public class PlayerController : MonoBehaviour, Damageable
@@ -60,9 +65,10 @@ public class PlayerController : MonoBehaviour, Damageable
     private string fire2Button;
     private string fire3Button;
     private string fire4Button;
-    public SecondaryWeapon secondaryWeapon = SecondaryWeapon.Missiles;
+    public PrimaryWeapon primaryWeapon = PrimaryWeapon.MachineGun;
+    public float primaryEnergy = 0;
+    public SecondaryWeapon secondaryWeapon = SecondaryWeapon.None;
     public int secondaryAmmunition = 0;
-    public float secondaryEnergy = 0;
 
     private void Awake()
     {
@@ -119,14 +125,25 @@ public class PlayerController : MonoBehaviour, Damageable
 
     void Update()
     {
-        if (Input.GetButton(fire1Button) && Time.time > nextFire)
-        {
-            nextFire = Time.time + fireRate;
-            GameObject clone = Instantiate(projectile, gunPoint.position, gunPoint.rotation) as GameObject;
-            clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
-        }
         bool flamerOn = false;
         bool laserOn = false;
+        switch (primaryWeapon)
+        {
+            case PrimaryWeapon.MachineGun:
+                if (Input.GetButton(fire1Button) && Time.time > nextFire)
+                {
+                    nextFire = Time.time + fireRate;
+                    GameObject clone = Instantiate(projectile, gunPoint.position, gunPoint.rotation) as GameObject;
+                    clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
+                }
+                break;
+            case PrimaryWeapon.Flamer:
+                flamerOn = Input.GetButton(fire1Button) && primaryEnergy > 0;
+                break;
+            case PrimaryWeapon.Laser:
+                laserOn = Input.GetButton(fire1Button) && primaryEnergy > 0;
+                break;
+        }
         switch (secondaryWeapon)
         {
             case SecondaryWeapon.Missiles:
@@ -147,16 +164,14 @@ public class PlayerController : MonoBehaviour, Damageable
                     clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
                 }
                 break;
-            case SecondaryWeapon.Flamer:
-                flamerOn = Input.GetButton(fire2Button) && secondaryEnergy > 0;
-                break;
-            case SecondaryWeapon.Laser:
-                laserOn = Input.GetButton(fire2Button) && secondaryEnergy > 0;
-                break;
         }
-        if (flamerOn)
+        if (flamerOn || laserOn)
         {
-            secondaryEnergy -= Time.deltaTime;
+            primaryEnergy -= Time.deltaTime;
+            if (primaryEnergy <= 0)
+            {
+                primaryWeapon = PrimaryWeapon.MachineGun;
+            }
         }
         if (flamerOn != flamer.isEmitting)
         {
@@ -168,7 +183,6 @@ public class PlayerController : MonoBehaviour, Damageable
         bool laserSparklesOn = false;
         if (laserOn)
         {
-            secondaryEnergy -= Time.deltaTime;
             Vector2 position = laserRay.transform.position;
             RaycastHit2D hit = Physics2D.Raycast(position, transform.up, 100, lasetLayerMask);
             if (hit.collider != null)
@@ -263,17 +277,11 @@ public class PlayerController : MonoBehaviour, Damageable
         return health > 0;
     }
 
-    public void removeSecondaryWeapon()
-    {
-        secondaryWeapon = SecondaryWeapon.None;
-        secondaryAmmunition = 0;
-        secondaryEnergy = 0;
-    }
-
     public void respawn(Vector3 position)
     {
         health = maxHealth;
-        removeSecondaryWeapon();
+        primaryWeapon = PrimaryWeapon.MachineGun;
+        secondaryWeapon = SecondaryWeapon.None;
         transform.position = position;
         rb.velocity = Vector2.zero;
         rb.angularVelocity = 0;

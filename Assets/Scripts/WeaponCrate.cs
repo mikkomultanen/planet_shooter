@@ -4,7 +4,14 @@ using UnityEngine;
 
 public class WeaponCrate : Explosive, Damageable
 {
-    public SecondaryWeapon weapon;
+    public enum Weapon
+    {
+        Flamer,
+        Laser,
+        Missiles,
+        Bombs
+    }
+    public Weapon weapon;
     private Rigidbody2D rb;
     private float originalDrag;
     private bool isInWater = false;
@@ -41,24 +48,23 @@ public class WeaponCrate : Explosive, Damageable
             PlayerController player = other.rigidbody.GetComponent<PlayerController>();
             if (player != null)
             {
-                player.removeSecondaryWeapon();
                 switch (weapon)
                 {
-                    case SecondaryWeapon.Missiles:
+                    case Weapon.Missiles:
                         player.secondaryWeapon = SecondaryWeapon.Missiles;
                         player.secondaryAmmunition = 5;
                         break;
-					case SecondaryWeapon.Bombs:
+                    case Weapon.Bombs:
                         player.secondaryWeapon = SecondaryWeapon.Bombs;
                         player.secondaryAmmunition = 5;
-						break;
-                    case SecondaryWeapon.Flamer:
-                        player.secondaryWeapon = SecondaryWeapon.Flamer;
-                        player.secondaryEnergy = 10;
                         break;
-                    case SecondaryWeapon.Laser:
-                        player.secondaryWeapon = SecondaryWeapon.Laser;
-                        player.secondaryEnergy = 10;
+                    case Weapon.Flamer:
+                        player.primaryWeapon = PrimaryWeapon.Flamer;
+                        player.primaryEnergy = 10;
+                        break;
+                    case Weapon.Laser:
+                        player.primaryWeapon = PrimaryWeapon.Laser;
+                        player.primaryEnergy = 10;
                         break;
                 }
                 Destroy(gameObject);
@@ -75,6 +81,6 @@ public class WeaponCrate : Explosive, Damageable
 
     public void doDamage(float damage)
     {
-		explode();
+        explode();
     }
 }
