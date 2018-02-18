@@ -9,7 +9,7 @@ public class GameController : MonoBehaviour
 {
 
     public GameObject shipTemplate;
-    public GameObject weaponCrateTemplate;
+    public List<GameObject> weaponCrateTemplates;
     public List<Camera> cameras;
     public List<Color> colors;
     public Collider2D water;
@@ -144,6 +144,7 @@ public class GameController : MonoBehaviour
         {
             yield return new WaitForSeconds(interval);
 
+            GameObject weaponCrateTemplate = weaponCrateTemplates[Random.Range(0, weaponCrateTemplates.Count)];
 			Vector2 position = terrain.randomCaveCenter();
 			Quaternion rotation = Quaternion.Euler(0, 0, Random.Range(0, 2*Mathf.PI));
 			Instantiate (weaponCrateTemplate, position, rotation);

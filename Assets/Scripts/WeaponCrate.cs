@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class WeaponCrate : Explosive, Damageable
 {
-
+    public SecondaryWeapon weapon;
     private Rigidbody2D rb;
     private float originalDrag;
     private bool isInWater = false;
@@ -42,21 +42,21 @@ public class WeaponCrate : Explosive, Damageable
             if (player != null)
             {
                 player.removeSecondaryWeapon();
-                switch (Random.Range(0, 4))
+                switch (weapon)
                 {
-                    case 0:
+                    case SecondaryWeapon.Missiles:
                         player.secondaryWeapon = SecondaryWeapon.Missiles;
                         player.secondaryAmmunition = 5;
                         break;
-					case 1:
+					case SecondaryWeapon.Bombs:
                         player.secondaryWeapon = SecondaryWeapon.Bombs;
                         player.secondaryAmmunition = 5;
 						break;
-                    case 2:
+                    case SecondaryWeapon.Flamer:
                         player.secondaryWeapon = SecondaryWeapon.Flamer;
                         player.secondaryEnergy = 10;
                         break;
-                    case 3:
+                    case SecondaryWeapon.Laser:
                         player.secondaryWeapon = SecondaryWeapon.Laser;
                         player.secondaryEnergy = 10;
                         break;

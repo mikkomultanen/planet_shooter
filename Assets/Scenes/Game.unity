@@ -588,8 +588,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   shipTemplate: {fileID: 1139837767462810, guid: e800ed23abbda4c54975c877f1d50202,
     type: 2}
-  weaponCrateTemplate: {fileID: 1607939581704236, guid: 85a02ebc2b92e4424b66f82678594c15,
-    type: 2}
+  weaponCrateTemplates:
+  - {fileID: 1286141876901602, guid: 1beb0e2d717d84dcf879257eddb6da8d, type: 2}
+  - {fileID: 1295151227454786, guid: a3cc828f968bb4bee9c88d7e6bd6b27e, type: 2}
+  - {fileID: 1371198270848854, guid: 2b44d64a2c9c8436fa767c598a4142e0, type: 2}
+  - {fileID: 1584684473900274, guid: 2799de5ffb8354a79bd185542477599c, type: 2}
   cameras:
   - {fileID: 2023641012}
   - {fileID: 1923021915}
@@ -1119,6 +1122,11 @@ Prefab:
       propertyPath: startPositions.Array.size
       value: 4
       objectReference: {fileID: 0}
+    - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
+        type: 2}
+      propertyPath: weaponCrateTemplates.Array.size
+      value: 4
+      objectReference: {fileID: 0}
     - target: {fileID: 4770492995992040, guid: 6fe0a73b2bef74843966379c220d1558, type: 2}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -1346,6 +1354,30 @@ Prefab:
       propertyPath: weaponCrateTemplate
       value: 
       objectReference: {fileID: 1607939581704236, guid: 85a02ebc2b92e4424b66f82678594c15,
+        type: 2}
+    - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
+        type: 2}
+      propertyPath: weaponCrateTemplates.Array.data[0]
+      value: 
+      objectReference: {fileID: 1286141876901602, guid: 1beb0e2d717d84dcf879257eddb6da8d,
+        type: 2}
+    - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
+        type: 2}
+      propertyPath: weaponCrateTemplates.Array.data[1]
+      value: 
+      objectReference: {fileID: 1295151227454786, guid: a3cc828f968bb4bee9c88d7e6bd6b27e,
+        type: 2}
+    - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
+        type: 2}
+      propertyPath: weaponCrateTemplates.Array.data[2]
+      value: 
+      objectReference: {fileID: 1371198270848854, guid: 2b44d64a2c9c8436fa767c598a4142e0,
+        type: 2}
+    - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
+        type: 2}
+      propertyPath: weaponCrateTemplates.Array.data[3]
+      value: 
+      objectReference: {fileID: 1584684473900274, guid: 2799de5ffb8354a79bd185542477599c,
         type: 2}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 6fe0a73b2bef74843966379c220d1558, type: 2}

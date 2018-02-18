@@ -1,6 +1,6 @@
 fileFormatVersion: 2
-guid: 3f2b9f1da6f054bba8743c920c9aa496
-timeCreated: 1515884209
+guid: 1797dac79a3314d39a86b3349761c4c1
+timeCreated: 1518987987
 licenseType: Free
 TextureImporter:
   fileIDToRecycleName: {}
@@ -46,7 +46,7 @@ TextureImporter:
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
-  spritePixelsToUnits: 100
+  spritePixelsToUnits: 300
   alphaUsage: 1
   alphaIsTransparency: 1
   spriteTessellationDetail: -1
@@ -66,36 +66,31 @@ TextureImporter:
     allowsAlphaSplitting: 0
     overridden: 0
     androidETC2FallbackOverride: 0
+  - buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    androidETC2FallbackOverride: 0
+  - buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    androidETC2FallbackOverride: 0
   spriteSheet:
     serializedVersion: 2
     sprites: []
-    outline:
-    - - {x: -5, y: 62}
-      - {x: -59, y: -4}
-      - {x: -59, y: -42}
-      - {x: -47, y: -60}
-      - {x: 47, y: -60}
-      - {x: 59, y: -42}
-      - {x: 59, y: -4}
-      - {x: 5, y: 62}
-    physicsShape:
-    - - {x: 48, y: 3}
-      - {x: 5, y: 62}
-      - {x: -5, y: 62}
-      - {x: -14, y: 50}
-      - {x: -41, y: 0}
-      - {x: -55, y: -1}
-      - {x: -59, y: -5}
-      - {x: -59, y: -43}
-      - {x: -48, y: -60}
-      - {x: -36, y: -58}
-      - {x: -15, y: -54}
-      - {x: -9, y: -61}
-      - {x: 6, y: -61}
-      - {x: 16, y: -59}
-      - {x: 48, y: -60}
-      - {x: 59, y: -43}
-      - {x: 59, y: -3}
+    outline: []
+    physicsShape: []
   spritePackingTag: 
   userData: 
   assetBundleName: 
