@@ -10,7 +10,8 @@ public class GameController : MonoBehaviour
 
     public GameObject shipTemplate;
     public List<GameObject> weaponCrateTemplates;
-    public List<Camera> cameras;
+    public Camera cameraTemplate;
+    public Hud hudTemplate;
     public List<Color> colors;
     public Collider2D water;
     public TerrainMesh terrain;
@@ -27,24 +28,36 @@ public class GameController : MonoBehaviour
         playerCount = players.Count;
         playerControllers = new List<PlayerController>();
         var startPositions = terrain.startPositions(playerCount);
-        for (int i = 0; i < cameras.Count; i++)
+        for (int i = 0; i < playerCount; i++)
         {
-            if (i < playerCount)
+            GameObject ship = Instantiate(shipTemplate, startPositions[i], Quaternion.identity) as GameObject;
+            Hud hud = Instantiate(hudTemplate, startPositions[i], Quaternion.identity) as Hud;
+            Camera camera = Instantiate(cameraTemplate, startPositions[i], Quaternion.identity) as Camera;
+            switch (i)
             {
-                GameObject ship = Instantiate(shipTemplate, startPositions[i], Quaternion.identity) as GameObject;
-                var playerController = ship.GetComponent<PlayerController>();
-                playerController.playerCamera = cameras[i];
-                playerController.controls = players[i].controls;
-                playerController.gameController = this;
-                var flamerTrigger = playerController.flamer.trigger;
-                flamerTrigger.SetCollider(0, water);
-                ship.GetComponent<SpriteRenderer>().color = colors[i];
-                playerControllers.Add(playerController);
+                case 0:
+                    camera.rect = new Rect(0.0f, 0.5f, 0.5f, 0.5f);
+                    break;
+                case 1:
+                    camera.rect = new Rect(0.5f, 0.5f, 0.5f, 0.5f);
+                    break;
+                case 2:
+                    camera.rect = new Rect(0.0f, 0.0f, 0.5f, 0.5f);
+                    break;
+                case 3:
+                    camera.rect = new Rect(0.5f, 0.0f, 0.5f, 0.5f);
+                    break;
             }
-            else
-            {
-                cameras[i].gameObject.SetActive(false);
-            }
+            var playerController = ship.GetComponent<PlayerController>();
+            playerController.playerCamera = camera;
+            hud.GetComponent<Canvas>().worldCamera = camera;
+            playerController.hud = hud;
+            playerController.controls = players[i].controls;
+            playerController.gameController = this;
+            var flamerTrigger = playerController.flamer.trigger;
+            flamerTrigger.SetCollider(0, water);
+            ship.GetComponent<SpriteRenderer>().color = colors[i];
+            playerControllers.Add(playerController);
         }
         if (playerCount == 2)
         {
@@ -145,9 +158,9 @@ public class GameController : MonoBehaviour
             yield return new WaitForSeconds(interval);
 
             GameObject weaponCrateTemplate = weaponCrateTemplates[Random.Range(0, weaponCrateTemplates.Count)];
-			Vector2 position = terrain.randomCaveCenter();
-			Quaternion rotation = Quaternion.Euler(0, 0, Random.Range(0, 2*Mathf.PI));
-			Instantiate (weaponCrateTemplate, position, rotation);
+            Vector2 position = terrain.randomCaveCenter();
+            Quaternion rotation = Quaternion.Euler(0, 0, Random.Range(0, 2 * Mathf.PI));
+            Instantiate(weaponCrateTemplate, position, rotation);
         }
     }
 

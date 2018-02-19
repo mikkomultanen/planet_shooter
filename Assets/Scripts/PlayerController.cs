@@ -28,6 +28,7 @@ public enum SecondaryWeapon
 public class PlayerController : MonoBehaviour, Damageable
 {
     public Camera playerCamera;
+    public Hud hud;
     public float cameraMinDistance = 55f;
     public float cameraMaxDistance = 105f;
     public GameController gameController;
@@ -50,7 +51,21 @@ public class PlayerController : MonoBehaviour, Damageable
     public LineRenderer laserRay;
     public ParticleSystem laserSparkles;
 
-    private float health;
+    private float _health;
+
+    private float health
+    {
+        get
+        {
+            return _health;
+        }
+        set
+        {
+            hud.UpdateHealth(Mathf.RoundToInt(value));
+            _health = value;
+        }
+    }
+
     private static Vector3 cameraOffset = new Vector3(0, 0, -10);
     private Rigidbody2D rb;
     private float originalDrag;
