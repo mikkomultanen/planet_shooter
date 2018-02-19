@@ -51,20 +51,16 @@ public class WeaponCrate : Explosive, Damageable
                 switch (weapon)
                 {
                     case Weapon.Missiles:
-                        player.secondaryWeapon = SecondaryWeapon.Missiles;
-                        player.secondaryAmmunition = 5;
+                        player.setSecondaryWeapon(SecondaryWeapon.Missiles, 10);
                         break;
                     case Weapon.Bombs:
-                        player.secondaryWeapon = SecondaryWeapon.Bombs;
-                        player.secondaryAmmunition = 5;
+                        player.setSecondaryWeapon(SecondaryWeapon.Bombs, 5);
                         break;
                     case Weapon.Flamer:
-                        player.primaryWeapon = PrimaryWeapon.Flamer;
-                        player.primaryEnergy = 10;
+                        player.setPrimaryWeapon(PrimaryWeapon.Flamer, 10);
                         break;
                     case Weapon.Laser:
-                        player.primaryWeapon = PrimaryWeapon.Laser;
-                        player.primaryEnergy = 10;
+                        player.setPrimaryWeapon(PrimaryWeapon.Laser, 30);
                         break;
                 }
                 Destroy(gameObject);

@@ -32,7 +32,9 @@ public class GameController : MonoBehaviour
         {
             GameObject ship = Instantiate(shipTemplate, startPositions[i], Quaternion.identity) as GameObject;
             Hud hud = Instantiate(hudTemplate, startPositions[i], Quaternion.identity) as Hud;
+            hud.gameObject.SetActive(true);
             Camera camera = Instantiate(cameraTemplate, startPositions[i], Quaternion.identity) as Camera;
+            camera.gameObject.SetActive(true);
             switch (i)
             {
                 case 0:

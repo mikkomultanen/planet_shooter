@@ -9,20 +9,20 @@ Prefab:
     m_Modifications: []
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 0}
-  m_RootGameObject: {fileID: 1371198270848854}
+  m_RootGameObject: {fileID: 1329819336226902}
   m_IsPrefabParent: 1
---- !u!1 &1371198270848854
+--- !u!1 &1329819336226902
 GameObject:
   m_ObjectHideFlags: 0
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   serializedVersion: 5
   m_Component:
-  - component: {fileID: 4782514965151856}
-  - component: {fileID: 212766929705840376}
-  - component: {fileID: 50512293404331168}
-  - component: {fileID: 61739848536402876}
-  - component: {fileID: 114521561709436552}
+  - component: {fileID: 4374159334671548}
+  - component: {fileID: 212673304454316550}
+  - component: {fileID: 50253856581046982}
+  - component: {fileID: 61725085576448576}
+  - component: {fileID: 114743590629177540}
   m_Layer: 0
   m_Name: Laser crate
   m_TagString: Untagged
@@ -30,12 +30,12 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &4782514965151856
+--- !u!4 &4374159334671548
 Transform:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1371198270848854}
+  m_GameObject: {fileID: 1329819336226902}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -51.41964, y: 82.955124, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -43,13 +43,13 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!50 &50512293404331168
+--- !u!50 &50253856581046982
 Rigidbody2D:
   serializedVersion: 4
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1371198270848854}
+  m_GameObject: {fileID: 1329819336226902}
   m_BodyType: 0
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
@@ -63,12 +63,12 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 0
   m_Constraints: 0
---- !u!61 &61739848536402876
+--- !u!61 &61725085576448576
 BoxCollider2D:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1371198270848854}
+  m_GameObject: {fileID: 1329819336226902}
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
@@ -88,12 +88,12 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 1.7, y: 1.68}
   m_EdgeRadius: 0
---- !u!114 &114521561709436552
+--- !u!114 &114743590629177540
 MonoBehaviour:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1371198270848854}
+  m_GameObject: {fileID: 1329819336226902}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bd753027abf844e52a1cbf054cd682ff, type: 3}
@@ -103,12 +103,12 @@ MonoBehaviour:
   explosion: {fileID: 198221980394113368, guid: 56e25eb96b97e48ff8a42a34d78bf714,
     type: 2}
   weapon: 1
---- !u!212 &212766929705840376
+--- !u!212 &212673304454316550
 SpriteRenderer:
   m_ObjectHideFlags: 1
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 1371198270848854}
+  m_GameObject: {fileID: 1329819336226902}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0

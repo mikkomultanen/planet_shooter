@@ -25,6 +25,22 @@ public enum SecondaryWeapon
     Bombs
 }
 
+public struct WeaponState
+{
+    public PrimaryWeapon primary;
+    public float primaryEnergy;
+    public SecondaryWeapon secondary;
+    public int secondaryAmmunition;
+
+    public WeaponState(PrimaryWeapon primary, float primaryEnergy, SecondaryWeapon secondary, int secondaryAmmunition)
+    {
+        this.primary = primary;
+        this.primaryEnergy = primaryEnergy;
+        this.secondary = secondary;
+        this.secondaryAmmunition = secondaryAmmunition;
+    }
+}
+
 public class PlayerController : MonoBehaviour, Damageable
 {
     public Camera playerCamera;
@@ -80,10 +96,16 @@ public class PlayerController : MonoBehaviour, Damageable
     private string fire2Button;
     private string fire3Button;
     private string fire4Button;
-    public PrimaryWeapon primaryWeapon = PrimaryWeapon.MachineGun;
-    public float primaryEnergy = 0;
-    public SecondaryWeapon secondaryWeapon = SecondaryWeapon.None;
-    public int secondaryAmmunition = 0;
+    private WeaponState _weaponState = new WeaponState(PrimaryWeapon.MachineGun, 0, SecondaryWeapon.None, 0);
+    private WeaponState weaponState
+    {
+        get { return _weaponState; }
+        set
+        {
+            _weaponState = value;
+            hud.UpdateWeapons(value);
+        }
+    }
 
     private void Awake()
     {
@@ -142,7 +164,7 @@ public class PlayerController : MonoBehaviour, Damageable
     {
         bool flamerOn = false;
         bool laserOn = false;
-        switch (primaryWeapon)
+        switch (weaponState.primary)
         {
             case PrimaryWeapon.MachineGun:
                 if (Input.GetButton(fire1Button) && Time.time > nextFire)
@@ -153,27 +175,29 @@ public class PlayerController : MonoBehaviour, Damageable
                 }
                 break;
             case PrimaryWeapon.Flamer:
-                flamerOn = Input.GetButton(fire1Button) && primaryEnergy > 0;
+                flamerOn = Input.GetButton(fire1Button) && weaponState.primaryEnergy > 0;
                 break;
             case PrimaryWeapon.Laser:
-                laserOn = Input.GetButton(fire1Button) && primaryEnergy > 0;
+                laserOn = Input.GetButton(fire1Button) && weaponState.primaryEnergy > 0;
                 break;
         }
-        switch (secondaryWeapon)
+        switch (weaponState.secondary)
         {
             case SecondaryWeapon.Missiles:
-                if (Input.GetButton(fire2Button) && Time.time > nextSecondaryFire && secondaryAmmunition > 0)
+                if (Input.GetButton(fire2Button) && Time.time > nextSecondaryFire && weaponState.secondaryAmmunition > 0)
                 {
-                    secondaryAmmunition--;
+                    var oldState = weaponState;
+                    weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy, oldState.secondary, oldState.secondaryAmmunition - 1);
                     nextSecondaryFire = Time.time + secondaryFireRate;
                     GameObject clone = Instantiate(missile, gunPoint.position, gunPoint.rotation) as GameObject;
                     clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
                 }
                 break;
             case SecondaryWeapon.Bombs:
-                if (Input.GetButton(fire2Button) && Time.time > nextSecondaryFire && secondaryAmmunition > 0)
+                if (Input.GetButton(fire2Button) && Time.time > nextSecondaryFire && weaponState.secondaryAmmunition > 0)
                 {
-                    secondaryAmmunition--;
+                    var oldState = weaponState;
+                    weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy, oldState.secondary, oldState.secondaryAmmunition - 1);
                     nextSecondaryFire = Time.time + secondaryFireRate;
                     GameObject clone = Instantiate(bomb, gunPoint.position, gunPoint.rotation) as GameObject;
                     clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
@@ -182,10 +206,11 @@ public class PlayerController : MonoBehaviour, Damageable
         }
         if (flamerOn || laserOn)
         {
-            primaryEnergy -= Time.deltaTime;
-            if (primaryEnergy <= 0)
+            var oldState = weaponState;
+            weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy - Time.deltaTime, oldState.secondary, oldState.secondaryAmmunition);
+            if (weaponState.primaryEnergy <= 0)
             {
-                primaryWeapon = PrimaryWeapon.MachineGun;
+                setPrimaryWeapon(PrimaryWeapon.MachineGun, 0);
             }
         }
         if (flamerOn != flamer.isEmitting)
@@ -295,11 +320,23 @@ public class PlayerController : MonoBehaviour, Damageable
     public void respawn(Vector3 position)
     {
         health = maxHealth;
-        primaryWeapon = PrimaryWeapon.MachineGun;
-        secondaryWeapon = SecondaryWeapon.None;
+        setPrimaryWeapon(PrimaryWeapon.MachineGun, 0);
+        setSecondaryWeapon(SecondaryWeapon.None, 0);
         transform.position = position;
         rb.velocity = Vector2.zero;
         rb.angularVelocity = 0;
         rb.rotation = -Mathf.Atan2(position.x, position.y) * Mathf.Rad2Deg;
+    }
+
+    public void setPrimaryWeapon(PrimaryWeapon primary, float energy)
+    {
+        var oldState = weaponState;
+        weaponState = new WeaponState(primary, energy, oldState.secondary, oldState.secondaryAmmunition);
+    }
+
+    public void setSecondaryWeapon(SecondaryWeapon secondary, int ammunition)
+    {
+        var oldState = weaponState;
+        weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy, secondary, ammunition);
     }
 }
