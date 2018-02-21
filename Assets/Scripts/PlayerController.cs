@@ -52,6 +52,7 @@ public class PlayerController : MonoBehaviour, Damageable
     public GameObject projectile;
     public Transform gunPoint;
     public GameObject missile;
+    public GameObject homingMissile;
     public GameObject bomb;
     public float maxHealth = 100;
     public float maxThrustPower = 2000f;
@@ -203,6 +204,12 @@ public class PlayerController : MonoBehaviour, Damageable
                     clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
                 }
                 break;
+        }
+        if (Input.GetButton(fire3Button) && Time.time > nextSecondaryFire)
+        {
+            nextSecondaryFire = Time.time + secondaryFireRate;
+            GameObject clone = Instantiate(homingMissile, gunPoint.position, gunPoint.rotation) as GameObject;
+            clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
         }
         if (flamerOn || laserOn)
         {

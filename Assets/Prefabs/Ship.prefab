@@ -301,6 +301,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerCamera: {fileID: 0}
+  hud: {fileID: 0}
   cameraMinDistance: 55
   cameraMaxDistance: 105
   gameController: {fileID: 0}
@@ -308,12 +309,14 @@ MonoBehaviour:
   projectile: {fileID: 1211334698357148, guid: ab111d034448c430a862e52f0b7ff31b, type: 2}
   gunPoint: {fileID: 4217006314276726}
   missile: {fileID: 1887440109270058, guid: 666e4626064014412845b0f68a6e03ec, type: 2}
+  homingMissile: {fileID: 1257667906419320, guid: e79c654edc71f489abc9d4f17c114f10,
+    type: 2}
   bomb: {fileID: 1928755406794440, guid: 6683d13e338964bb3b20c7ef64dca29a, type: 2}
   maxHealth: 100
   maxThrustPower: 300
   maxSpeed: 10
   fireRate: 0.05
-  missileFireRate: 1
+  secondaryFireRate: 1
   laserDamagePerSecond: 20
   thruster: {fileID: 198161966287997816}
   flamer: {fileID: 198388300409513396}
@@ -322,10 +325,6 @@ MonoBehaviour:
     type: 2}
   laserRay: {fileID: 120953020645573714}
   laserSparkles: {fileID: 198842167835696114}
-  secondaryWeapon: 0
-  missiles: 0
-  flamerFuel: 0
-  laserEnergy: 0
 --- !u!120 &120953020645573714
 LineRenderer:
   m_ObjectHideFlags: 1
