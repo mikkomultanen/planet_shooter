@@ -61,6 +61,7 @@ public class GameController : MonoBehaviour
             ship.GetComponent<SpriteRenderer>().color = colors[i];
             playerControllers.Add(playerController);
         }
+        playerControllers.ForEach(c => c.hud.InitializeEnemyIndicators(playerControllers));
         if (playerCount == 2)
         {
             playerControllers[0].playerCamera.rect = new Rect(0.25f, 0.5f, 0.5f, 0.5f);
