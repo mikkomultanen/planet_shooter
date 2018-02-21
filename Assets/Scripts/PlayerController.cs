@@ -323,6 +323,8 @@ public class PlayerController : MonoBehaviour, Damageable
         setPrimaryWeapon(PrimaryWeapon.MachineGun, 0);
         setSecondaryWeapon(SecondaryWeapon.None, 0);
         transform.position = position;
+        isInWater = false;
+        rb.drag = originalDrag;
         rb.velocity = Vector2.zero;
         rb.angularVelocity = 0;
         rb.rotation = -Mathf.Atan2(position.x, position.y) * Mathf.Rad2Deg;
