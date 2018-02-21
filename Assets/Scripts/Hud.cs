@@ -80,6 +80,7 @@ public class Hud : MonoBehaviour
         Image indicator;
         Vector3 screenPos;
         Vector2 onScreenPos;
+        float angle;
         float max;
         for (int i = 0; i < players.Count; i++)
         {
@@ -97,6 +98,8 @@ public class Hud : MonoBehaviour
                 onScreenPos = (onScreenPos / (max * 2)) + new Vector2(0.5f, 0.5f); //undo mapping
                 indicator.rectTransform.anchorMin = onScreenPos;
                 indicator.rectTransform.anchorMax = onScreenPos;
+                angle = -Mathf.Atan2(onScreenPos.x - 0.5f, onScreenPos.y - 0.5f) * Mathf.Rad2Deg;
+                indicator.rectTransform.localRotation = Quaternion.Euler(0, 0, angle);
                 indicator.gameObject.SetActive(true);
             }
         }
