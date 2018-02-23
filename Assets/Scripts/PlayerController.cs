@@ -316,12 +316,20 @@ public class PlayerController : MonoBehaviour, Damageable
         rb.angularVelocity = -turn * 300f;
     }
 
+    private Vector2 previousPosition;
     void LateUpdate()
     {
         Vector3 up = transform.position.normalized;
         Vector3 lookAt = up * Mathf.Clamp(transform.position.magnitude, cameraMinDistance, cameraMaxDistance);
         playerCamera.transform.position = lookAt + cameraOffset;
         playerCamera.transform.LookAt(lookAt, up);
+
+        var h = rb.position.magnitude;
+        var positionDelta = rb.position - previousPosition;
+        previousPosition = rb.position;
+        var positionNormalized = rb.position.normalized;
+        var t = positionDelta - (positionNormalized * Vector2.Dot(positionDelta, positionNormalized));
+        rb.rotation -= Mathf.Atan(t.magnitude / h) * Mathf.Sign(PSEdge.Cross(t, positionNormalized)) * Mathf.Rad2Deg;
     }
 
     public bool isAlive()
@@ -340,6 +348,7 @@ public class PlayerController : MonoBehaviour, Damageable
         rb.velocity = Vector2.zero;
         rb.angularVelocity = 0;
         rb.rotation = -Mathf.Atan2(position.x, position.y) * Mathf.Rad2Deg;
+        previousPosition = position;
     }
 
     public void setPrimaryWeapon(PrimaryWeapon primary, float energy)

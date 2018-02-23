@@ -166,7 +166,7 @@ public sealed class PSEdge
         return Cross(v0, s) * rxsr;
 	}
 
-    static float Cross(Vector2 a, Vector2 b)
+    public static float Cross(Vector2 a, Vector2 b)
     {
         return a.x * b.y - a.y * b.x;
     }

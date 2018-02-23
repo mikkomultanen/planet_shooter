@@ -23,6 +23,7 @@ GameObject:
   - component: {fileID: 50958651829553466}
   - component: {fileID: 70659346831858040}
   - component: {fileID: 114437156657556940}
+  - component: {fileID: 114665055242855730}
   - component: {fileID: 114411126477062554}
   m_Layer: 1
   m_Name: Homing Missile
@@ -89,7 +90,7 @@ Rigidbody2D:
   m_Mass: 1
   m_LinearDrag: 0
   m_AngularDrag: 0.05
-  m_GravityScale: 0.1
+  m_GravityScale: 0.2
   m_Material: {fileID: 0}
   m_Interpolate: 0
   m_SleepingMode: 1
@@ -136,6 +137,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7b96853d681124804a5348ca9181b6a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &114665055242855730
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1257667906419320}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9ad16608a97c8444cab5b4617bcdc333, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!198 &198620993609878998
