@@ -5,6 +5,8 @@ using System.Collections.Generic;
 
 public class ExplosionForce : MonoBehaviour
 {
+    private int layerMask = ~(1 << 1);
+
 	public void doExplosion (Vector3 position, float force, float radius)
 	{
 		StartCoroutine (waitAndExplode (position, force, radius));
@@ -14,7 +16,7 @@ public class ExplosionForce : MonoBehaviour
 	{
 		yield return new WaitForFixedUpdate ();
 		
-		Collider2D[] colliders = Physics2D.OverlapCircleAll (position, radius);
+		Collider2D[] colliders = Physics2D.OverlapCircleAll (position, radius, layerMask);
 
 		Vector2 dir;
 		float wearoff;
