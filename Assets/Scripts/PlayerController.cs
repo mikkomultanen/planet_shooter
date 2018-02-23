@@ -22,6 +22,7 @@ public enum SecondaryWeapon
 {
     None,
     Missiles,
+    HomingMissiles,
     Bombs
 }
 
@@ -194,6 +195,16 @@ public class PlayerController : MonoBehaviour, Damageable
                     clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
                 }
                 break;
+            case SecondaryWeapon.HomingMissiles:
+                if (Input.GetButton(fire2Button) && Time.time > nextSecondaryFire && weaponState.secondaryAmmunition > 0)
+                {
+                    var oldState = weaponState;
+                    weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy, oldState.secondary, oldState.secondaryAmmunition - 1);
+                    nextSecondaryFire = Time.time + secondaryFireRate;
+                    GameObject clone = Instantiate(homingMissile, gunPoint.position, gunPoint.rotation) as GameObject;
+                    clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
+                }
+                break;
             case SecondaryWeapon.Bombs:
                 if (Input.GetButton(fire2Button) && Time.time > nextSecondaryFire && weaponState.secondaryAmmunition > 0)
                 {
@@ -204,12 +215,6 @@ public class PlayerController : MonoBehaviour, Damageable
                     clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
                 }
                 break;
-        }
-        if (Input.GetButton(fire3Button) && Time.time > nextSecondaryFire)
-        {
-            nextSecondaryFire = Time.time + secondaryFireRate;
-            GameObject clone = Instantiate(homingMissile, gunPoint.position, gunPoint.rotation) as GameObject;
-            clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
         }
         if (flamerOn || laserOn)
         {

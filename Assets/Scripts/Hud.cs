@@ -41,6 +41,9 @@ public class Hud : MonoBehaviour
             case SecondaryWeapon.Missiles:
                 text.Add("Missiles: " + weaponState.secondaryAmmunition);
                 break;
+            case SecondaryWeapon.HomingMissiles:
+                text.Add("Homing missiles: " + weaponState.secondaryAmmunition);
+                break;
             case SecondaryWeapon.Bombs:
                 text.Add("Bombs: " + weaponState.secondaryAmmunition);
                 break;
