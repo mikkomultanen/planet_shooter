@@ -65,6 +65,7 @@ public class GameController : MonoBehaviour
             playerControllers.Add(playerController);
             
             var repairBase = Instantiate(repairBaseTemplate, startPositions[i], Quaternion.identity) as RepairBase;
+            repairBase.terrain = terrain;
             repairBases.Add(repairBase);
         }
         playerControllers.ForEach(c => c.hud.InitializeEnemyIndicators(playerControllers));
@@ -153,8 +154,7 @@ public class GameController : MonoBehaviour
         {
             playerControllers[i].gameObject.SetActive(true);
             playerControllers[i].respawn(startPositions[i]);
-            repairBases[i].transform.position = startPositions[i];
-            repairBases[i].transform.rotation = Quaternion.Euler(0, 0, -Mathf.Atan2(startPositions[i].x, startPositions[i].y) * Mathf.Rad2Deg);
+            repairBases[i].respawn(startPositions[i]);
         }
         foreach (var crate in GameObject.FindObjectsOfType<WeaponCrate>())
         {
