@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Explosive : MonoBehaviour
+public class Explosive : MonoBehaviour, Damageable
 {
     public float explosionDamage = 100f;
     public ParticleSystem explosion;
@@ -42,5 +42,10 @@ public class Explosive : MonoBehaviour
         ExplosionForce ef = GameObject.FindObjectOfType<ExplosionForce>();
         ef.doExplosion(transform.position, explosionForce, explosionRadius);
         Destroy(gameObject);
+    }
+
+    public void doDamage(float damage)
+    {
+        explode();
     }
 }

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class WeaponCrate : Explosive, Damageable
+public class WeaponCrate : Explosive
 {
     public enum Weapon
     {
@@ -77,10 +77,5 @@ public class WeaponCrate : Explosive, Damageable
         float floatingAndGravityForceMagnitude = (isInWater ? -1.2f : 1f) * gravityForceMagnitude;
         Vector2 gravity = rb.position.normalized * floatingAndGravityForceMagnitude;
         rb.AddForce(gravity);
-    }
-
-    public void doDamage(float damage)
-    {
-        explode();
     }
 }
