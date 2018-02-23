@@ -27,14 +27,19 @@ public class HomingMissileMover : Explosive
 
     void FixedUpdate()
     {
-        if (Vector2.Dot(rb.velocity, transform.up) < maxSpeed)
-        {
-            rb.AddForce(transform.up * thurstForceMagnitude);
-        }
+        var thrustFactor = 1f;
+        var forwardSpeed = Vector2.Dot(rb.velocity, transform.up);
         if (target != null)
         {
-            var turn = Mathf.Sign(Vector2.SignedAngle(transform.up, target.position - transform.position));
-            rb.angularVelocity = turn * 300f;
+            var currentDirection = forwardSpeed > 0.5f * maxSpeed ? rb.velocity : (Vector2)transform.up;
+            var targetDirection = target.position - transform.position;
+            var angle = Vector2.SignedAngle(currentDirection, targetDirection);
+            thrustFactor = 0.5f + 0.5f * (1f - Mathf.Clamp01(Mathf.Abs(angle / 15f)));
+            rb.angularVelocity = Mathf.Clamp(angle / 15f, -1, 1) * 300f;
+        }
+        if (forwardSpeed < maxSpeed)
+        {
+            rb.AddForce(transform.up * (thurstForceMagnitude * thrustFactor));
         }
     }
 

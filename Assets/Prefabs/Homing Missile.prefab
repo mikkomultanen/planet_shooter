@@ -124,9 +124,9 @@ MonoBehaviour:
   explosionDamage: 50
   explosion: {fileID: 198221980394113368, guid: 56e25eb96b97e48ff8a42a34d78bf714,
     type: 2}
-  thrustAcceleration: 30
-  maxSpeed: 10
-  homingRadius: 10
+  thrustAcceleration: 60
+  maxSpeed: 15
+  homingRadius: 20
 --- !u!114 &114437156657556940
 MonoBehaviour:
   m_ObjectHideFlags: 1
