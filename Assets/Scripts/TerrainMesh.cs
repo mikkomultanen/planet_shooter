@@ -174,6 +174,12 @@ public class TerrainMesh : MonoBehaviour
         return result;
     }
 
+    public float upperCaveCenterMagnitude(Vector2 position)
+    {
+        var angle = Mathf.Atan2(position.x, position.y);
+        return caves.Select(c => c.centerMagnitude(angle)).Max();
+    }
+
     private void GenerateCaves()
     {
         float r = (innerRadius + outerRadius) / 2;

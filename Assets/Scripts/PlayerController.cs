@@ -351,6 +351,11 @@ public class PlayerController : MonoBehaviour, Damageable
         previousPosition = position;
     }
 
+    public void repair(float amount)
+    {
+        health = Mathf.Min(health + amount, maxHealth);
+    }
+
     public void setPrimaryWeapon(PrimaryWeapon primary, float energy)
     {
         var oldState = weaponState;
