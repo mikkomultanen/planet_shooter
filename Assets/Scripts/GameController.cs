@@ -9,6 +9,7 @@ public class GameController : MonoBehaviour
 {
 
     public GameObject shipTemplate;
+    public RepairBase repairBaseTemplate;
     public List<GameObject> weaponCrateTemplates;
     public Camera cameraTemplate;
     public Hud hudTemplate;
@@ -22,11 +23,13 @@ public class GameController : MonoBehaviour
     private int playerCount;
     private EventSystem eventSystem;
     private List<PlayerController> playerControllers;
+    private List<RepairBase> repairBases;
 
     private void Awake()
     {
         playerCount = players.Count;
         playerControllers = new List<PlayerController>();
+        repairBases = new List<RepairBase>();
         var startPositions = terrain.startPositions(playerCount);
         for (int i = 0; i < playerCount; i++)
         {
@@ -60,6 +63,9 @@ public class GameController : MonoBehaviour
             flamerTrigger.SetCollider(0, water);
             ship.GetComponent<SpriteRenderer>().color = colors[i];
             playerControllers.Add(playerController);
+            
+            var repairBase = Instantiate(repairBaseTemplate, startPositions[i], Quaternion.identity) as RepairBase;
+            repairBases.Add(repairBase);
         }
         playerControllers.ForEach(c => c.hud.InitializeEnemyIndicators(playerControllers));
         if (playerCount == 2)
@@ -147,6 +153,8 @@ public class GameController : MonoBehaviour
         {
             playerControllers[i].gameObject.SetActive(true);
             playerControllers[i].respawn(startPositions[i]);
+            repairBases[i].transform.position = startPositions[i];
+            repairBases[i].transform.rotation = Quaternion.Euler(0, 0, -Mathf.Atan2(startPositions[i].x, startPositions[i].y) * Mathf.Rad2Deg);
         }
         foreach (var crate in GameObject.FindObjectsOfType<WeaponCrate>())
         {
