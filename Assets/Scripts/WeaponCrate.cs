@@ -9,6 +9,7 @@ public class WeaponCrate : Explosive, Damageable
         Flamer,
         Laser,
         Missiles,
+        HomingMissiles,
         Bombs
     }
     public Weapon weapon;
@@ -52,6 +53,9 @@ public class WeaponCrate : Explosive, Damageable
                 {
                     case Weapon.Missiles:
                         player.setSecondaryWeapon(SecondaryWeapon.Missiles, 10);
+                        break;
+                    case Weapon.HomingMissiles:
+                        player.setSecondaryWeapon(SecondaryWeapon.HomingMissiles, 5);
                         break;
                     case Weapon.Bombs:
                         player.setSecondaryWeapon(SecondaryWeapon.Bombs, 5);

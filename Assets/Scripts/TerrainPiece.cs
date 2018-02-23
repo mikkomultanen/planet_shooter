@@ -45,6 +45,7 @@ public class TerrainPiece : MonoBehaviour
         .ObserveOn(Scheduler.ThreadPool)
         .Scan(initialMeshData, (data, clipPolygon) => UpdateMeshData(data, clipPolygon))
         .ObserveOnMainThread()
+        .ThrottleFrame(1)
         .Subscribe(onNext: result => {
             UpdateMesh(result);
             UpdateColliders(result);
@@ -176,7 +177,10 @@ public class TerrainPiece : MonoBehaviour
 
     private void UpdateColliders(MeshData data)
     {
-        Destroy(gameObject.GetComponent<PolygonCollider2D>());
+        foreach (var c in gameObject.GetComponents<PolygonCollider2D>())
+        {
+            Destroy(c);
+        }
         PolygonCollider2D polygonCollider = gameObject.AddComponent<PolygonCollider2D>();
         polygonCollider.pathCount = 0;
 

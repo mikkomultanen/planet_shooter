@@ -22,6 +22,7 @@ public enum SecondaryWeapon
 {
     None,
     Missiles,
+    HomingMissiles,
     Bombs
 }
 
@@ -52,6 +53,7 @@ public class PlayerController : MonoBehaviour, Damageable
     public GameObject projectile;
     public Transform gunPoint;
     public GameObject missile;
+    public GameObject homingMissile;
     public GameObject bomb;
     public float maxHealth = 100;
     public float maxThrustPower = 2000f;
@@ -190,6 +192,16 @@ public class PlayerController : MonoBehaviour, Damageable
                     weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy, oldState.secondary, oldState.secondaryAmmunition - 1);
                     nextSecondaryFire = Time.time + secondaryFireRate;
                     GameObject clone = Instantiate(missile, gunPoint.position, gunPoint.rotation) as GameObject;
+                    clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
+                }
+                break;
+            case SecondaryWeapon.HomingMissiles:
+                if (Input.GetButton(fire2Button) && Time.time > nextSecondaryFire && weaponState.secondaryAmmunition > 0)
+                {
+                    var oldState = weaponState;
+                    weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy, oldState.secondary, oldState.secondaryAmmunition - 1);
+                    nextSecondaryFire = Time.time + secondaryFireRate;
+                    GameObject clone = Instantiate(homingMissile, gunPoint.position, gunPoint.rotation) as GameObject;
                     clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
                 }
                 break;
