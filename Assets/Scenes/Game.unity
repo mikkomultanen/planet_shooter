@@ -785,6 +785,7 @@ GameObject:
   - component: {fileID: 972957423}
   - component: {fileID: 972957428}
   - component: {fileID: 972957426}
+  - component: {fileID: 972957429}
   m_Layer: 4
   m_Name: Water
   m_TagString: Water
@@ -895,6 +896,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   layerName: Default
   order: 3
+--- !u!114 &972957429
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 972957422}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85c33214f503547fdad118d501d8ae47, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  splashTemplate: {fileID: 198154636007942402, guid: 69696a12d05e44055bb37c248f689aa4,
+    type: 2}
+  splashThreshold: 2
 --- !u!43 &997652964
 Mesh:
   m_ObjectHideFlags: 0
