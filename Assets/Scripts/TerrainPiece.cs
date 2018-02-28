@@ -19,12 +19,14 @@ public class TerrainPiece : MonoBehaviour
         public Vector2[] vertices;
         public int[] triangles;
         public Vector2[][] paths;
+        public PSPolygon[] cuttedParts;
 
-        public MeshData(Vector2[] vertices, int[] triangles, Vector2[][] paths)
+        public MeshData(Vector2[] vertices, int[] triangles, Vector2[][] paths, PSPolygon[] cuttedParts)
         {
             this.vertices = vertices;
             this.triangles = triangles;
             this.paths = paths;
+            this.cuttedParts = cuttedParts;
         }
 
         public static MeshData from(Mesh mesh, PolygonCollider2D collider)
@@ -33,7 +35,7 @@ public class TerrainPiece : MonoBehaviour
                 .Select(i => collider.GetPath(i))
                 .ToArray();
 
-            return new MeshData(mesh.vertices.Select(v => (Vector2)v).ToArray(), mesh.triangles, paths);
+            return new MeshData(mesh.vertices.Select(v => (Vector2)v).ToArray(), mesh.triangles, paths, new PSPolygon[0]);
         }
     }
 
@@ -45,10 +47,11 @@ public class TerrainPiece : MonoBehaviour
         .ObserveOn(Scheduler.ThreadPool)
         .Scan(initialMeshData, (data, clipPolygon) => UpdateMeshData(data, clipPolygon))
         .ObserveOnMainThread()
-        .ThrottleFrame(1)
+        .BatchFrame(1, FrameCountType.Update)
         .Subscribe(onNext: result => {
-            UpdateMesh(result);
-            UpdateColliders(result);
+            UpdateMesh(result.Last());
+            UpdateColliders(result.Last());
+            EmitParticles(result.SelectMany(d => d.cuttedParts));
         })
 		.AddTo(disposeBag);
     }
@@ -152,7 +155,12 @@ public class TerrainPiece : MonoBehaviour
             .Select(p => p.ToArray())
             .ToArray();
 
-        return new MeshData(newVertices.ToArray(), newTriangles.ToArray(), newPaths);
+        var cuttedParts = oldPaths
+            .SelectMany(p => PSPolygon.intersection(p, clipPolygon.points))
+            .Select(p => new PSPolygon(p))
+            .ToArray();
+
+        return new MeshData(newVertices.ToArray(), newTriangles.ToArray(), newPaths, cuttedParts);
     }
 
     private void UpdateMesh(MeshData data)
@@ -189,5 +197,48 @@ public class TerrainPiece : MonoBehaviour
             polygonCollider.pathCount++;
             polygonCollider.SetPath(polygonCollider.pathCount - 1, p.ToArray());
         }
+    }
+
+    private void EmitParticles(IEnumerable<PSPolygon> shapes)
+    {
+        var ps = Instantiate(terrainMesh.terrainParticleTemplate);
+        ps.gameObject.SetActive(true);
+        // TODO get terrain colors
+        var coords = new List<Vector2>();
+        Vector2 coord;
+        foreach (var shape in shapes)
+        {
+            var xMin = shape.Bounds.xMin;
+            var xMax = shape.Bounds.xMax;
+            var yMin = shape.Bounds.yMin;
+            var yMax = shape.Bounds.yMax;
+            for (float x = xMin; x < xMax; x += 0.1f)
+            {
+                for (float y = yMin; y < yMax; y += 0.1f)
+                {
+                    coord = new Vector2(x, y);
+                    if (shape.PointInPolygon(coord))
+                    {
+                        coords.Add(coord);
+                    }
+                }
+            }
+        }
+        if (coords.Count > ps.main.maxParticles)
+        {
+            int everyNth = coords.Count / ps.main.maxParticles + 1;
+            coords = coords.Where((p, i) => i % everyNth == 0).ToList();
+        }
+        int count = Mathf.Min(ps.main.maxParticles, coords.Count);
+        ps.Emit(count);
+        var particles = new ParticleSystem.Particle[count];
+        int activeCount = ps.GetParticles(particles);
+        for (int i = 0; i < activeCount; i++)
+        {
+            particles[i].position = new Vector3(coords[i].x, coords[i].y, transform.position.z);
+            particles[i].startColor = terrainMesh.getColor(coords[i], doNotWrapUV, floorEdges);
+        }
+        ps.SetParticles(particles, activeCount);
+		ps.Play();
     }
 }

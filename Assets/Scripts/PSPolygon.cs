@@ -119,11 +119,21 @@ public sealed class PSPolygon
     }
     public static IEnumerable<IEnumerable<Vector2>> difference(ICollection<Vector2> subject, ICollection<Vector2> clip)
     {
+        return operation(subject, clip, ClipType.ctDifference);
+    }
+
+    public static IEnumerable<IEnumerable<Vector2>> intersection(ICollection<Vector2> subject, ICollection<Vector2> clip)
+    {
+        return operation(subject, clip, ClipType.ctIntersection);
+    }
+
+    private static IEnumerable<IEnumerable<Vector2>> operation(ICollection<Vector2> subject, ICollection<Vector2> clip, ClipType clipType)
+    {
         ClipperLibPolygons result = new ClipperLibPolygons();
         Clipper c = new Clipper();
         c.AddPaths(createPolygons(clip), PolyType.ptClip, true);
         c.AddPaths(createPolygons(subject), PolyType.ptSubject, true);
-        c.Execute(ClipType.ctDifference, result, PolyFillType.pftEvenOdd, PolyFillType.pftEvenOdd);
+        c.Execute(clipType, result, PolyFillType.pftEvenOdd, PolyFillType.pftEvenOdd);
         return result.Select(poly => poly.Select(p => new Vector2(p.X, p.Y) / multiplier));
     }
 

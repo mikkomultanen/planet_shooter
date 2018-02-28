@@ -119,11 +119,21 @@ class Cave
 [RequireComponent(typeof(MeshFilter))]
 public class TerrainMesh : MonoBehaviour
 {
+    public ParticleSystem terrainParticleTemplate;
     public float outerRadius = 1;
     public float innerRadius = 0.1f;
     private float textureScaleU = 6;
     private float textureScaleV = 1;
     private float threshold = 1f;
+    private Material material;
+    private Texture2D mainTex;
+    private Vector2 mainTexOffset;
+    private Vector2 mainTexScale;
+    private Texture2D overlayTex;
+    private Vector2 overlayTexOffset;
+    private Vector2 overlayTexScale;
+    private Color tintColor;
+    private float brightness;
 
     public List<GameObject> fragments = new List<GameObject>();
 
@@ -189,6 +199,22 @@ public class TerrainMesh : MonoBehaviour
         for (int i = 0; i < n; i++)
         {
             caves.Add(new Cave(r - t / 4 * i / (n - 1), -t / 4, t / 4 + t / 8, t / 8, t / 4));
+        }
+    }
+
+    private void InitMaterial()
+    {
+        if (material == null)
+        {
+            material = GetComponent<MeshRenderer>().sharedMaterial;
+            mainTex = material.GetTexture("_MainTex") as Texture2D;
+            mainTexOffset = material.GetTextureOffset("_MainTex");
+            mainTexScale = material.GetTextureScale("_MainTex");
+            overlayTex = material.GetTexture("_OverlayTex") as Texture2D;
+            overlayTexOffset = material.GetTextureOffset("_OverlayTex");
+            overlayTexScale = material.GetTextureScale("_OverlayTex");
+            tintColor = material.GetColor("_Color");
+            brightness = material.GetFloat("_Brightness");
         }
     }
 
@@ -584,6 +610,21 @@ public class TerrainMesh : MonoBehaviour
         return new Vector2(u, v);
     }
 
+    public Color32 getColor(Vector2 coord, bool doNotWrap, List<PSEdge> floorEdges)
+    {
+        var uv = getUV(coord, doNotWrap);
+        uv = new Vector2(uv.x * mainTexScale.x, uv.y * mainTexScale.y) + mainTexOffset;
+        var color = mainTex.GetPixelBilinear(uv.x, uv.y);
+        color = color * tintColor * brightness; 
+        color.a = 1f;
+        uv = getUV2(coord, doNotWrap, floorEdges);
+        uv = new Vector2(uv.x * overlayTexScale.x, uv.y * overlayTexScale.y) + overlayTexOffset;
+        var overlayColor = overlayTex.GetPixelBilinear(uv.x, uv.y);
+        var a = overlayColor.a;
+        overlayColor.a = 1f;
+        return Color.Lerp(color, overlayColor, a);
+    }
+
 #if UNITY_EDITOR
     [ContextMenu("Delete fragments")]
 #endif
@@ -602,8 +643,8 @@ public class TerrainMesh : MonoBehaviour
     private void GenerateFragments(List<PSPolygon> polygons)
     {
         DeleteFragments();
-        var mat = GetComponent<MeshRenderer>().sharedMaterial;
-        fragments.AddRange(polygons.Select(p => GenerateFragment(p, mat)));
+        InitMaterial();
+        fragments.AddRange(polygons.Select(p => GenerateFragment(p, material)));
         Resources.UnloadUnusedAssets();
     }
 
