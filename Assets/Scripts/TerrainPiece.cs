@@ -201,9 +201,13 @@ public class TerrainPiece : MonoBehaviour
 
     private void EmitParticles(IEnumerable<PSPolygon> shapes)
     {
+        if (shapes.Take(1).Count() == 0) {
+            return;
+        }
+        var direction = shapes.Aggregate(Vector2.zero, (d, p) => d + p.Bounds.center);
         var ps = Instantiate(terrainMesh.terrainParticleTemplate);
+        ps.transform.rotation = Quaternion.Euler(0, 0, -Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg);
         ps.gameObject.SetActive(true);
-        // TODO get terrain colors
         var coords = new List<Vector2>();
         Vector2 coord;
         foreach (var shape in shapes)
