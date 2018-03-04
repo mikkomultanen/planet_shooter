@@ -12,18 +12,22 @@ using UnityEditor;
 
 public class TerrainPiece : MonoBehaviour
 {
-	private CompositeDisposable disposeBag = new CompositeDisposable();
+    private CompositeDisposable disposeBag = new CompositeDisposable();
 
     private sealed class MeshData
     {
-        public Vector2[] vertices;
+        public Vector3[] vertices;
+        public Vector2[] uv;
+        public Vector2[] uv2;
         public int[] triangles;
         public Vector2[][] paths;
         public PSPolygon[] cuttedParts;
 
-        public MeshData(Vector2[] vertices, int[] triangles, Vector2[][] paths, PSPolygon[] cuttedParts)
+        public MeshData(Vector3[] vertices, Vector2[] uv, Vector2[] uv2, int[] triangles, Vector2[][] paths, PSPolygon[] cuttedParts)
         {
             this.vertices = vertices;
+            this.uv = uv;
+            this.uv2 = uv2;
             this.triangles = triangles;
             this.paths = paths;
             this.cuttedParts = cuttedParts;
@@ -35,7 +39,7 @@ public class TerrainPiece : MonoBehaviour
                 .Select(i => collider.GetPath(i))
                 .ToArray();
 
-            return new MeshData(mesh.vertices.Select(v => (Vector2)v).ToArray(), mesh.triangles, paths, new PSPolygon[0]);
+            return new MeshData(mesh.vertices, mesh.uv, mesh.uv2, mesh.triangles, paths, new PSPolygon[0]);
         }
     }
 
@@ -48,18 +52,20 @@ public class TerrainPiece : MonoBehaviour
         .Scan(initialMeshData, (data, clipPolygon) => UpdateMeshData(data, clipPolygon))
         .ObserveOnMainThread()
         .BatchFrame(1, FrameCountType.Update)
-        .Subscribe(onNext: result => {
+        .Subscribe(onNext: result =>
+        {
             UpdateMesh(result.Last());
             UpdateColliders(result.Last());
             EmitParticles(result.SelectMany(d => d.cuttedParts));
         })
-		.AddTo(disposeBag);
+        .AddTo(disposeBag);
     }
 
-	private void OnDestroy() {
-		disposeBag.Dispose();
-		disposeBag = null;
-	}
+    private void OnDestroy()
+    {
+        disposeBag.Dispose();
+        disposeBag = null;
+    }
 
     public TerrainMesh terrainMesh;
     public bool doNotWrapUV;
@@ -160,7 +166,10 @@ public class TerrainPiece : MonoBehaviour
             .Select(p => new PSPolygon(p))
             .ToArray();
 
-        return new MeshData(newVertices.ToArray(), newTriangles.ToArray(), newPaths, cuttedParts);
+        var vertices = newVertices.Select(c => new Vector3(c.x, c.y, 0)).ToArray();
+        var uv = newVertices.Select(c => terrainMesh.getUV(c, doNotWrapUV)).ToArray();
+        var uv2 = newVertices.Select(c => terrainMesh.getUV2(c, doNotWrapUV, floorEdges)).ToArray();
+        return new MeshData(vertices, uv, uv2, newTriangles.ToArray(), newPaths, cuttedParts);
     }
 
     private void UpdateMesh(MeshData data)
@@ -174,10 +183,10 @@ public class TerrainPiece : MonoBehaviour
         }
         mesh.Clear();
 
-        mesh.vertices = data.vertices.Select(c => new Vector3(c.x, c.y, 0)).ToArray();
+        mesh.vertices = data.vertices;
         //mesh.normals = allVertices.Select(caveNormal).ToArray();
-        mesh.uv = data.vertices.Select(v => terrainMesh.getUV(v, doNotWrapUV)).ToArray();
-        mesh.uv2 = data.vertices.Select(v => terrainMesh.getUV2(v, doNotWrapUV, floorEdges)).ToArray();
+        mesh.uv = data.uv;
+        mesh.uv2 = data.uv2;
         mesh.triangles = data.triangles;
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();
@@ -201,7 +210,8 @@ public class TerrainPiece : MonoBehaviour
 
     private void EmitParticles(IEnumerable<PSPolygon> shapes)
     {
-        if (shapes.Take(1).Count() == 0) {
+        if (shapes.Take(1).Count() == 0)
+        {
             return;
         }
         var direction = shapes.Aggregate(Vector2.zero, (d, p) => d + p.Bounds.center);
@@ -243,6 +253,6 @@ public class TerrainPiece : MonoBehaviour
             particles[i].startColor = terrainMesh.getColor(coords[i], doNotWrapUV, floorEdges);
         }
         ps.SetParticles(particles, activeCount);
-		ps.Play();
+        ps.Play();
     }
 }
