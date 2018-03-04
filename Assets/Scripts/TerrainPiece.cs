@@ -10,6 +10,106 @@ using UniRx;
 using UnityEditor;
 #endif
 
+interface IClipShape
+{
+    bool ShouldClipTriangle(IEnumerable<Vector2> points);
+    PSPolygon ClipPolygon();
+}
+
+class CircleClipShape : IClipShape
+{
+    private Vector2 position;
+    private float radius;
+    private Rect bounds;
+
+    public CircleClipShape(Vector2 position, float radius)
+    {
+        this.position = position;
+        this.radius = radius;
+        var halfSize = new Vector2(radius, radius);
+        this.bounds = new Rect(position - halfSize, halfSize * 2);
+    }
+
+    public bool ShouldClipTriangle(IEnumerable<Vector2> points)
+    {
+        if (points.Min(p => p.x) > bounds.xMax) return false;
+        if (points.Max(p => p.x) < bounds.xMin) return false;
+        if (points.Min(p => p.y) > bounds.yMax) return false;
+        if (points.Max(p => p.y) < bounds.yMin) return false;
+        var v0 = points.Last();
+        foreach (var v1 in points)
+        {
+            if (PSEdge.PointDistanceToEdge(position, v0, v1) <= radius) return true;
+        }
+        return false;
+    }
+    public PSPolygon ClipPolygon()
+    {
+        var steps = Mathf.Max(Mathf.FloorToInt(2 * Mathf.PI * radius), 12);
+        var points = new List<Vector2>(steps);
+        var v = new Vector2(radius, 0);
+        for (int i = 0; i < steps; i++)
+        {
+            points.Add(v + position);
+            v = Quaternion.Euler(0, 0, -360.0f / steps) * v;
+        }
+        return new PSPolygon(points);
+    }
+}
+
+class CapsuleClipShape : IClipShape
+{
+    private Vector2 start;
+    private Vector2 direction;
+    private float radius;
+    private CircleClipShape startCircle;
+    private CircleClipShape endCircle;
+
+    public CapsuleClipShape(Vector2 start, Vector2 direction, float radius)
+    {
+        this.start = start;
+        this.direction = direction;
+        this.radius = radius;
+        this.startCircle = new CircleClipShape(start, radius);
+        this.endCircle = new CircleClipShape(start + direction, radius);
+    }
+
+    public bool ShouldClipTriangle(IEnumerable<Vector2> points)
+    {
+        var v0 = points.Last();
+        foreach (var v1 in points)
+        {
+            if (PSEdge.SegmentsCross(start, direction, v0, v1 - v0)) return true;
+        }
+        if (startCircle.ShouldClipTriangle(points)) return true;
+        if (endCircle.ShouldClipTriangle(points)) return true;
+        return false;
+    }
+
+    public PSPolygon ClipPolygon()
+    {
+        var steps = Mathf.Max(Mathf.FloorToInt(2 * Mathf.PI * radius), 8);
+        var halfSteps = Mathf.CeilToInt(steps * 0.5f);
+        var points = new List<Vector2>(2 * halfSteps + 2);
+        var r = direction.normalized * radius;
+        var v = new Vector2(-r.y, r.x);
+        var angleDelta = 180.0f / halfSteps;
+        var end = start + direction;
+        for (int i = 0; i <= halfSteps; i++)
+        {
+            points.Add(v + start);
+            v = Quaternion.Euler(0, 0, angleDelta) * v;
+        }
+        v = new Vector2(r.y, -r.x);
+        for (int i = 0; i <= halfSteps; i++)
+        {
+            points.Add(v + end);
+            v = Quaternion.Euler(0, 0, angleDelta) * v;
+        }
+        return new PSPolygon(points);
+    }
+}
+
 public class TerrainPiece : MonoBehaviour
 {
     private CompositeDisposable disposeBag = new CompositeDisposable();
@@ -43,7 +143,7 @@ public class TerrainPiece : MonoBehaviour
         }
     }
 
-    private Subject<PSPolygon> clipSubject = new Subject<PSPolygon>();
+    private Subject<IClipShape> clipSubject = new Subject<IClipShape>();
     private void Start()
     {
         var initialMeshData = MeshData.from(GetComponent<MeshFilter>().sharedMesh, GetComponent<PolygonCollider2D>());
@@ -73,54 +173,17 @@ public class TerrainPiece : MonoBehaviour
     public List<PSEdge> floorEdges;
     public void destroyTerrain(Vector2 position, float radius)
     {
-        var steps = Mathf.Max(Mathf.FloorToInt(2 * Mathf.PI * radius), 12);
-        var clipPolygon = createCirclePolygon(position, radius, steps);
-        clipSubject.OnNext(clipPolygon);
+        clipSubject.OnNext(new CircleClipShape(position, radius));
     }
 
     public void destroyTerrain(Vector2 start, Vector2 direction, float radius)
     {
-        var steps = Mathf.Max(Mathf.FloorToInt(2 * Mathf.PI * radius), 8);
-        var clipPolygon = createCapsulePolygon(start, direction, radius, steps);
-        clipSubject.OnNext(clipPolygon);
+        clipSubject.OnNext(new CapsuleClipShape(start, direction, radius));
     }
 
-    private PSPolygon createCirclePolygon(Vector2 position, float radius, int steps)
+    private MeshData UpdateMeshData(MeshData oldData, IClipShape clipShape)
     {
-        var points = new List<Vector2>(steps);
-        var v = new Vector2(radius, 0);
-        for (int i = 0; i < steps; i++)
-        {
-            points.Add(v + position);
-            v = Quaternion.Euler(0, 0, -360.0f / steps) * v;
-        }
-        return new PSPolygon(points);
-    }
-
-    private PSPolygon createCapsulePolygon(Vector2 start, Vector2 direction, float radius, int steps)
-    {
-        var halfSteps = Mathf.CeilToInt(steps * 0.5f);
-        var points = new List<Vector2>(2 * halfSteps + 2);
-        var r = direction.normalized * radius;
-        var v = new Vector2(-r.y, r.x);
-        var angleDelta = 180.0f / halfSteps;
-        var end = start + direction;
-        for (int i = 0; i <= halfSteps; i++)
-        {
-            points.Add(v + start);
-            v = Quaternion.Euler(0, 0, angleDelta) * v;
-        }
-        v = new Vector2(r.y, -r.x);
-        for (int i = 0; i <= halfSteps; i++)
-        {
-            points.Add(v + end);
-            v = Quaternion.Euler(0, 0, angleDelta) * v;
-        }
-        return new PSPolygon(points);
-    }
-
-    private MeshData UpdateMeshData(MeshData oldData, PSPolygon clipPolygon)
-    {
+        var clipPolygon = clipShape.ClipPolygon();
         var oldVertices = oldData.vertices;
         var oldTriangles = oldData.triangles;
         var oldPaths = oldData.paths;
@@ -155,7 +218,7 @@ public class TerrainPiece : MonoBehaviour
             var newTriangle = oldTriangle.Select(oldIndex => vertexIndex[oldIndex]).ToArray();
             if (newTriangle.Any(newIndex => newIndex > -1))
             {
-                if (newTriangle.All(newIndex => newIndex > -1))
+                if (newTriangle.All(newIndex => newIndex > -1) && !clipShape.ShouldClipTriangle(newTriangle.Select(newIndex => newVertices[newIndex])))
                     newTriangles.AddRange(newTriangle);
                 else
                     clippedTriangles.Add(oldTriangle.ToArray());
@@ -163,7 +226,7 @@ public class TerrainPiece : MonoBehaviour
         }
 
         var newPolygons = clippedTriangles
-        .Select(t => t.Select(p => (Vector2)oldVertices[p]))
+        .Select(t => t.Select(oldIndex => (Vector2)oldVertices[oldIndex]))
         .SelectMany(t => PSPolygon.difference(t.ToArray(), clipPolygon.points));
 
         var mesher = new GenericMesher();
