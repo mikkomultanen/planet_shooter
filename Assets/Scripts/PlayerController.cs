@@ -292,16 +292,19 @@ public class PlayerController : MonoBehaviour, Damageable
         }
     }
 
+    private Vector2 previousPosition;
     void FixedUpdate()
     {
         float turn = Input.GetAxis(turnAxis);
 
+        var h = rb.position.magnitude;
+        var positionNormalized = rb.position.normalized;
         float floatingAndGravityForceMagnitude = (isInWater ? -1.2f : 1f) * gravityForceMagnitude;
         float thursterForceMagnitude = 0f;
         if (Vector2.Dot(rb.velocity, transform.up) < maxSpeed)
         {
             float thrust = Mathf.Max(Input.GetAxis(thrustAxis), 0f);
-            float athmosphereCoefficient = Mathf.Clamp((120f - rb.position.magnitude) / 20f, 0f, 1f);
+            float athmosphereCoefficient = Mathf.Clamp((120f - h) / 20f, 0f, 1f);
             thursterForceMagnitude = thrust * athmosphereCoefficient * maxThrustPower;
             if (isInWater)
             {
@@ -309,27 +312,24 @@ public class PlayerController : MonoBehaviour, Damageable
             }
         }
 
-        Vector2 gravity = rb.position.normalized * floatingAndGravityForceMagnitude;
+        Vector2 gravity = positionNormalized * floatingAndGravityForceMagnitude;
         Vector2 thrusters = transform.up * thursterForceMagnitude;
 
         rb.AddForce(thrusters + gravity);
         rb.angularVelocity = -turn * 300f;
+
+        var positionDelta = rb.position - previousPosition;
+        previousPosition = rb.position;
+        var t = positionDelta - (positionNormalized * Vector2.Dot(positionDelta, positionNormalized));
+        rb.rotation -= Mathf.Atan(t.magnitude / h) * Mathf.Sign(PSEdge.Cross(t, positionNormalized)) * Mathf.Rad2Deg;
     }
 
-    private Vector2 previousPosition;
     void LateUpdate()
     {
         Vector3 up = transform.position.normalized;
         Vector3 lookAt = up * Mathf.Clamp(transform.position.magnitude, cameraMinDistance, cameraMaxDistance);
         playerCamera.transform.position = lookAt + cameraOffset;
         playerCamera.transform.LookAt(lookAt, up);
-
-        var h = rb.position.magnitude;
-        var positionDelta = rb.position - previousPosition;
-        previousPosition = rb.position;
-        var positionNormalized = rb.position.normalized;
-        var t = positionDelta - (positionNormalized * Vector2.Dot(positionDelta, positionNormalized));
-        rb.rotation -= Mathf.Atan(t.magnitude / h) * Mathf.Sign(PSEdge.Cross(t, positionNormalized)) * Mathf.Rad2Deg;
     }
 
     public bool isAlive()
