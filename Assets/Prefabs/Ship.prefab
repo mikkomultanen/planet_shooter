@@ -318,6 +318,10 @@ MonoBehaviour:
   fireRate: 0.05
   secondaryFireRate: 1
   laserDamagePerSecond: 20
+  deathrayDamage: 100
+  deathrayLoadingTime: 2
+  deathrayDistance: 150
+  deathrayWidth: 1
   thruster: {fileID: 198161966287997816}
   flamer: {fileID: 198388300409513396}
   smoke: {fileID: 198734964500349518}

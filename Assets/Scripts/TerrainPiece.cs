@@ -56,6 +56,7 @@ public class TerrainPiece : MonoBehaviour
         {
             UpdateMesh(result.Last());
             UpdateColliders(result.Last());
+            // TODO calculate particles in background thread
             EmitParticles(result.SelectMany(d => d.cuttedParts));
         })
         .AddTo(disposeBag);
@@ -72,20 +73,48 @@ public class TerrainPiece : MonoBehaviour
     public List<PSEdge> floorEdges;
     public void destroyTerrain(Vector2 position, float radius)
     {
-        var startTime = Time.realtimeSinceStartup;
-        var explosionSteps = Mathf.Max(Mathf.FloorToInt(2 * Mathf.PI * radius), 12);
-        var clipPolygon = createCirclePolygon(position, radius, explosionSteps);
+        var steps = Mathf.Max(Mathf.FloorToInt(2 * Mathf.PI * radius), 12);
+        var clipPolygon = createCirclePolygon(position, radius, steps);
+        clipSubject.OnNext(clipPolygon);
+    }
+
+    public void destroyTerrain(Vector2 start, Vector2 direction, float radius)
+    {
+        var steps = Mathf.Max(Mathf.FloorToInt(2 * Mathf.PI * radius), 8);
+        var clipPolygon = createCapsulePolygon(start, direction, radius, steps);
         clipSubject.OnNext(clipPolygon);
     }
 
     private PSPolygon createCirclePolygon(Vector2 position, float radius, int steps)
     {
         var points = new List<Vector2>(steps);
-        var direction = new Vector2(1, 0);
+        var v = new Vector2(radius, 0);
         for (int i = 0; i < steps; i++)
         {
-            points.Add(direction * radius + position);
-            direction = Quaternion.Euler(0, 0, -360.0f / steps) * direction;
+            points.Add(v + position);
+            v = Quaternion.Euler(0, 0, -360.0f / steps) * v;
+        }
+        return new PSPolygon(points);
+    }
+
+    private PSPolygon createCapsulePolygon(Vector2 start, Vector2 direction, float radius, int steps)
+    {
+        var halfSteps = Mathf.CeilToInt(steps * 0.5f);
+        var points = new List<Vector2>(2 * halfSteps + 2);
+        var r = direction.normalized * radius;
+        var v = new Vector2(-r.y, r.x);
+        var angleDelta = 180.0f / halfSteps;
+        var end = start + direction;
+        for (int i = 0; i <= halfSteps; i++)
+        {
+            points.Add(v + start);
+            v = Quaternion.Euler(0, 0, angleDelta) * v;
+        }
+        v = new Vector2(r.y, -r.x);
+        for (int i = 0; i <= halfSteps; i++)
+        {
+            points.Add(v + end);
+            v = Quaternion.Euler(0, 0, angleDelta) * v;
         }
         return new PSPolygon(points);
     }

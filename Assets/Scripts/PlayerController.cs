@@ -61,6 +61,10 @@ public class PlayerController : MonoBehaviour, Damageable
     public float fireRate = 0.2f;
     public float secondaryFireRate = 1f;
     public float laserDamagePerSecond = 20f;
+    public float deathrayDamage = 100f;
+    public float deathrayLoadingTime = 2f;
+    public float deathrayDistance = 150f;
+    public float deathrayWidth = 1f;
 
     public ParticleSystem thruster;
     public ParticleSystem flamer;
@@ -89,6 +93,7 @@ public class PlayerController : MonoBehaviour, Damageable
     private float originalDrag;
     private float nextFire = 0.0f;
     private float nextSecondaryFire = 0.0f;
+    private float secondaryLoaded = 0.0f;
     private int laserLayerMask = ~(1 << 1);
     private float gravityForceMagnitude;
     private bool isInWater = false;
@@ -216,6 +221,20 @@ public class PlayerController : MonoBehaviour, Damageable
                 }
                 break;
         }
+        if (Input.GetButtonDown(fire3Button))
+        {
+            secondaryLoaded = 0.0f;
+        }
+        if (Input.GetButton(fire3Button))
+        {
+            secondaryLoaded += Time.deltaTime;
+        }
+        if (Input.GetButtonUp(fire3Button))
+        {
+            fireDeathray();
+            secondaryLoaded = 0.0f;
+        }
+
         if (flamerOn || laserOn)
         {
             var oldState = weaponState;
@@ -235,23 +254,7 @@ public class PlayerController : MonoBehaviour, Damageable
         bool laserSparklesOn = false;
         if (laserOn)
         {
-            Vector2 position = laserRay.transform.position;
-            RaycastHit2D hit = Physics2D.Raycast(position, transform.up, 100, laserLayerMask);
-            if (hit.collider != null)
-            {
-                laserRay.SetPosition(1, laserRay.transform.InverseTransformPoint(hit.point));
-                laserSparkles.transform.position = hit.point;
-                laserSparklesOn = true;
-                Damageable damageable = hit.collider.GetComponent<Damageable>();
-                if (damageable != null)
-                {
-                    damageable.doDamage(laserDamagePerSecond * Time.smoothDeltaTime);
-                }
-            }
-            else
-            {
-                laserRay.SetPosition(1, Vector3.up * 100);
-            }
+            laserSparklesOn = updateLaserBeam();
         }
         if (laserOn != laserRay.enabled)
         {
@@ -292,6 +295,58 @@ public class PlayerController : MonoBehaviour, Damageable
         }
     }
 
+    private void fireDeathray()
+    {
+        var loaded = Mathf.Clamp01(secondaryLoaded / deathrayLoadingTime);
+        var distance = loaded * deathrayDistance;
+        var damage = loaded * deathrayDamage;
+        var start = gunPoint.position;
+        var direction = transform.up * distance;
+        var center = start + direction * 0.5f;
+        var angle = rb.rotation;
+        Collider2D[] colliders = Physics2D.OverlapCapsuleAll(center, new Vector2(deathrayWidth, distance + deathrayWidth), CapsuleDirection2D.Vertical, angle);
+        Damageable damageable;
+        TerrainPiece terrainPiece;
+        foreach (Collider2D coll in colliders)
+        {
+            if (coll.gameObject == gameObject) {
+                continue;
+            }
+            damageable = coll.GetComponent<Damageable>();
+            if (damageable != null)
+            {
+                damageable.doDamage(damage);
+            }
+            terrainPiece = coll.GetComponent<TerrainPiece>();
+            if (terrainPiece != null)
+            {
+                terrainPiece.destroyTerrain(start, direction, deathrayWidth);
+            }
+        }
+    }
+
+    private bool updateLaserBeam()
+    {
+        var laserSparklesOn = false;
+        Vector2 position = laserRay.transform.position;
+        RaycastHit2D hit = Physics2D.Raycast(position, transform.up, 100, laserLayerMask);
+        if (hit.collider != null)
+        {
+            laserRay.SetPosition(1, laserRay.transform.InverseTransformPoint(hit.point));
+            laserSparkles.transform.position = hit.point;
+            laserSparklesOn = true;
+            Damageable damageable = hit.collider.GetComponent<Damageable>();
+            if (damageable != null)
+            {
+                damageable.doDamage(laserDamagePerSecond * Time.smoothDeltaTime);
+            }
+        }
+        else
+        {
+            laserRay.SetPosition(1, Vector3.up * 100);
+        }
+        return laserSparklesOn;
+    }
     private Vector2 previousPosition;
     void FixedUpdate()
     {
