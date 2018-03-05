@@ -320,7 +320,7 @@ MonoBehaviour:
   laserDamagePerSecond: 20
   deathrayDamage: 100
   deathrayLoadingTime: 2
-  deathrayDistance: 150
+  deathrayDistance: 30
   deathrayWidth: 1
   thruster: {fileID: 198161966287997816}
   flamer: {fileID: 198388300409513396}

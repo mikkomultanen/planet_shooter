@@ -610,16 +610,24 @@ public class TerrainMesh : MonoBehaviour
         return new Vector2(u, v);
     }
 
-    public Color32 getColor(Vector2 coord, bool doNotWrap, List<PSEdge> floorEdges)
+    public Vector2 getMainTexUV(Vector2 coord, bool doNotWrap)
     {
         var uv = getUV(coord, doNotWrap);
-        uv = new Vector2(uv.x * mainTexScale.x, uv.y * mainTexScale.y) + mainTexOffset;
-        var color = mainTex.GetPixelBilinear(uv.x, uv.y);
+        return new Vector2(uv.x * mainTexScale.x, uv.y * mainTexScale.y) + mainTexOffset;
+    }
+
+    public Vector2 getOverlayTexUV(Vector2 coord, bool doNotWrap, List<PSEdge> floorEdges)
+    {
+        var uv = getUV2(coord, doNotWrap, floorEdges);
+        return new Vector2(uv.x * overlayTexScale.x, uv.y * overlayTexScale.y) + overlayTexOffset;
+    }
+
+    public Color32 getColor(Vector2 mainTexUV, Vector2 overlayTexUV)
+    {
+        var color = mainTex.GetPixelBilinear(mainTexUV.x, mainTexUV.y);
         color = color * tintColor * brightness; 
         color.a = 1f;
-        uv = getUV2(coord, doNotWrap, floorEdges);
-        uv = new Vector2(uv.x * overlayTexScale.x, uv.y * overlayTexScale.y) + overlayTexOffset;
-        var overlayColor = overlayTex.GetPixelBilinear(uv.x, uv.y);
+        var overlayColor = overlayTex.GetPixelBilinear(overlayTexUV.x, overlayTexUV.y);
         var a = overlayColor.a;
         overlayColor.a = 1f;
         return Color.Lerp(color, overlayColor, a);
