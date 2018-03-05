@@ -62,7 +62,8 @@ public class PlayerController : MonoBehaviour, Damageable
     public float secondaryFireRate = 1f;
     public float laserDamagePerSecond = 20f;
     public float deathrayDamage = 100f;
-    public float deathrayLoadingTime = 2f;
+    public float deathrayLoadingTimeMin = 0.5f;
+    public float deathrayLoadingTimeMax = 10f;
     public float deathrayDistance = 150f;
     public float deathrayWidth = 1f;
 
@@ -72,6 +73,7 @@ public class PlayerController : MonoBehaviour, Damageable
     public ParticleSystem explosion;
     public LineRenderer laserRay;
     public ParticleSystem laserSparkles;
+    public ParticleSystem deathrayLoading;
 
     private float _health;
 
@@ -171,6 +173,7 @@ public class PlayerController : MonoBehaviour, Damageable
     {
         bool flamerOn = false;
         bool laserOn = false;
+        bool deathrayLoadingOn = false;
         switch (weaponState.primary)
         {
             case PrimaryWeapon.MachineGun:
@@ -228,10 +231,14 @@ public class PlayerController : MonoBehaviour, Damageable
         if (Input.GetButton(fire3Button))
         {
             secondaryLoaded += Time.deltaTime;
+            var emission = deathrayLoading.emission;
+            emission.rateOverTime = Mathf.Max(10, Mathf.Clamp01(secondaryLoaded / deathrayLoadingTimeMax) * 100);
+            deathrayLoadingOn = true;
         }
         if (Input.GetButtonUp(fire3Button))
         {
-            fireDeathray();
+            if (secondaryLoaded > deathrayLoadingTimeMin)
+                fireDeathray();
             secondaryLoaded = 0.0f;
         }
 
@@ -267,6 +274,13 @@ public class PlayerController : MonoBehaviour, Damageable
             else
                 laserSparkles.Stop();
         }
+        if (deathrayLoadingOn != deathrayLoading.isEmitting)
+        {
+            if (deathrayLoadingOn)
+                deathrayLoading.Play();
+            else
+                deathrayLoading.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
 
         var smokeEmission = smoke.emission;
         bool thrustersOn = Input.GetAxis(thrustAxis) > 0f;
@@ -297,7 +311,7 @@ public class PlayerController : MonoBehaviour, Damageable
 
     private void fireDeathray()
     {
-        var loaded = Mathf.Clamp01(secondaryLoaded / deathrayLoadingTime);
+        var loaded = Mathf.Clamp01(secondaryLoaded / deathrayLoadingTimeMax);
         var distance = loaded * deathrayDistance;
         var damage = loaded * deathrayDamage;
         var start = gunPoint.position;
@@ -309,7 +323,8 @@ public class PlayerController : MonoBehaviour, Damageable
         TerrainPiece terrainPiece;
         foreach (Collider2D coll in colliders)
         {
-            if (coll.gameObject == gameObject) {
+            if (coll.gameObject == gameObject)
+            {
                 continue;
             }
             damageable = coll.GetComponent<Damageable>();
