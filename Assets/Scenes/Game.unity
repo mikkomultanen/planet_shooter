@@ -19744,7 +19744,8 @@ MonoBehaviour:
   secondaryFireRate: 1
   laserDamagePerSecond: 20
   deathrayDamage: 100
-  deathrayLoadingTime: 2
+  deathrayLoadingTimeMin: 0.5
+  deathrayLoadingTimeMax: 10
   deathrayDistance: 30
   deathrayWidth: 1
   thruster: {fileID: 629460618}
