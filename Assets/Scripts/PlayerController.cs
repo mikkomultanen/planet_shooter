@@ -55,6 +55,7 @@ public class PlayerController : MonoBehaviour, Damageable
     public GameObject missile;
     public GameObject homingMissile;
     public GameObject bomb;
+    public DeathrayBeamMover deathrayBeam;
     public float maxHealth = 100;
     public float maxThrustPower = 2000f;
     public float maxSpeed = 10f;
@@ -338,6 +339,8 @@ public class PlayerController : MonoBehaviour, Damageable
                 terrainPiece.destroyTerrain(start, direction, deathrayWidth);
             }
         }
+        var clone = Instantiate(deathrayBeam, center, gunPoint.rotation);
+        clone.radius = distance * 0.5f;
     }
 
     private bool updateLaserBeam()

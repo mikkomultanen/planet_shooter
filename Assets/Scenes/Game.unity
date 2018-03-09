@@ -14684,8 +14684,8 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0.8745098, g: 0.32941177, b: 1, a: 1}
-      key1: {r: 0.8735056, g: 0.328, b: 1, a: 1}
+      key0: {r: 0.8745098, g: 0, b: 1, a: 1}
+      key1: {r: 0.8745098, g: 0, b: 1, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -19737,6 +19737,8 @@ MonoBehaviour:
   homingMissile: {fileID: 1257667906419320, guid: e79c654edc71f489abc9d4f17c114f10,
     type: 2}
   bomb: {fileID: 1928755406794440, guid: 6683d13e338964bb3b20c7ef64dca29a, type: 2}
+  deathrayBeam: {fileID: 114879035741800718, guid: e4301f0b0643c4885a046575a7e946a7,
+    type: 2}
   maxHealth: 100
   maxThrustPower: 300
   maxSpeed: 10
@@ -23724,7 +23726,7 @@ ParticleSystem:
   moveWithTransform: 1
   moveWithCustomTransform: {fileID: 0}
   scalingMode: 1
-  randomSeed: -670460022
+  randomSeed: 1610761764
   InitialModule:
     serializedVersion: 3
     enabled: 1
@@ -27894,6 +27896,32 @@ Prefab:
       propertyPath: InitialModule.startLifetime.scalar
       value: 0.1
       objectReference: {fileID: 0}
+    - target: {fileID: 120095945777567230, guid: e800ed23abbda4c54975c877f1d50202,
+        type: 2}
+      propertyPath: m_Parameters.colorGradient.key0.r
+      value: 0.8745098
+      objectReference: {fileID: 0}
+    - target: {fileID: 120095945777567230, guid: e800ed23abbda4c54975c877f1d50202,
+        type: 2}
+      propertyPath: m_Parameters.colorGradient.key0.g
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 120095945777567230, guid: e800ed23abbda4c54975c877f1d50202,
+        type: 2}
+      propertyPath: m_Parameters.colorGradient.key1.r
+      value: 0.8745098
+      objectReference: {fileID: 0}
+    - target: {fileID: 120095945777567230, guid: e800ed23abbda4c54975c877f1d50202,
+        type: 2}
+      propertyPath: m_Parameters.colorGradient.key1.g
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 114759628304147876, guid: e800ed23abbda4c54975c877f1d50202,
+        type: 2}
+      propertyPath: deathrayBeam
+      value: 
+      objectReference: {fileID: 114879035741800718, guid: e4301f0b0643c4885a046575a7e946a7,
+        type: 2}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: e800ed23abbda4c54975c877f1d50202, type: 2}
   m_IsPrefabParent: 0
