@@ -23,7 +23,8 @@ public enum SecondaryWeapon
     None,
     Missiles,
     HomingMissiles,
-    Bombs
+    Bombs,
+    Deathray
 }
 
 public struct WeaponState
@@ -224,23 +225,32 @@ public class PlayerController : MonoBehaviour, Damageable
                     clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
                 }
                 break;
-        }
-        if (Input.GetButtonDown(fire3Button))
-        {
-            secondaryLoaded = 0.0f;
-        }
-        if (Input.GetButton(fire3Button))
-        {
-            secondaryLoaded += Time.deltaTime;
-            var emission = deathrayLoading.emission;
-            emission.rateOverTime = Mathf.Max(10, Mathf.Clamp01(secondaryLoaded / deathrayLoadingTimeMax) * 100);
-            deathrayLoadingOn = true;
-        }
-        if (Input.GetButtonUp(fire3Button))
-        {
-            if (secondaryLoaded > deathrayLoadingTimeMin)
-                fireDeathray();
-            secondaryLoaded = 0.0f;
+            case SecondaryWeapon.Deathray:
+                if (weaponState.secondaryAmmunition > 0)
+                {
+                    if (Input.GetButtonDown(fire2Button))
+                    {
+                        secondaryLoaded = 0.0f;
+                    }
+                    if (Input.GetButton(fire2Button))
+                    {
+                        secondaryLoaded += Time.deltaTime;
+                        var emission = deathrayLoading.emission;
+                        emission.rateOverTime = Mathf.Max(10, Mathf.Clamp01(secondaryLoaded / deathrayLoadingTimeMax) * 100);
+                        deathrayLoadingOn = true;
+                    }
+                    if (Input.GetButtonUp(fire2Button))
+                    {
+                        if (secondaryLoaded > deathrayLoadingTimeMin)
+                        {
+                            var oldState = weaponState;
+                            weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy, oldState.secondary, oldState.secondaryAmmunition - 1);
+                            fireDeathray();
+                        }
+                        secondaryLoaded = 0.0f;
+                    }
+                }
+                break;
         }
 
         if (flamerOn || laserOn)

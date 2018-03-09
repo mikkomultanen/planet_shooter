@@ -47,6 +47,9 @@ public class Hud : MonoBehaviour
             case SecondaryWeapon.Bombs:
                 text.Add("Bombs: " + weaponState.secondaryAmmunition);
                 break;
+            case SecondaryWeapon.Deathray:
+                text.Add("Deathray: " + weaponState.secondaryAmmunition);
+                break;
         }
         weapons.text = string.Join("\n", text.ToArray());
     }

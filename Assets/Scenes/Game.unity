@@ -14475,6 +14475,7 @@ MonoBehaviour:
   - {fileID: 1329819336226902, guid: 2b44d64a2c9c8436fa767c598a4142e0, type: 2}
   - {fileID: 1584684473900274, guid: 2799de5ffb8354a79bd185542477599c, type: 2}
   - {fileID: 1900538953719992, guid: 9808dd3f3bbff46c4a3d0f03e1186c34, type: 2}
+  - {fileID: 1329819336226902, guid: 943daa8f03d11426d9fea82cc0b1f411, type: 2}
   cameraTemplate: {fileID: 1590116403}
   hudTemplate: {fileID: 1750554230}
   colors:
@@ -15104,7 +15105,7 @@ Prefab:
     - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
         type: 2}
       propertyPath: weaponCrateTemplates.Array.size
-      value: 5
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 4770492995992040, guid: 6fe0a73b2bef74843966379c220d1558, type: 2}
       propertyPath: m_LocalPosition.x
@@ -15378,6 +15379,12 @@ Prefab:
       propertyPath: repairBaseTemplate
       value: 
       objectReference: {fileID: 114053395324864480, guid: eca3c4b9859ad429e879b7eddee0f08f,
+        type: 2}
+    - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
+        type: 2}
+      propertyPath: weaponCrateTemplates.Array.data[5]
+      value: 
+      objectReference: {fileID: 1329819336226902, guid: 943daa8f03d11426d9fea82cc0b1f411,
         type: 2}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 6fe0a73b2bef74843966379c220d1558, type: 2}

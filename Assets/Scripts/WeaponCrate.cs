@@ -10,7 +10,8 @@ public class WeaponCrate : Explosive
         Laser,
         Missiles,
         HomingMissiles,
-        Bombs
+        Bombs,
+        Deathray
     }
     public Weapon weapon;
     private Rigidbody2D rb;
@@ -59,6 +60,9 @@ public class WeaponCrate : Explosive
                         break;
                     case Weapon.Bombs:
                         player.setSecondaryWeapon(SecondaryWeapon.Bombs, 5);
+                        break;
+                    case Weapon.Deathray:
+                        player.setSecondaryWeapon(SecondaryWeapon.Deathray, 5);
                         break;
                     case Weapon.Flamer:
                         player.setPrimaryWeapon(PrimaryWeapon.Flamer, 10);
