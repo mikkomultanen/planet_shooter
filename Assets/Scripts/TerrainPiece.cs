@@ -114,6 +114,7 @@ class CapsuleClipShape : IClipShape
 [RequireComponent(typeof(MeshRenderer))]
 public class TerrainPiece : MonoBehaviour
 {
+    public MeshFilter background;
     private CompositeDisposable disposeBag = new CompositeDisposable();
 
     private sealed class TerrainParticles
@@ -163,10 +164,19 @@ public class TerrainPiece : MonoBehaviour
 
     private Subject<IClipShape> clipSubject = new Subject<IClipShape>();
     private int maxParticles;
+    private Mesh mesh;
+    private Mesh backgroundMesh;
     private void Start()
     {
         maxParticles = terrainMesh.terrainParticleTemplate.main.maxParticles;
-        var initialMeshData = MeshData.from(GetComponent<MeshFilter>().sharedMesh, GetComponent<PolygonCollider2D>());
+        MeshFilter meshFilter = GetComponent<MeshFilter>();
+        mesh = meshFilter.sharedMesh;
+        if (mesh == null)
+        {
+            meshFilter.mesh = new Mesh();
+            mesh = meshFilter.sharedMesh;
+        }
+        var initialMeshData = MeshData.from(mesh, GetComponent<PolygonCollider2D>());
         clipSubject
         .ObserveOn(Scheduler.ThreadPool)
         .Scan(initialMeshData, (data, clipPolygon) => UpdateMeshData(data, clipPolygon))
@@ -174,12 +184,19 @@ public class TerrainPiece : MonoBehaviour
         .BatchFrame(1, FrameCountType.Update)
         .Subscribe(onNext: result =>
         {
-            UpdateMesh(result.Last());
+            UpdateMesh(result.Last(), mesh);
             UpdateColliders(result.Last());
-            // TODO calculate particles in background thread
             EmitParticles(result.SelectMany(d => d.particles));
         })
         .AddTo(disposeBag);
+
+        backgroundMesh = background.sharedMesh;
+        if (backgroundMesh == null)
+        {
+            background.mesh = new Mesh();
+            backgroundMesh = background.sharedMesh;
+        }
+        UpdateMesh(initialMeshData, backgroundMesh);
     }
 
     private void OnDestroy()
@@ -314,19 +331,10 @@ public class TerrainPiece : MonoBehaviour
         return new TerrainParticles(coords.ToArray(), mainTexUV.ToArray(), overlayTexUV.ToArray(), center);
     }
 
-    private void UpdateMesh(MeshData data)
+    private void UpdateMesh(MeshData data, Mesh mesh)
     {
-        MeshFilter meshFilter = GetComponent<MeshFilter>();
-        Mesh mesh = meshFilter.sharedMesh;
-        if (mesh == null)
-        {
-            meshFilter.mesh = new Mesh();
-            mesh = meshFilter.sharedMesh;
-        }
         mesh.Clear();
-
         mesh.vertices = data.vertices;
-        //mesh.normals = allVertices.Select(caveNormal).ToArray();
         mesh.uv = data.uv;
         mesh.uv2 = data.uv2;
         mesh.triangles = data.triangles;
