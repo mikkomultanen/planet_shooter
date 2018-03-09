@@ -10,9 +10,125 @@ using UniRx;
 using UnityEditor;
 #endif
 
+interface IClipShape
+{
+    bool ShouldClipTriangle(IEnumerable<Vector2> points);
+    PSPolygon ClipPolygon();
+}
+
+class CircleClipShape : IClipShape
+{
+    private Vector2 position;
+    private float radius;
+    private Rect bounds;
+
+    public CircleClipShape(Vector2 position, float radius)
+    {
+        this.position = position;
+        this.radius = radius;
+        var halfSize = new Vector2(radius, radius);
+        this.bounds = new Rect(position - halfSize, halfSize * 2);
+    }
+
+    public bool ShouldClipTriangle(IEnumerable<Vector2> points)
+    {
+        if (points.Min(p => p.x) > bounds.xMax) return false;
+        if (points.Max(p => p.x) < bounds.xMin) return false;
+        if (points.Min(p => p.y) > bounds.yMax) return false;
+        if (points.Max(p => p.y) < bounds.yMin) return false;
+        var v0 = points.Last();
+        foreach (var v1 in points)
+        {
+            if (PSEdge.PointDistanceToEdge(position, v0, v1) <= radius) return true;
+        }
+        return false;
+    }
+    public PSPolygon ClipPolygon()
+    {
+        var steps = Mathf.Max(Mathf.FloorToInt(2 * Mathf.PI * radius), 12);
+        var points = new List<Vector2>(steps);
+        var v = new Vector2(radius, 0);
+        for (int i = 0; i < steps; i++)
+        {
+            points.Add(v + position);
+            v = Quaternion.Euler(0, 0, -360.0f / steps) * v;
+        }
+        return new PSPolygon(points);
+    }
+}
+
+class CapsuleClipShape : IClipShape
+{
+    private Vector2 start;
+    private Vector2 direction;
+    private float radius;
+    private CircleClipShape startCircle;
+    private CircleClipShape endCircle;
+
+    public CapsuleClipShape(Vector2 start, Vector2 direction, float radius)
+    {
+        this.start = start;
+        this.direction = direction;
+        this.radius = radius;
+        this.startCircle = new CircleClipShape(start, radius);
+        this.endCircle = new CircleClipShape(start + direction, radius);
+    }
+
+    public bool ShouldClipTriangle(IEnumerable<Vector2> points)
+    {
+        var v0 = points.Last();
+        foreach (var v1 in points)
+        {
+            if (PSEdge.SegmentsCross(start, direction, v0, v1 - v0)) return true;
+        }
+        if (startCircle.ShouldClipTriangle(points)) return true;
+        if (endCircle.ShouldClipTriangle(points)) return true;
+        return false;
+    }
+
+    public PSPolygon ClipPolygon()
+    {
+        var steps = Mathf.Max(Mathf.FloorToInt(2 * Mathf.PI * radius), 8);
+        var halfSteps = Mathf.CeilToInt(steps * 0.5f);
+        var points = new List<Vector2>(2 * halfSteps + 2);
+        var r = direction.normalized * radius;
+        var v = new Vector2(-r.y, r.x);
+        var angleDelta = 180.0f / halfSteps;
+        var end = start + direction;
+        for (int i = 0; i <= halfSteps; i++)
+        {
+            points.Add(v + start);
+            v = Quaternion.Euler(0, 0, angleDelta) * v;
+        }
+        v = new Vector2(r.y, -r.x);
+        for (int i = 0; i <= halfSteps; i++)
+        {
+            points.Add(v + end);
+            v = Quaternion.Euler(0, 0, angleDelta) * v;
+        }
+        return new PSPolygon(points);
+    }
+}
+
 public class TerrainPiece : MonoBehaviour
 {
     private CompositeDisposable disposeBag = new CompositeDisposable();
+
+    private sealed class TerrainParticles
+    {
+        public Vector2[] positions;
+        public Vector2[] mainTexUV;
+        public Vector2[] overlayTexUV;
+        public Vector2 center;
+
+        public TerrainParticles(Vector2[] positions, Vector2[] mainTexUV, Vector2[] overlayTexUV, Vector2 center)
+        {
+            this.positions = positions;
+            this.mainTexUV = mainTexUV;
+            this.overlayTexUV = overlayTexUV;
+            this.center = center;
+        }
+    }
 
     private sealed class MeshData
     {
@@ -21,16 +137,16 @@ public class TerrainPiece : MonoBehaviour
         public Vector2[] uv2;
         public int[] triangles;
         public Vector2[][] paths;
-        public PSPolygon[] cuttedParts;
+        public TerrainParticles[] particles;
 
-        public MeshData(Vector3[] vertices, Vector2[] uv, Vector2[] uv2, int[] triangles, Vector2[][] paths, PSPolygon[] cuttedParts)
+        public MeshData(Vector3[] vertices, Vector2[] uv, Vector2[] uv2, int[] triangles, Vector2[][] paths, TerrainParticles[] particles)
         {
             this.vertices = vertices;
             this.uv = uv;
             this.uv2 = uv2;
             this.triangles = triangles;
             this.paths = paths;
-            this.cuttedParts = cuttedParts;
+            this.particles = particles;
         }
 
         public static MeshData from(Mesh mesh, PolygonCollider2D collider)
@@ -39,13 +155,15 @@ public class TerrainPiece : MonoBehaviour
                 .Select(i => collider.GetPath(i))
                 .ToArray();
 
-            return new MeshData(mesh.vertices, mesh.uv, mesh.uv2, mesh.triangles, paths, new PSPolygon[0]);
+            return new MeshData(mesh.vertices, mesh.uv, mesh.uv2, mesh.triangles, paths, new TerrainParticles[0]);
         }
     }
 
-    private Subject<PSPolygon> clipSubject = new Subject<PSPolygon>();
+    private Subject<IClipShape> clipSubject = new Subject<IClipShape>();
+    private int maxParticles;
     private void Start()
     {
+        maxParticles = terrainMesh.terrainParticleTemplate.main.maxParticles;
         var initialMeshData = MeshData.from(GetComponent<MeshFilter>().sharedMesh, GetComponent<PolygonCollider2D>());
         clipSubject
         .ObserveOn(Scheduler.ThreadPool)
@@ -56,7 +174,8 @@ public class TerrainPiece : MonoBehaviour
         {
             UpdateMesh(result.Last());
             UpdateColliders(result.Last());
-            EmitParticles(result.SelectMany(d => d.cuttedParts));
+            // TODO calculate particles in background thread
+            EmitParticles(result.SelectMany(d => d.particles));
         })
         .AddTo(disposeBag);
     }
@@ -72,26 +191,17 @@ public class TerrainPiece : MonoBehaviour
     public List<PSEdge> floorEdges;
     public void destroyTerrain(Vector2 position, float radius)
     {
-        var startTime = Time.realtimeSinceStartup;
-        var explosionSteps = Mathf.Max(Mathf.FloorToInt(2 * Mathf.PI * radius), 12);
-        var clipPolygon = createCirclePolygon(position, radius, explosionSteps);
-        clipSubject.OnNext(clipPolygon);
+        clipSubject.OnNext(new CircleClipShape(position, radius));
     }
 
-    private PSPolygon createCirclePolygon(Vector2 position, float radius, int steps)
+    public void destroyTerrain(Vector2 start, Vector2 direction, float radius)
     {
-        var points = new List<Vector2>(steps);
-        var direction = new Vector2(1, 0);
-        for (int i = 0; i < steps; i++)
-        {
-            points.Add(direction * radius + position);
-            direction = Quaternion.Euler(0, 0, -360.0f / steps) * direction;
-        }
-        return new PSPolygon(points);
+        clipSubject.OnNext(new CapsuleClipShape(start, direction, radius));
     }
 
-    private MeshData UpdateMeshData(MeshData oldData, PSPolygon clipPolygon)
+    private MeshData UpdateMeshData(MeshData oldData, IClipShape clipShape)
     {
+        var clipPolygon = clipShape.ClipPolygon();
         var oldVertices = oldData.vertices;
         var oldTriangles = oldData.triangles;
         var oldPaths = oldData.paths;
@@ -126,7 +236,7 @@ public class TerrainPiece : MonoBehaviour
             var newTriangle = oldTriangle.Select(oldIndex => vertexIndex[oldIndex]).ToArray();
             if (newTriangle.Any(newIndex => newIndex > -1))
             {
-                if (newTriangle.All(newIndex => newIndex > -1))
+                if (newTriangle.All(newIndex => newIndex > -1) && !clipShape.ShouldClipTriangle(newTriangle.Select(newIndex => newVertices[newIndex])))
                     newTriangles.AddRange(newTriangle);
                 else
                     clippedTriangles.Add(oldTriangle.ToArray());
@@ -134,7 +244,7 @@ public class TerrainPiece : MonoBehaviour
         }
 
         var newPolygons = clippedTriangles
-        .Select(t => t.Select(p => (Vector2)oldVertices[p]))
+        .Select(t => t.Select(oldIndex => (Vector2)oldVertices[oldIndex]))
         .SelectMany(t => PSPolygon.difference(t.ToArray(), clipPolygon.points));
 
         var mesher = new GenericMesher();
@@ -161,15 +271,45 @@ public class TerrainPiece : MonoBehaviour
             .Select(p => p.ToArray())
             .ToArray();
 
-        var cuttedParts = oldPaths
+        var particles = oldPaths
             .SelectMany(p => PSPolygon.intersection(p, clipPolygon.points))
-            .Select(p => new PSPolygon(p))
+            .Select(p => GenerateParticles(new PSPolygon(p)))
             .ToArray();
 
         var vertices = newVertices.Select(c => new Vector3(c.x, c.y, 0)).ToArray();
         var uv = newVertices.Select(c => terrainMesh.getUV(c, doNotWrapUV)).ToArray();
         var uv2 = newVertices.Select(c => terrainMesh.getUV2(c, doNotWrapUV, floorEdges)).ToArray();
-        return new MeshData(vertices, uv, uv2, newTriangles.ToArray(), newPaths, cuttedParts);
+        return new MeshData(vertices, uv, uv2, newTriangles.ToArray(), newPaths, particles);
+    }
+
+    private TerrainParticles GenerateParticles(PSPolygon shape)
+    {
+        var center = shape.Bounds.center;
+        var coords = new List<Vector2>();
+        Vector2 coord;
+        var xMin = shape.Bounds.xMin;
+        var xMax = shape.Bounds.xMax;
+        var yMin = shape.Bounds.yMin;
+        var yMax = shape.Bounds.yMax;
+        for (float x = xMin; x < xMax; x += 0.1f)
+        {
+            for (float y = yMin; y < yMax; y += 0.1f)
+            {
+                coord = new Vector2(x, y);
+                if (shape.PointInPolygon(coord))
+                {
+                    coords.Add(coord);
+                }
+            }
+        }
+        if (coords.Count > maxParticles)
+        {
+            int everyNth = coords.Count / maxParticles + 1;
+            coords = coords.Where((p, i) => i % everyNth == 0).ToList();
+        }
+        var mainTexUV = coords.Select(c => terrainMesh.getMainTexUV(c, doNotWrapUV));
+        var overlayTexUV = coords.Select(c => terrainMesh.getOverlayTexUV(c, doNotWrapUV, floorEdges));
+        return new TerrainParticles(coords.ToArray(), mainTexUV.ToArray(), overlayTexUV.ToArray(), center);
     }
 
     private void UpdateMesh(MeshData data)
@@ -208,51 +348,25 @@ public class TerrainPiece : MonoBehaviour
         }
     }
 
-    private void EmitParticles(IEnumerable<PSPolygon> shapes)
+    private void EmitParticles(IEnumerable<TerrainParticles> allParticles)
     {
-        if (shapes.Take(1).Count() == 0)
+        foreach (var terrainParticles in allParticles)
         {
-            return;
-        }
-        var direction = shapes.Aggregate(Vector2.zero, (d, p) => d + p.Bounds.center);
-        var ps = Instantiate(terrainMesh.terrainParticleTemplate);
-        ps.transform.rotation = Quaternion.Euler(0, 0, -Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg);
-        ps.gameObject.SetActive(true);
-        var coords = new List<Vector2>();
-        Vector2 coord;
-        foreach (var shape in shapes)
-        {
-            var xMin = shape.Bounds.xMin;
-            var xMax = shape.Bounds.xMax;
-            var yMin = shape.Bounds.yMin;
-            var yMax = shape.Bounds.yMax;
-            for (float x = xMin; x < xMax; x += 0.1f)
+            var direction = terrainParticles.center;
+            var ps = Instantiate(terrainMesh.terrainParticleTemplate);
+            ps.transform.rotation = Quaternion.Euler(0, 0, -Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg);
+            ps.gameObject.SetActive(true);
+            int count = Mathf.Min(ps.main.maxParticles, terrainParticles.positions.Length);
+            ps.Emit(count);
+            var particles = new ParticleSystem.Particle[count];
+            int activeCount = ps.GetParticles(particles);
+            for (int i = 0; i < activeCount; i++)
             {
-                for (float y = yMin; y < yMax; y += 0.1f)
-                {
-                    coord = new Vector2(x, y);
-                    if (shape.PointInPolygon(coord))
-                    {
-                        coords.Add(coord);
-                    }
-                }
+                particles[i].position = new Vector3(terrainParticles.positions[i].x, terrainParticles.positions[i].y, transform.position.z);
+                particles[i].startColor = terrainMesh.getColor(terrainParticles.mainTexUV[i], terrainParticles.overlayTexUV[i]);
             }
+            ps.SetParticles(particles, activeCount);
+            ps.Play();
         }
-        if (coords.Count > ps.main.maxParticles)
-        {
-            int everyNth = coords.Count / ps.main.maxParticles + 1;
-            coords = coords.Where((p, i) => i % everyNth == 0).ToList();
-        }
-        int count = Mathf.Min(ps.main.maxParticles, coords.Count);
-        ps.Emit(count);
-        var particles = new ParticleSystem.Particle[count];
-        int activeCount = ps.GetParticles(particles);
-        for (int i = 0; i < activeCount; i++)
-        {
-            particles[i].position = new Vector3(coords[i].x, coords[i].y, transform.position.z);
-            particles[i].startColor = terrainMesh.getColor(coords[i], doNotWrapUV, floorEdges);
-        }
-        ps.SetParticles(particles, activeCount);
-        ps.Play();
     }
 }

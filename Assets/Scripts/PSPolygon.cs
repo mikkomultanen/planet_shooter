@@ -163,21 +163,48 @@ public sealed class PSEdge
     }
 
     public float IntersectMagnitude(Vector2 direction)
-	{
-		Vector2 r = direction;
-		float rxs = Cross(r, s);
- 
-		if (rxs == 0f) return 0f; // Parallel with the segment
-		float rxsr = 1f / rxs;
+    {
+        Vector2 r = direction;
+        float rxs = Cross(r, s);
 
-		float u = Cross(v0, r) * rxsr;
+        if (rxs == 0f) return 0f; // Parallel with the segment
+        float rxsr = 1f / rxs;
+
+        float u = Cross(v0, r) * rxsr;
         if (u < 0f || u > 1f) return 0f; // Outside of the segment
 
         return Cross(v0, s) * rxsr;
-	}
+    }
 
     public static float Cross(Vector2 a, Vector2 b)
     {
         return a.x * b.y - a.y * b.x;
+    }
+
+    public static float PointDistanceToEdge(Vector2 p, Vector2 v0, Vector2 v1)
+    {
+        Vector2 s = v1 - v0;
+        Vector2 r = new Vector2(s.y, -s.x).normalized;
+        float rxs = Cross(r, s);
+
+        if (rxs == 0f) return 0f; // Parallel with the segment
+        float rxsr = 1f / rxs;
+
+        float u = (Cross(v0, r) - Cross(p, r)) * rxsr;
+        if (u < 0f) return (p - v0).magnitude;
+        if (u > 1f) return (p - v1).magnitude;
+
+        return Mathf.Abs((Cross(v0, s) - Cross(p, s)) * rxsr);
+    }
+
+    public static bool SegmentsCross(Vector2 p0, Vector2 r, Vector2 v0, Vector2 s)
+    {
+        float rxs = Cross(r, s);
+        if (rxs == 0f) return false; // Parallel
+        float rxsr = 1f / rxs;
+        float u = (Cross(v0, r) - Cross(p0, r)) * rxsr;
+        if (u < 0f || u > 1f) return false;
+        float t = (Cross(v0, s) - Cross(p0, s)) * rxsr;
+        return t >= 0f && t <= 1f;
     }
 }
