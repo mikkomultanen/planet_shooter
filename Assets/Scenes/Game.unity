@@ -10644,10 +10644,9 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children:
-  - {fileID: 1149015802}
+  m_Children: []
   m_Father: {fileID: 1085178995}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!33 &435229430
 MeshFilter:
@@ -10701,7 +10700,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f74d6eb681d2c469db7ac55b5a272c66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  background: {fileID: 1149015804}
   terrainMesh: {fileID: 0}
   doNotWrapUV: 0
 --- !u!1 &439352455
@@ -15503,6 +15501,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ce0d30f35e744dd8b2fc2f52072f2d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  background: {fileID: 1149015804}
   terrainPieceTemplate: {fileID: 435229432}
   terrainParticleTemplate: {fileID: 1117460058}
   outerRadius: 120
@@ -15518,6 +15517,7 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
+  - {fileID: 1149015802}
   - {fileID: 435229429}
   - {fileID: 1117460059}
   m_Father: {fileID: 0}
@@ -18996,7 +18996,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1085178995}
-  m_RootOrder: 1
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1131711244
 Prefab:
@@ -19144,11 +19144,11 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1149015801}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
-  m_Father: {fileID: 435229429}
+  m_Father: {fileID: 1085178995}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &1149015803

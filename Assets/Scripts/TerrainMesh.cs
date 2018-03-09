@@ -118,6 +118,7 @@ class Cave
 
 public class TerrainMesh : MonoBehaviour
 {
+    public MeshFilter background;
     public TerrainPiece terrainPieceTemplate;
     public ParticleSystem terrainParticleTemplate;
     public float outerRadius = 1;
@@ -282,6 +283,7 @@ public class TerrainMesh : MonoBehaviour
 #endif
 
         GenerateFragments(polygons);
+        UpdateBackground();
     }
 
     private Vector2 findBorder(Vector2 v0, float f0, Vector2 v1, float f1)
@@ -712,6 +714,36 @@ public class TerrainMesh : MonoBehaviour
 
         piece.gameObject.SetActive(true);
         return piece.gameObject;
+    }
+
+    private void UpdateBackground()
+    {
+        var meshes = fragments.Select(piece => piece.GetComponent<MeshFilter>().sharedMesh);
+        var verticesCount = meshes.Aggregate(0, (total, mesh) => total + mesh.vertices.Length);
+        var trianglesCount = meshes.Aggregate(0, (total, mesh) => total + mesh.triangles.Length);
+        var vertices = new List<Vector3>(verticesCount);
+        var uv = new List<Vector2>(verticesCount);
+        var triangles = new List<int>(trianglesCount);
+        int currentIndex;
+        foreach (var mesh in meshes)
+        {
+            currentIndex = vertices.Count;
+            vertices.AddRange(mesh.vertices);
+            uv.AddRange(mesh.uv);
+            triangles.AddRange(mesh.triangles.Select(i => currentIndex + i));
+        }
+        var backgroundMesh = background.sharedMesh;
+        if (backgroundMesh == null)
+        {
+            background.mesh = new Mesh();
+            backgroundMesh = background.sharedMesh;
+        }
+        backgroundMesh.Clear();
+        backgroundMesh.vertices = vertices.ToArray();
+        backgroundMesh.uv = uv.ToArray();
+        backgroundMesh.triangles = triangles.ToArray();
+        backgroundMesh.RecalculateNormals();
+        backgroundMesh.RecalculateBounds();
     }
 
 #if UNITY_EDITOR
