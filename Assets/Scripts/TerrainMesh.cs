@@ -116,9 +116,9 @@ class Cave
     }
 }
 
-[RequireComponent(typeof(MeshFilter))]
 public class TerrainMesh : MonoBehaviour
 {
+    public TerrainPiece terrainPieceTemplate;
     public ParticleSystem terrainParticleTemplate;
     public float outerRadius = 1;
     public float innerRadius = 0.1f;
@@ -206,7 +206,7 @@ public class TerrainMesh : MonoBehaviour
     {
         if (material == null)
         {
-            material = GetComponent<MeshRenderer>().sharedMaterial;
+            material = terrainPieceTemplate.GetComponent<MeshRenderer>().sharedMaterial;
             mainTex = material.GetTexture("_MainTex") as Texture2D;
             mainTexOffset = material.GetTextureOffset("_MainTex");
             mainTexScale = material.GetTextureScale("_MainTex");
@@ -652,21 +652,17 @@ public class TerrainMesh : MonoBehaviour
     {
         DeleteFragments();
         InitMaterial();
-        fragments.AddRange(polygons.Select(p => GenerateFragment(p, material)));
+        fragments.AddRange(polygons.Select(p => GenerateFragment(p)));
         Resources.UnloadUnusedAssets();
     }
 
-    private GameObject GenerateFragment(PSPolygon polygon, Material mat)
+    private GameObject GenerateFragment(PSPolygon polygon)
     {
-        GameObject piece = new GameObject(gameObject.name + " piece");
-        piece.transform.position = gameObject.transform.position;
-        piece.transform.rotation = gameObject.transform.rotation;
-        piece.transform.localScale = gameObject.transform.localScale;
+        TerrainPiece piece = Instantiate(terrainPieceTemplate, gameObject.transform.position, gameObject.transform.rotation);
 
-        MeshFilter meshFilter = (MeshFilter)piece.AddComponent(typeof(MeshFilter));
-        piece.AddComponent(typeof(MeshRenderer));
+        MeshFilter meshFilter = piece.GetComponent<MeshFilter>();
 
-        Mesh uMesh = piece.GetComponent<MeshFilter>().sharedMesh;
+        Mesh uMesh = meshFilter.sharedMesh;
         if (uMesh == null)
         {
             meshFilter.mesh = new Mesh();
@@ -705,20 +701,17 @@ public class TerrainMesh : MonoBehaviour
         uMesh.RecalculateNormals();
         uMesh.RecalculateBounds();
 
-        piece.GetComponent<MeshRenderer>().sharedMaterial = mat;
         meshFilter.mesh = uMesh;
 
-        PolygonCollider2D collider = piece.AddComponent<PolygonCollider2D>();
+        PolygonCollider2D collider = piece.gameObject.AddComponent<PolygonCollider2D>();
         collider.SetPath(0, polygon.points);
 
-        var terrainPiece = piece.AddComponent<TerrainPiece>();
-        terrainPiece.terrainMesh = this;
-        terrainPiece.doNotWrapUV = doNotWrapUV;
-        terrainPiece.floorEdges = floorEdges;
+        piece.terrainMesh = this;
+        piece.doNotWrapUV = doNotWrapUV;
+        piece.floorEdges = floorEdges;
 
-        piece.layer = gameObject.layer;
-
-        return piece;
+        piece.gameObject.SetActive(true);
+        return piece.gameObject;
     }
 
 #if UNITY_EDITOR

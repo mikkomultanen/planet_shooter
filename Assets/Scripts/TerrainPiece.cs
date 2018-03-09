@@ -110,6 +110,8 @@ class CapsuleClipShape : IClipShape
     }
 }
 
+[RequireComponent(typeof(MeshFilter))]
+[RequireComponent(typeof(MeshRenderer))]
 public class TerrainPiece : MonoBehaviour
 {
     private CompositeDisposable disposeBag = new CompositeDisposable();
