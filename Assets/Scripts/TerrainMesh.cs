@@ -118,6 +118,7 @@ class Cave
 
 public class TerrainMesh : MonoBehaviour
 {
+    public MeshFilter caveBackground;
     public MeshFilter background;
     public TerrainPiece terrainPieceTemplate;
     public ParticleSystem terrainParticleTemplate;
@@ -282,6 +283,7 @@ public class TerrainMesh : MonoBehaviour
         editorEdges = editorPolygons.SelectMany(getFloorEdges).ToList();
 #endif
 
+        UpdateCaveBackground(polygons);
         GenerateFragments(polygons);
         UpdateBackground();
     }
@@ -627,7 +629,7 @@ public class TerrainMesh : MonoBehaviour
     public Color32 getColor(Vector2 mainTexUV, Vector2 overlayTexUV)
     {
         var color = mainTex.GetPixelBilinear(mainTexUV.x, mainTexUV.y);
-        color = color * tintColor * brightness; 
+        color = color * tintColor * brightness;
         color.a = 1f;
         var overlayColor = overlayTex.GetPixelBilinear(overlayTexUV.x, overlayTexUV.y);
         var a = overlayColor.a;
@@ -732,18 +734,85 @@ public class TerrainMesh : MonoBehaviour
             uv.AddRange(mesh.uv);
             triangles.AddRange(mesh.triangles.Select(i => currentIndex + i));
         }
-        var backgroundMesh = background.sharedMesh;
-        if (backgroundMesh == null)
+        UpdateMesh(background, vertices, uv, triangles);
+    }
+
+    private void UpdateCaveBackground(IEnumerable<PSPolygon> allPolygons)
+    {
+        var polygonSets = new List<List<PSPolygon>>();
+        polygonSets.Add(allPolygons.Where(p => p.Bounds.center.x >= 0 && p.Bounds.center.y >= 0).ToList());
+        polygonSets.Add(allPolygons.Where(p => p.Bounds.center.x >= 0 && p.Bounds.center.y <= 0).ToList());
+        polygonSets.Add(allPolygons.Where(p => p.Bounds.center.x <= 0 && p.Bounds.center.y >= 0).ToList());
+        polygonSets.Add(allPolygons.Where(p => p.Bounds.center.x <= 0 && p.Bounds.center.y <= 0).ToList());
+
+        var vertices = new List<Vector2>();
+        var uv = new List<Vector2>();
+        var triangles = new List<int>();
+
+        int currentIndex;
+        var tempVertices = new List<Vector2>();
+        foreach (var polygons in polygonSets)
         {
-            background.mesh = new Mesh();
-            backgroundMesh = background.sharedMesh;
+            if (polygons.Count == 0)
+            {
+                continue;
+            }
+            currentIndex = vertices.Count;
+            var polygonBoundsCenter = polygons.First().Bounds.center;
+            var doNotWrapUV = polygonBoundsCenter.x < 0 && polygonBoundsCenter.y < 0;
+
+            var poly = new Polygon();
+            foreach (var polygon in polygons)
+            {
+                poly.Add(createContour(polygon.points), true);
+            }
+            poly.Add(new Vertex());
+            var constraint = new ConstraintOptions();
+            constraint.Convex = true;
+            var quality = new QualityOptions();
+            quality.MinimumAngle = 36;
+            quality.MaximumAngle = 91;
+            var imesh = poly.Triangulate(constraint, quality);
+            foreach (var triangle in imesh.Triangles)
+            {
+                var list = triangle.vertices.Select(toVector2).Reverse().ToList();
+                var center = getCenter(list);
+                if (list.Any(v => v.magnitude > innerRadius))
+                {
+                    foreach (var v in list)
+                    {
+                        var index = indexOf(tempVertices, v);
+                        if (index < 0)
+                        {
+                            index = tempVertices.Count;
+                            tempVertices.Add(v);
+                            uv.Add(getUV(v, doNotWrapUV));
+                        }
+                        triangles.Add(currentIndex + index);
+                    }
+                }
+            }
+            vertices.AddRange(tempVertices);
+            tempVertices.Clear();
         }
-        backgroundMesh.Clear();
-        backgroundMesh.vertices = vertices.ToArray();
-        backgroundMesh.uv = uv.ToArray();
-        backgroundMesh.triangles = triangles.ToArray();
-        backgroundMesh.RecalculateNormals();
-        backgroundMesh.RecalculateBounds();
+
+        UpdateMesh(caveBackground, vertices.Select(p => new Vector3(p.x, p.y, 0)), uv, triangles);
+    }
+
+    private static void UpdateMesh(MeshFilter meshFilter, IEnumerable<Vector3> vertices, IEnumerable<Vector2> uv, IEnumerable<int> triangles)
+    {
+        var mesh = meshFilter.sharedMesh;
+        if (mesh == null)
+        {
+            meshFilter.mesh = new Mesh();
+            mesh = meshFilter.sharedMesh;
+        }
+        mesh.Clear();
+        mesh.vertices = vertices.ToArray();
+        mesh.uv = uv.ToArray();
+        mesh.triangles = triangles.ToArray();
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
     }
 
 #if UNITY_EDITOR
