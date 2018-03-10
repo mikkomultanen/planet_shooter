@@ -24,7 +24,7 @@ GameObject:
   - component: {fileID: 50773024100467776}
   - component: {fileID: 114259819624373158}
   - component: {fileID: 114973512000043440}
-  m_Layer: 1
+  m_Layer: 0
   m_Name: Bomb
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -102,8 +102,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   explosionDamage: 100
-  explosionForce: 20000
-  explosionRadius: 5
   explosion: {fileID: 198221980394113368, guid: 56e25eb96b97e48ff8a42a34d78bf714,
     type: 2}
   speed: 10
