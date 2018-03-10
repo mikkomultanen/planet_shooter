@@ -67,29 +67,6 @@ class Cave
         return direction.normalized * centerMagnitude(angle);
     }
 
-    public Vector3 caveNormal(float angle, float magnitude)
-    {
-        var floor = floorMagnitude(angle);
-        var ceiling = ceilingMagnitude(angle);
-        if (magnitude < floor)
-        {
-            // Under
-            var position = 1 - Mathf.Clamp01(floor - magnitude); // from 1 floor to 0 under the floor
-            return Quaternion.Euler(90 * position, 0, 0) * Vector3.back * position;
-        }
-        else if (magnitude <= ceiling)
-        {
-            // Inside
-            var position = (magnitude - floor) / (ceiling - floor); // from 0 floor to 1 ceiling
-            return Quaternion.Euler(-180 * (position - 0.5F), 0, 0) * Vector3.back;
-        }
-        else
-        {
-            var position = 1 - Mathf.Clamp01(magnitude - ceiling); // from 1 ceiling to 0 over the ceiling
-            return Quaternion.Euler(-90 * position, 0, 0) * Vector3.back * position;
-        }
-    }
-
     public float ceilingMagnitude(float angle)
     {
         return waveValue(angle) + thicknessValue(angle) / 2;
@@ -566,23 +543,16 @@ public class TerrainMesh : MonoBehaviour
         return polygon.PointInPolygon(point + (point.normalized * -0.005f));
     }
 
-    private Vector3 caveNormal(Vector2 coord)
+    private float tangent(Vector2 point)
     {
-        var angle = Mathf.Atan2(coord.x, coord.y);
-        var magnitude = coord.magnitude;
-        var normal = Vector3.zero;
-        foreach (Cave cave in caves)
-        {
-            normal += cave.caveNormal(angle, magnitude);
-        }
-        if (normal.magnitude < 0.01)
-        {
-            return Vector3.back;
-        }
-        else
-        {
-            return Quaternion.FromToRotation(Vector3.up, coord) * normal.normalized;
-        }
+        var normalized = point.normalized;
+        return caveFieldValue(point + (normalized * 0.5f)) - caveFieldValue(point + (normalized * -0.5f));
+    }
+
+    private Color32 caveBackgroundTintColor(Vector2 point)
+    {
+        var value = 1f - Mathf.Clamp01(0.5f - 0.5f * tangent(point));
+        return new Color(value, value, value, 1f);
     }
 
     public Vector2 getUV(Vector2 coord, bool doNotWrap)
@@ -734,7 +704,7 @@ public class TerrainMesh : MonoBehaviour
             uv.AddRange(mesh.uv);
             triangles.AddRange(mesh.triangles.Select(i => currentIndex + i));
         }
-        UpdateMesh(background, vertices, uv, triangles);
+        UpdateMesh(background, vertices, uv, null, triangles);
     }
 
     private void UpdateCaveBackground(IEnumerable<PSPolygon> allPolygons)
@@ -747,6 +717,7 @@ public class TerrainMesh : MonoBehaviour
 
         var vertices = new List<Vector2>();
         var uv = new List<Vector2>();
+        var colors = new List<Color32>();
         var triangles = new List<int>();
 
         int currentIndex;
@@ -786,6 +757,7 @@ public class TerrainMesh : MonoBehaviour
                         {
                             index = tempVertices.Count;
                             tempVertices.Add(v);
+                            colors.Add(caveBackgroundTintColor(v));
                             uv.Add(getUV(v, doNotWrapUV));
                         }
                         triangles.Add(currentIndex + index);
@@ -796,10 +768,10 @@ public class TerrainMesh : MonoBehaviour
             tempVertices.Clear();
         }
 
-        UpdateMesh(caveBackground, vertices.Select(p => new Vector3(p.x, p.y, 0)), uv, triangles);
+        UpdateMesh(caveBackground, vertices.Select(p => new Vector3(p.x, p.y, 0)), uv, colors, triangles);
     }
 
-    private static void UpdateMesh(MeshFilter meshFilter, IEnumerable<Vector3> vertices, IEnumerable<Vector2> uv, IEnumerable<int> triangles)
+    private static void UpdateMesh(MeshFilter meshFilter, IEnumerable<Vector3> vertices, IEnumerable<Vector2> uv, IEnumerable<Color32> colors, IEnumerable<int> triangles)
     {
         var mesh = meshFilter.sharedMesh;
         if (mesh == null)
@@ -810,6 +782,8 @@ public class TerrainMesh : MonoBehaviour
         mesh.Clear();
         mesh.vertices = vertices.ToArray();
         mesh.uv = uv.ToArray();
+        if (colors != null)
+            mesh.colors32 = colors.ToArray();
         mesh.triangles = triangles.ToArray();
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();

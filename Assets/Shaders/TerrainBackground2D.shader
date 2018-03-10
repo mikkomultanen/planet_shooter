@@ -31,6 +31,7 @@ Shader "PlanetShooter/TerrainBackground2D"
                 #pragma glsl_no_auto_normalization
                 #pragma multi_compile _TEX_OFF _TEX_ON
                 #pragma multi_compile _COLOR_OFF _COLOR_ON
+                #pragma multi_compile _VCOLOR_OFF _VCOLOR_ON
 
                 
                 sampler2D _MainTex;
@@ -40,12 +41,18 @@ Shader "PlanetShooter/TerrainBackground2D"
 				{
 					float4 vertex : POSITION;
 					float4 texcoord : TEXCOORD0;
+                    #if _VCOLOR_ON
+                    fixed4 color : COLOR;
+                    #endif
 				};
 				
                  struct v2f 
                  {
                     float4 pos : SV_POSITION;
                     half2 uv : TEXCOORD0;
+                    #if _VCOLOR_ON
+                    fixed4 color : COLOR;
+                    #endif
                  };
                
                 v2f vert (appdata_base0 v)
@@ -53,6 +60,9 @@ Shader "PlanetShooter/TerrainBackground2D"
                     v2f o;
                     o.pos = UnityObjectToClipPos ( v.vertex );
                     o.uv = TRANSFORM_TEX ( v.texcoord, _MainTex );
+                    #if _VCOLOR_ON
+                    o.color = v.color;
+                    #endif
                     return o;
                 }
 
@@ -64,13 +74,14 @@ Shader "PlanetShooter/TerrainBackground2D"
                 
                 fixed4 frag (v2f i) : COLOR
                 {
-
+                    fixed4 result = tex2D ( _MainTex, i.uv )*_Brightness;
 					#if _COLOR_ON
-					return tex2D ( _MainTex, i.uv )*_Brightness*_Color;
-					#else
-					return tex2D ( _MainTex, i.uv )*_Brightness;
+					result = result*_Color;
 					#endif
-
+                    #if _VCOLOR_ON
+                    result = result*i.color;
+                    #endif
+                    return result;
                 }
             ENDCG
         }
