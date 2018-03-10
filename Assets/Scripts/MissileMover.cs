@@ -16,7 +16,7 @@ public class MissileMover : Explosive
         thurstForceMagnitude = rb.mass * thrustAcceleration;
     }
 
-    void OnTriggerEnter2D(Collider2D other)
+    private void OnCollisionEnter2D(Collision2D other)
     {
         explode();
     }

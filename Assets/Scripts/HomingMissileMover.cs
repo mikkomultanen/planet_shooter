@@ -8,7 +8,7 @@ public class HomingMissileMover : Explosive
     public float thrustAcceleration = 10f;
     public float maxSpeed = 10f;
     public float homingRadius = 10f;
-    private int homingLayerMask = 1;
+    public LayerMask homingLayerMask = 1;
 
     private Rigidbody2D rb;
     private float thurstForceMagnitude;
@@ -20,7 +20,7 @@ public class HomingMissileMover : Explosive
         thurstForceMagnitude = rb.mass * thrustAcceleration;
     }
 
-    void OnTriggerEnter2D(Collider2D other)
+    private void OnCollisionEnter2D(Collision2D other)
     {
         explode();
     }

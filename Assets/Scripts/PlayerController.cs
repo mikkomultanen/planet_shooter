@@ -63,6 +63,7 @@ public class PlayerController : MonoBehaviour, Damageable
     public float fireRate = 0.2f;
     public float secondaryFireRate = 1f;
     public float laserDamagePerSecond = 20f;
+    public LayerMask laserLayerMask = ~(1 << 1);
     public float deathrayDamage = 100f;
     public float deathrayLoadingTimeMin = 0.5f;
     public float deathrayLoadingTimeMax = 10f;
@@ -98,7 +99,6 @@ public class PlayerController : MonoBehaviour, Damageable
     private float nextFire = 0.0f;
     private float nextSecondaryFire = 0.0f;
     private float secondaryLoaded = 0.0f;
-    private int laserLayerMask = ~(1 << 1);
     private float gravityForceMagnitude;
     private bool isInWater = false;
     private string turnAxis;

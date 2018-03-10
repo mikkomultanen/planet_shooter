@@ -154,6 +154,7 @@ public class GameController : MonoBehaviour
         {
             playerControllers[i].gameObject.SetActive(true);
             playerControllers[i].respawn(startPositions[i]);
+            repairBases[i].gameObject.SetActive(true);
             repairBases[i].respawn(startPositions[i]);
         }
         foreach (var crate in GameObject.FindObjectsOfType<WeaponCrate>())

@@ -16,7 +16,7 @@ public class BombMover : Explosive
         rb.velocity += initialVelocity;
     }
 
-    void OnTriggerEnter2D(Collider2D other)
+    private void OnCollisionEnter2D(Collision2D other)
     {
         explode();
     }

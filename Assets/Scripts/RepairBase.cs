@@ -5,7 +5,6 @@ using UnityEngine;
 public class RepairBase : MonoBehaviour
 {
 
-    public float repairPerSecond = 1f;
     public TerrainMesh terrain;
     private Rigidbody2D rb;
     private float gravityForceMagnitude;
@@ -14,18 +13,6 @@ public class RepairBase : MonoBehaviour
     {
         rb = gameObject.GetComponent<Rigidbody2D>();
         gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
-    }
-
-    private void OnTriggerStay2D(Collider2D other)
-    {
-        if (other.tag == "Player")
-        {
-            var player = other.GetComponent<PlayerController>();
-            if (player != null)
-            {
-                player.repair(Time.smoothDeltaTime * repairPerSecond);
-            }
-        }
     }
 
     private float targetMagnitude;
