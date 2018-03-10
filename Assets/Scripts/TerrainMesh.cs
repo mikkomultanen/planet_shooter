@@ -704,7 +704,7 @@ public class TerrainMesh : MonoBehaviour
             uv.AddRange(mesh.uv);
             triangles.AddRange(mesh.triangles.Select(i => currentIndex + i));
         }
-        UpdateMesh(background, vertices, uv, null, triangles);
+        UpdateMesh(background, vertices, uv, vertices.Select(v => caveBackgroundTintColor(v)), triangles);
     }
 
     private void UpdateCaveBackground(IEnumerable<PSPolygon> allPolygons)
