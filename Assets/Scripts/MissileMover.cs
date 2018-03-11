@@ -21,6 +21,14 @@ public class MissileMover : Explosive
         explode();
     }
 
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.gameObject.layer == 4) // Water
+        {
+            explode();
+        }
+    }
+
     void FixedUpdate()
     {
         if (Vector2.Dot(rb.velocity, transform.up) < maxSpeed)

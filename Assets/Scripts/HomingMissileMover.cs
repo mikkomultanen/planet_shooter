@@ -25,6 +25,14 @@ public class HomingMissileMover : Explosive
         explode();
     }
 
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.gameObject.layer == 4) // Water
+        {
+            explode();
+        }
+    }
+
     void FixedUpdate()
     {
         var thrustFactor = 1f;

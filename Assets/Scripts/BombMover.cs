@@ -20,4 +20,12 @@ public class BombMover : Explosive
     {
         explode();
     }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.gameObject.layer == 4) // Water
+        {
+            explode();
+        }
+    }
 }
