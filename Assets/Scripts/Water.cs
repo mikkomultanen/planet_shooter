@@ -8,12 +8,11 @@ public class Water : MonoBehaviour
     public ParticleSystem splashTemplate;
     public float splashThreshold = 1f;
 
-    private CircleCollider2D water;
     private float waterSurfaceMagnitude;
 
     private void Awake()
     {
-        water = GetComponent<CircleCollider2D>();
+        var water = GetComponent<CircleCollider2D>();
         waterSurfaceMagnitude = water.radius;
     }
 
@@ -28,13 +27,29 @@ public class Water : MonoBehaviour
             if (ySpeed > splashThreshold)
             {
                 var splash = Instantiate(splashTemplate, positionNormalized * waterSurfaceMagnitude, Quaternion.Euler(0, 0, -Mathf.Atan2(rb.position.x, rb.position.y) * Mathf.Rad2Deg));
-                splash.trigger.SetCollider(0, water);
                 var emission = splash.emission;
                 emission.rateOverTimeMultiplier *= massScale;
                 var main = splash.main;
                 var startSpeed = Mathf.Clamp(ySpeed, 0, 10);
                 main.startSpeed = new ParticleSystem.MinMaxCurve(startSpeed * 0.5f, startSpeed);
+                splash.gameObject.SetActive(true);
             }
+        }
+    }
+
+    public void explosionSplash(Vector2 position, float radius)
+    {
+        var magnitude = Mathf.Clamp(position.magnitude - waterSurfaceMagnitude, 0, radius);
+        var scale = 1 - (magnitude / radius);
+        if (scale > 0.8f)
+        {
+            var splash = Instantiate(splashTemplate, position.normalized * waterSurfaceMagnitude, Quaternion.Euler(0, 0, -Mathf.Atan2(position.x, position.y) * Mathf.Rad2Deg));
+            var emission = splash.emission;
+            emission.rateOverTimeMultiplier *= 10 * scale;
+            var main = splash.main;
+            var startSpeed = 10 * scale;
+            main.startSpeed = new ParticleSystem.MinMaxCurve(startSpeed * 0.5f, startSpeed);
+            splash.gameObject.SetActive(true);
         }
     }
 }
