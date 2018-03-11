@@ -121,13 +121,15 @@ public class TerrainPiece : MonoBehaviour
         public Vector2[] positions;
         public Vector2[] mainTexUV;
         public Vector2[] overlayTexUV;
+        public Color[] colors;
         public Vector2 center;
 
-        public TerrainParticles(Vector2[] positions, Vector2[] mainTexUV, Vector2[] overlayTexUV, Vector2 center)
+        public TerrainParticles(Vector2[] positions, Vector2[] mainTexUV, Vector2[] overlayTexUV, Color[] colors, Vector2 center)
         {
             this.positions = positions;
             this.mainTexUV = mainTexUV;
             this.overlayTexUV = overlayTexUV;
+            this.colors = colors;
             this.center = center;
         }
     }
@@ -135,15 +137,17 @@ public class TerrainPiece : MonoBehaviour
     private sealed class MeshData
     {
         public Vector3[] vertices;
+        public Color32[] colors32;
         public Vector2[] uv;
         public Vector2[] uv2;
         public int[] triangles;
         public Vector2[][] paths;
         public TerrainParticles[] particles;
 
-        public MeshData(Vector3[] vertices, Vector2[] uv, Vector2[] uv2, int[] triangles, Vector2[][] paths, TerrainParticles[] particles)
+        public MeshData(Vector3[] vertices, Color32[] colors32, Vector2[] uv, Vector2[] uv2, int[] triangles, Vector2[][] paths, TerrainParticles[] particles)
         {
             this.vertices = vertices;
+            this.colors32 = colors32;
             this.uv = uv;
             this.uv2 = uv2;
             this.triangles = triangles;
@@ -157,7 +161,7 @@ public class TerrainPiece : MonoBehaviour
                 .Select(i => collider.GetPath(i))
                 .ToArray();
 
-            return new MeshData(mesh.vertices, mesh.uv, mesh.uv2, mesh.triangles, paths, new TerrainParticles[0]);
+            return new MeshData(mesh.vertices, mesh.colors32, mesh.uv, mesh.uv2, mesh.triangles, paths, new TerrainParticles[0]);
         }
     }
 
@@ -286,9 +290,10 @@ public class TerrainPiece : MonoBehaviour
             .ToArray();
 
         var vertices = newVertices.Select(c => new Vector3(c.x, c.y, 0)).ToArray();
+        var colors32 = newVertices.Select(c => (Color32)terrainMesh.terrainTintColor(c, doNotWrapUV)).ToArray();
         var uv = newVertices.Select(c => terrainMesh.getUV(c, doNotWrapUV)).ToArray();
         var uv2 = newVertices.Select(c => terrainMesh.getUV2(c, doNotWrapUV, floorEdges)).ToArray();
-        return new MeshData(vertices, uv, uv2, newTriangles.ToArray(), newPaths, particles);
+        return new MeshData(vertices, colors32, uv, uv2, newTriangles.ToArray(), newPaths, particles);
     }
 
     private TerrainParticles GenerateParticles(PSPolygon shape)
@@ -318,13 +323,15 @@ public class TerrainPiece : MonoBehaviour
         }
         var mainTexUV = coords.Select(c => terrainMesh.getMainTexUV(c, doNotWrapUV));
         var overlayTexUV = coords.Select(c => terrainMesh.getOverlayTexUV(c, doNotWrapUV, floorEdges));
-        return new TerrainParticles(coords.ToArray(), mainTexUV.ToArray(), overlayTexUV.ToArray(), center);
+        var colors = coords.Select(c => terrainMesh.terrainTintColor(c, doNotWrapUV));
+        return new TerrainParticles(coords.ToArray(), mainTexUV.ToArray(), overlayTexUV.ToArray(), colors.ToArray(), center);
     }
 
     private void UpdateMesh(MeshData data)
     {
         mesh.Clear();
         mesh.vertices = data.vertices;
+        mesh.colors32 = data.colors32;
         mesh.uv = data.uv;
         mesh.uv2 = data.uv2;
         mesh.triangles = data.triangles;
@@ -363,7 +370,7 @@ public class TerrainPiece : MonoBehaviour
             for (int i = 0; i < activeCount; i++)
             {
                 particles[i].position = new Vector3(terrainParticles.positions[i].x, terrainParticles.positions[i].y, transform.position.z);
-                particles[i].startColor = terrainMesh.getColor(terrainParticles.mainTexUV[i], terrainParticles.overlayTexUV[i]);
+                particles[i].startColor = terrainMesh.getColor(terrainParticles.mainTexUV[i], terrainParticles.overlayTexUV[i], terrainParticles.colors[i]);
             }
             ps.SetParticles(particles, activeCount);
             ps.Play();

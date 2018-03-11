@@ -112,6 +112,8 @@ public class TerrainMesh : MonoBehaviour
     public ParticleSystem terrainParticleTemplate;
     public float outerRadius = 1;
     public float innerRadius = 0.1f;
+    public Gradient tintColorU;
+    public Gradient tintColorV;
     private float textureScaleU = 6;
     private float textureScaleV = 1;
     private float threshold = 1f;
@@ -122,7 +124,7 @@ public class TerrainMesh : MonoBehaviour
     private Texture2D overlayTex;
     private Vector2 overlayTexOffset;
     private Vector2 overlayTexScale;
-    private Color tintColor;
+    //private Color tintColor;
     private float brightness;
 
     public List<GameObject> fragments = new List<GameObject>();
@@ -136,6 +138,7 @@ public class TerrainMesh : MonoBehaviour
 
     private void Start()
     {
+        InitMaterial();
         if (fragments.Count == 0)
         {
             GenerateTerrain();
@@ -203,7 +206,7 @@ public class TerrainMesh : MonoBehaviour
             overlayTex = material.GetTexture("_OverlayTex") as Texture2D;
             overlayTexOffset = material.GetTextureOffset("_OverlayTex");
             overlayTexScale = material.GetTextureScale("_OverlayTex");
-            tintColor = material.GetColor("_Color");
+            //tintColor = material.GetColor("_Color");
             brightness = material.GetFloat("_Brightness");
         }
     }
@@ -564,10 +567,38 @@ public class TerrainMesh : MonoBehaviour
         return caveFieldValue(point + (normalized * 0.5f)) - caveFieldValue(point + (normalized * -0.5f));
     }
 
-    private Color32 caveBackgroundTintColor(Vector2 point)
+    public Color terrainTintColor(Vector2 point, bool doNotWrap)
+    {
+        var angle = Mathf.Atan2(point.x, point.y);
+        if (doNotWrap && angle > 0)
+        {
+            angle = angle - 2 * Mathf.PI;
+        }
+        var magnitude = point.magnitude;
+        float u = angle / (2 * Mathf.PI);
+        if (u < 0f) u += 1f;
+        float v = Mathf.Clamp01((magnitude - innerRadius) / (outerRadius - innerRadius));
+        if (tintColorU != null && tintColorV != null)
+        {
+            return Color.Lerp(tintColorU.Evaluate(u), tintColorV.Evaluate(v), 0.5f);
+        }
+        if (tintColorU != null)
+        {
+            return tintColorU.Evaluate(u);
+        }
+        if (tintColorV != null)
+        {
+            return tintColorV.Evaluate(v);
+        }
+        return Color.white;
+    }
+
+    private Color caveBackgroundTintColor(Vector2 point, bool doNotWrap)
     {
         var value = 1f - Mathf.Clamp01(0.5f - 0.5f * tangent(point));
-        return new Color(value, value, value, 1f);
+        var color = terrainTintColor(point, doNotWrap) * value;
+        color.a = 1f;
+        return color;
     }
 
     public Vector2 getUV(Vector2 coord, bool doNotWrap)
@@ -611,7 +642,7 @@ public class TerrainMesh : MonoBehaviour
         return new Vector2(uv.x * overlayTexScale.x, uv.y * overlayTexScale.y) + overlayTexOffset;
     }
 
-    public Color32 getColor(Vector2 mainTexUV, Vector2 overlayTexUV)
+    public Color32 getColor(Vector2 mainTexUV, Vector2 overlayTexUV, Color tintColor)
     {
         var color = mainTex.GetPixelBilinear(mainTexUV.x, mainTexUV.y);
         color = color * tintColor * brightness;
@@ -646,7 +677,6 @@ public class TerrainMesh : MonoBehaviour
     }
     private void GenerateFragments(List<PSPolygon> polygons)
     {
-        InitMaterial();
         fragments.AddRange(polygons.Select(p => GenerateFragment(p)));
         Resources.UnloadUnusedAssets();
     }
@@ -690,6 +720,7 @@ public class TerrainMesh : MonoBehaviour
         var floorEdges = getFloorEdges(polygon);
 
         uMesh.vertices = vertices.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
+        uMesh.colors = vertices.Select(p => terrainTintColor(p, doNotWrapUV)).ToArray();
         uMesh.uv = vertices.Select(v => getUV(v, doNotWrapUV)).ToArray();
         uMesh.uv2 = vertices.Select(v => getUV2(v, doNotWrapUV, floorEdges)).ToArray();
         uMesh.triangles = triangles.ToArray();
@@ -725,7 +756,7 @@ public class TerrainMesh : MonoBehaviour
             uv.AddRange(mesh.uv);
             triangles.AddRange(mesh.triangles.Select(i => currentIndex + i));
         }
-        UpdateMesh(background, vertices, uv, vertices.Select(v => caveBackgroundTintColor(v)), triangles);
+        UpdateMesh(background, vertices, uv, vertices.Select(v => (Color32)caveBackgroundTintColor(v, false)), triangles);
     }
 
     private void UpdateCaveBackground(IEnumerable<PSPolygon> allPolygons)
@@ -777,7 +808,7 @@ public class TerrainMesh : MonoBehaviour
                         {
                             index = tempVertices.Count;
                             tempVertices.Add(v);
-                            colors.Add(caveBackgroundTintColor(v));
+                            colors.Add(caveBackgroundTintColor(v, doNotWrapUV));
                             uv.Add(getUV(v, doNotWrapUV));
                         }
                         triangles.Add(currentIndex + index);
@@ -802,8 +833,7 @@ public class TerrainMesh : MonoBehaviour
         mesh.Clear();
         mesh.vertices = vertices.ToArray();
         mesh.uv = uv.ToArray();
-        if (colors != null)
-            mesh.colors32 = colors.ToArray();
+        mesh.colors32 = colors.ToArray();
         mesh.triangles = triangles.ToArray();
         mesh.RecalculateNormals();
         mesh.RecalculateBounds();

@@ -32,6 +32,7 @@ Shader "PlanetShooter/Terrain2D"
                 #pragma glsl_no_auto_normalization
                 #pragma multi_compile _TEX_OFF _TEX_ON
                 #pragma multi_compile _COLOR_OFF _COLOR_ON
+                #pragma multi_compile _VCOLOR_OFF _VCOLOR_ON
 
                 
                 sampler2D _MainTex;
@@ -44,6 +45,9 @@ Shader "PlanetShooter/Terrain2D"
 					float4 vertex : POSITION;
 					float4 texcoord : TEXCOORD0;
 					float4 overlaycoord : TEXCOORD1;
+                    #if _VCOLOR_ON
+                    fixed4 color : COLOR;
+                    #endif
 				};
 				
                  struct v2f 
@@ -51,6 +55,9 @@ Shader "PlanetShooter/Terrain2D"
                     float4 pos : SV_POSITION;
                     half2 uv : TEXCOORD0;
                     half2 uvo : TEXCOORD1;
+                    #if _VCOLOR_ON
+                    fixed4 color : COLOR;
+                    #endif
                  };
                
                 v2f vert (appdata_base0 v)
@@ -59,6 +66,9 @@ Shader "PlanetShooter/Terrain2D"
                     o.pos = UnityObjectToClipPos ( v.vertex );
                     o.uv = TRANSFORM_TEX ( v.texcoord, _MainTex );
 					o.uvo = TRANSFORM_TEX (v.overlaycoord, _OverlayTex );
+                    #if _VCOLOR_ON
+                    o.color = v.color;
+                    #endif
                     return o;
                 }
 
@@ -72,11 +82,13 @@ Shader "PlanetShooter/Terrain2D"
                 {
 
 					fixed4 overlay = tex2D( _OverlayTex, i.uvo );
+                    fixed4 detail = tex2D ( _MainTex, i.uv )*_Brightness;
 					#if _COLOR_ON
-					fixed4 detail = tex2D ( _MainTex, i.uv )*_Brightness*_Color;
-					#else
-					fixed4 detail = tex2D ( _MainTex, i.uv )*_Brightness;
+					detail = detail*_Color;
 					#endif
+                    #if _VCOLOR_ON
+                    detail = detail*i.color;
+                    #endif
 
 					return float4(lerp(detail.rgb, overlay.rgb, overlay.a), 1);
                 }
