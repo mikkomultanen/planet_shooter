@@ -9,12 +9,18 @@ using TriangleNet.Topology;
 using UnityEditor;
 #endif
 
-class Noise
+[System.Serializable]
+public class Noise : System.Object
 {
+    [SerializeField]
     private float aMin;
+    [SerializeField]
     private float aMax;
+    [SerializeField]
     private float[] a;
+    [SerializeField]
     private int[] f;
+    [SerializeField]
     private float[] p;
 
     public Noise(float aMin, float aMax, int minF, int maxF, int n)
@@ -49,10 +55,15 @@ class Noise
         return Mathf.Lerp(aMin, aMax, 0.5f * sum + 0.5f);
     }
 }
-class Cave
+
+[System.Serializable]
+public class Cave : System.Object
 {
-    public float r = 1;
+    [SerializeField]
+    private float r = 1;
+    [SerializeField]
     private Noise wave;
+    [SerializeField]
     private Noise thickness;
     public Cave(float r, float aMin, float aMax, float tMin, float tMax)
     {
@@ -116,16 +127,16 @@ public class TerrainMesh : MonoBehaviour
 
     public List<GameObject> fragments = new List<GameObject>();
 
-    private List<Cave> caves = new List<Cave>();
+    public List<Cave> caves = new List<Cave>();
 #if UNITY_EDITOR
     private List<PSPolygon> editorPolygons = new List<PSPolygon>();
     private List<PSEdge> editorEdges = new List<PSEdge>();
     private List<Vector2> editorPoints = new List<Vector2>();
 #endif
 
-    private void Awake()
+    private void Start()
     {
-        if (caves.Count == 0)
+        if (fragments.Count == 0)
         {
             GenerateTerrain();
         }
@@ -148,7 +159,7 @@ public class TerrainMesh : MonoBehaviour
     {
         if (caves.Count == 0)
         {
-            GenerateTerrain();
+            GenerateCaves();
         }
         float step = Mathf.PI * 2 / playerCount;
         float phase = Random.Range(0f, Mathf.PI * 2);
@@ -202,7 +213,11 @@ public class TerrainMesh : MonoBehaviour
 #endif
     private void GenerateTerrain()
     {
-        GenerateCaves();
+        DeleteTerrain();
+        if (caves.Count == 0)
+        {
+            GenerateCaves();
+        }
 
         var points = new List<Vector2>();
 
@@ -260,9 +275,9 @@ public class TerrainMesh : MonoBehaviour
         editorEdges = editorPolygons.SelectMany(getFloorEdges).ToList();
 #endif
 
-        UpdateCaveBackground(polygons);
         GenerateFragments(polygons);
         UpdateBackground();
+        UpdateCaveBackground(polygons);
     }
 
     private Vector2 findBorder(Vector2 v0, float f0, Vector2 v1, float f1)
@@ -608,23 +623,30 @@ public class TerrainMesh : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    [ContextMenu("Delete fragments")]
+    [ContextMenu("Delete terrain")]
 #endif
-    private void DeleteFragments()
+    private void DeleteTerrain()
     {
         foreach (GameObject frag in fragments)
         {
 #if UNITY_EDITOR
             DestroyImmediate(frag);
 #else
-				Destroy (frag);
+			Destroy (frag);
 #endif
         }
         fragments.Clear();
+        caves.Clear();
+        UpdateBackground();
+        UpdateCaveBackground(new PSPolygon[0]);
+#if UNITY_EDITOR
+        editorPolygons.Clear();
+        editorEdges.Clear();
+        editorPoints.Clear();
+#endif
     }
     private void GenerateFragments(List<PSPolygon> polygons)
     {
-        DeleteFragments();
         InitMaterial();
         fragments.AddRange(polygons.Select(p => GenerateFragment(p)));
         Resources.UnloadUnusedAssets();
@@ -747,7 +769,6 @@ public class TerrainMesh : MonoBehaviour
             foreach (var triangle in imesh.Triangles)
             {
                 var list = triangle.vertices.Select(toVector2).Reverse().ToList();
-                var center = getCenter(list);
                 if (list.Any(v => v.magnitude > innerRadius))
                 {
                     foreach (var v in list)
