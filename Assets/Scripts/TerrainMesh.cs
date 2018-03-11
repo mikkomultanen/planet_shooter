@@ -636,7 +636,6 @@ public class TerrainMesh : MonoBehaviour
 #endif
         }
         fragments.Clear();
-        caves.Clear();
         UpdateBackground();
         UpdateCaveBackground(new PSPolygon[0]);
 #if UNITY_EDITOR
