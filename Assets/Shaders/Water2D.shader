@@ -35,7 +35,7 @@ Shader "PlanetShooter/Water"
                 #pragma glsl_no_auto_normalization
                 #pragma multi_compile _TEX_OFF _TEX_ON
                 #pragma multi_compile _COLOR_OFF _COLOR_ON
-
+                #pragma multi_compile _VCOLOR_OFF _VCOLOR_ON
                 
                 #if _TEX_ON
                 sampler2D _MainTex;
@@ -47,6 +47,9 @@ Shader "PlanetShooter/Water"
 					float4 vertex : POSITION;
 					float3 normal : NORMAL;
 					float4 texcoord : TEXCOORD0;
+                    #if _VCOLOR_ON
+                    fixed4 color : COLOR;
+                    #endif
 				};
 				
                  struct v2f 
@@ -56,6 +59,9 @@ Shader "PlanetShooter/Water"
                     half2 uv : TEXCOORD0;
                     #endif
                     half2 uvn : TEXCOORD1;
+                    #if _VCOLOR_ON
+                    fixed4 color : COLOR;
+                    #endif
                  };
                
                 v2f vert (appdata_base0 v)
@@ -74,8 +80,11 @@ Shader "PlanetShooter/Water"
 					normalize(n);
                     n = n * float3(0.5,0.5,0.5) + float3(0.5,0.5,0.5);
                     o.uvn = n.xy;
-                     #if _TEX_ON
+                    #if _TEX_ON
                     o.uv = TRANSFORM_TEX ( v.texcoord, _MainTex );
+                    #endif
+                    #if _VCOLOR_ON
+                    o.color = v.color;
                     #endif
                     return o;
                 }
@@ -89,18 +98,17 @@ Shader "PlanetShooter/Water"
                 
                 fixed4 frag (v2f i) : COLOR
                 {
+                    fixed4 result = tex2D( _ToonShade, i.uvn );
 					#if _COLOR_ON
-					fixed4 toonShade = tex2D( _ToonShade, i.uvn )*_Color;
-					#else
-					fixed4 toonShade = tex2D( _ToonShade, i.uvn );
+					result = result*_Color;
 					#endif
-					
+                    #if _VCOLOR_ON
+                    result = result*i.color;
+                    #endif
 					#if _TEX_ON
-					fixed4 detail = tex2D ( _MainTex, i.uv );
-					return  toonShade * detail*_Brightness;
-					#else
-					return  toonShade * _Brightness;
+                    result = result*i.tex2D ( _MainTex, i.uv );
 					#endif
+                    return result*_Brightness;
                 }
             ENDCG
         }
