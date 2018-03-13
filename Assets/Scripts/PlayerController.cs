@@ -57,6 +57,7 @@ public class PlayerController : MonoBehaviour, Damageable
     public GameObject homingMissile;
     public GameObject bomb;
     public DeathrayBeamMover deathrayBeam;
+    public GameObject shield;
     public float maxHealth = 100;
     public float maxThrustPower = 2000f;
     public float maxSpeed = 10f;
@@ -176,6 +177,7 @@ public class PlayerController : MonoBehaviour, Damageable
         bool flamerOn = false;
         bool laserOn = false;
         bool deathrayLoadingOn = false;
+        bool shieldOn = false;
         switch (weaponState.primary)
         {
             case PrimaryWeapon.MachineGun:
@@ -253,6 +255,8 @@ public class PlayerController : MonoBehaviour, Damageable
                 break;
         }
 
+        shieldOn = Input.GetButton(fire3Button);
+
         if (flamerOn || laserOn)
         {
             var oldState = weaponState;
@@ -291,6 +295,10 @@ public class PlayerController : MonoBehaviour, Damageable
                 deathrayLoading.Play();
             else
                 deathrayLoading.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+        if (shieldOn != shield.activeSelf)
+        {
+            shield.SetActive(shieldOn);
         }
 
         var smokeEmission = smoke.emission;
