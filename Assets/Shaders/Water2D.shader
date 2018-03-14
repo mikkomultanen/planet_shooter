@@ -106,7 +106,7 @@ Shader "PlanetShooter/Water"
                     result = result*i.color;
                     #endif
 					#if _TEX_ON
-                    result = result*i.tex2D ( _MainTex, i.uv );
+                    result = result*tex2D ( _MainTex, i.uv );
 					#endif
                     return result*_Brightness;
                 }
