@@ -157,10 +157,21 @@ public class PlayerController : MonoBehaviour, Damageable
 
     void OnCollisionEnter2D(Collision2D collision)
     {
-        doDamage(collision.relativeVelocity.sqrMagnitude / 100);
+        if (collision.otherCollider.gameObject == gameObject)
+        {
+            doInternalDamage(collision.relativeVelocity.sqrMagnitude / 100);
+        }
     }
 
     public void doDamage(float damage)
+    {
+        if (!shield.activeSelf)
+        {
+            doInternalDamage(damage);
+        }
+    }
+
+    private void doInternalDamage(float damage)
     {
         float oldHealt = health;
         health -= damage;
