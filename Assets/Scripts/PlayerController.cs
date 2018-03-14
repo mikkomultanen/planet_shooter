@@ -248,8 +248,10 @@ public class PlayerController : MonoBehaviour, Damageable
                     if (Input.GetButton(fire2Button))
                     {
                         secondaryLoaded += Time.deltaTime;
+                        var loaded = Mathf.Clamp01(secondaryLoaded / deathrayLoadingTimeMax);
                         var emission = deathrayLoading.emission;
-                        emission.rateOverTime = Mathf.Max(10, Mathf.Clamp01(secondaryLoaded / deathrayLoadingTimeMax) * 100);
+                        emission.rateOverTime = Mathf.Max(10, loaded * 100);
+                        doInternalDamage(loaded * Time.deltaTime);
                         deathrayLoadingOn = true;
                     }
                     if (Input.GetButtonUp(fire2Button))
