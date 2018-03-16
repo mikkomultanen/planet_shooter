@@ -431,7 +431,7 @@ public class FlamerDevice : IDevice
 
 public class MissileDevice : IDevice
 {
-    private float fireRate = 1f;
+    private float fireRate = 0.5f;
     private float nextFire = 0.0f;
     private int missiles = 10;
     public void Update(string button, PlayerController player)
