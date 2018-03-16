@@ -273,7 +273,6 @@ public class PlayerController : MonoBehaviour, Damageable
 
     public void setPrimaryWeapon(IDevice primary)
     {
-        var changed = this.primaryWeapon.GetType() == primary.GetType();
         this.primaryWeapon = primary;
         updateWeaponHud();
         resetDeviceEffects();
