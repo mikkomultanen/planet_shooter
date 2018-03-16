@@ -21,40 +21,18 @@ public class Hud : MonoBehaviour
         this.health.text = "Health: " + health;
     }
 
-    public void UpdateWeapons(WeaponState weaponState)
+    public void UpdateWeapons(IDevice primary, IDevice secondary)
     {
         var text = new List<string>();
-        switch (weaponState.primary)
+        text.Add(primary.HudRow());
+        if (secondary != null)
         {
-            case PrimaryWeapon.MachineGun:
-                text.Add("Machine gun");
-                break;
-            case PrimaryWeapon.Laser:
-                text.Add("Laser: " + energyToString(weaponState.primaryEnergy));
-                break;
-            case PrimaryWeapon.Flamer:
-                text.Add("Flamer: " + energyToString(weaponState.primaryEnergy));
-                break;
-        }
-        switch (weaponState.secondary)
-        {
-            case SecondaryWeapon.Missiles:
-                text.Add("Missiles: " + weaponState.secondaryAmmunition);
-                break;
-            case SecondaryWeapon.HomingMissiles:
-                text.Add("Homing missiles: " + weaponState.secondaryAmmunition);
-                break;
-            case SecondaryWeapon.Bombs:
-                text.Add("Bombs: " + weaponState.secondaryAmmunition);
-                break;
-            case SecondaryWeapon.Deathray:
-                text.Add("Deathray: " + weaponState.secondaryAmmunition);
-                break;
+            text.Add(secondary.HudRow());
         }
         weapons.text = string.Join("\n", text.ToArray());
     }
 
-    private static string energyToString(float energy)
+    public static string energyToString(float energy)
     {
         return Mathf.Max(0, energy).ToString("f1");
     }
@@ -98,7 +76,9 @@ public class Hud : MonoBehaviour
             if (screenPos.x >= 0 && screenPos.x <= 1 && screenPos.y >= 0 && screenPos.y <= 1)
             {
                 indicator.gameObject.SetActive(false);
-            } else {
+            }
+            else
+            {
                 onScreenPos = new Vector2(screenPos.x - 0.5f, screenPos.y - 0.5f) * 2; //2D version, new mapping
                 max = Mathf.Max(Mathf.Abs(onScreenPos.x), Mathf.Abs(onScreenPos.y)); //get largest offset
                 onScreenPos = (onScreenPos / (max * 2)) + new Vector2(0.5f, 0.5f); //undo mapping

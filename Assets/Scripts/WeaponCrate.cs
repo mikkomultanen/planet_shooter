@@ -11,7 +11,8 @@ public class WeaponCrate : Explosive
         Missiles,
         HomingMissiles,
         Bombs,
-        Deathray
+        Deathray,
+        Shield
     }
     public Weapon weapon;
     private Rigidbody2D rb;
@@ -52,23 +53,26 @@ public class WeaponCrate : Explosive
             {
                 switch (weapon)
                 {
-                    case Weapon.Missiles:
-                        player.setSecondaryWeapon(SecondaryWeapon.Missiles, 10);
-                        break;
-                    case Weapon.HomingMissiles:
-                        player.setSecondaryWeapon(SecondaryWeapon.HomingMissiles, 5);
-                        break;
-                    case Weapon.Bombs:
-                        player.setSecondaryWeapon(SecondaryWeapon.Bombs, 5);
-                        break;
-                    case Weapon.Deathray:
-                        player.setSecondaryWeapon(SecondaryWeapon.Deathray, 5);
-                        break;
                     case Weapon.Flamer:
-                        player.setPrimaryWeapon(PrimaryWeapon.Flamer, 10);
+                        player.setPrimaryWeapon(new FlamerDevice());
                         break;
                     case Weapon.Laser:
-                        player.setPrimaryWeapon(PrimaryWeapon.Laser, 30);
+                        player.setPrimaryWeapon(new LaserDevice());
+                        break;
+                    case Weapon.Missiles:
+                        player.setSecondaryWeapon(new MissileDevice());
+                        break;
+                    case Weapon.HomingMissiles:
+                        player.setSecondaryWeapon(new HomingMissileDevice());
+                        break;
+                    case Weapon.Bombs:
+                        player.setSecondaryWeapon(new BombDevice());
+                        break;
+                    case Weapon.Deathray:
+                        player.setSecondaryWeapon(new DeathrayDevice());
+                        break;
+                    case Weapon.Shield:
+                        player.setSecondaryWeapon(new ShieldDevice());
                         break;
                 }
                 Destroy(gameObject);
