@@ -62,11 +62,14 @@ public class PlayerController : MonoBehaviour, Damageable
     public float maxHealth = 100;
     public float maxThrustPower = 2000f;
     public float maxSpeed = 10f;
+    public float afterBurnerMaxSpeed = 30f;
+    public float afterBurnerThrustPower = 6000f;
     public LayerMask laserLayerMask = ~(1 << 1);
     public float deathrayDistance = 150f;
     public float deathrayWidth = 1f;
 
     public ParticleSystem thruster;
+    public ParticleSystem afterBurner;
     public ParticleSystem flamer;
     public ParticleSystem smoke;
     public ParticleSystem explosion;
@@ -177,7 +180,7 @@ public class PlayerController : MonoBehaviour, Damageable
         }
 
         var smokeEmission = smoke.emission;
-        bool thrustersOn = Input.GetAxis(thrustAxis) > 0f;
+        bool thrustersOn = Input.GetAxis(thrustAxis) > 0f && !afterBurner.isEmitting;
         if (thrustersOn != thruster.isEmitting)
         {
             if (thrustersOn)
@@ -211,11 +214,12 @@ public class PlayerController : MonoBehaviour, Damageable
         var positionNormalized = rb.position.normalized;
         float floatingAndGravityForceMagnitude = (isInWater ? -1.2f : 1f) * gravityForceMagnitude;
         float thursterForceMagnitude = 0f;
-        if (Vector2.Dot(rb.velocity, transform.up) < maxSpeed)
+        var afterBurnerOn = afterBurner.isEmitting;
+        if (Vector2.Dot(rb.velocity, transform.up) < (afterBurnerOn ? afterBurnerMaxSpeed : maxSpeed))
         {
             float thrust = Mathf.Max(Input.GetAxis(thrustAxis), 0f);
             float athmosphereCoefficient = Mathf.Clamp((120f - h) / 20f, 0f, 1f);
-            thursterForceMagnitude = thrust * athmosphereCoefficient * maxThrustPower;
+            thursterForceMagnitude = athmosphereCoefficient * (afterBurnerOn ? afterBurnerThrustPower : thrust * maxThrustPower);
             if (isInWater)
             {
                 thursterForceMagnitude = Mathf.Min(thursterForceMagnitude, 0.8f * floatingAndGravityForceMagnitude);
@@ -286,10 +290,12 @@ public class PlayerController : MonoBehaviour, Damageable
     {
         var devices = new IDevice[] { primaryWeapon, secondaryWeapon };
         var flamerOff = !devices.Any(d => d is FlamerDevice);
+        var afterBurnerOff = !devices.Any(d => d is AfterBurnerDevice);
         var laserOff = !devices.Any(d => d is LaserDevice);
         var deathrayOff = !devices.Any(d => d is DeathrayDevice);
         var shieldOff = !devices.Any(d => d is ShieldDevice);
         if (flamerOff) flamer.Stop();
+        if (afterBurnerOff) afterBurner.Stop();
         if (laserOff)
         {
             laserSparkles.Stop();
@@ -422,6 +428,35 @@ public class FlamerDevice : IDevice
     public string HudRow()
     {
         return "Flamer: " + Hud.energyToString(energy);
+    }
+    public bool Depleted
+    {
+        get { return energy <= 0; }
+    }
+}
+
+public class AfterBurnerDevice : IDevice
+{
+    private float energy = 10;
+    public void Update(string button, PlayerController player)
+    {
+        var afterBurnerOn = Input.GetButton(button) && energy > 0;
+        if (afterBurnerOn)
+        {
+            energy -= Time.deltaTime;
+            player.updateWeaponHud();
+        }
+        if (afterBurnerOn != player.afterBurner.isEmitting)
+        {
+            if (afterBurnerOn)
+                player.afterBurner.Play();
+            else
+                player.afterBurner.Stop();
+        }
+    }
+    public string HudRow()
+    {
+        return "After burner: " + Hud.energyToString(energy);
     }
     public bool Depleted
     {

@@ -12,7 +12,8 @@ public class WeaponCrate : Explosive
         HomingMissiles,
         Bombs,
         Deathray,
-        Shield
+        Shield,
+        AfterBurner
     }
     public Weapon weapon;
     private Rigidbody2D rb;
@@ -58,6 +59,9 @@ public class WeaponCrate : Explosive
                         break;
                     case Weapon.Laser:
                         player.setPrimaryWeapon(new LaserDevice());
+                        break;
+                    case Weapon.AfterBurner:
+                        player.setPrimaryWeapon(new AfterBurnerDevice());
                         break;
                     case Weapon.Missiles:
                         player.setSecondaryWeapon(new MissileDevice());
