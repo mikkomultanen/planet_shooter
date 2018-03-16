@@ -34134,15 +34134,9 @@ MonoBehaviour:
   maxHealth: 100
   maxThrustPower: 300
   maxSpeed: 10
-  fireRate: 0.05
-  secondaryFireRate: 1
-  laserDamagePerSecond: 20
   laserLayerMask:
     serializedVersion: 2
     m_Bits: 4294966749
-  deathrayDamage: 100
-  deathrayLoadingTimeMin: 0.5
-  deathrayLoadingTimeMax: 10
   deathrayDistance: 30
   deathrayWidth: 1
   thruster: {fileID: 629460618}

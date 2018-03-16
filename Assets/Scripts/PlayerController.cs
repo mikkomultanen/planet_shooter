@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public enum Controls
@@ -10,7 +11,7 @@ public enum Controls
     Joystick3,
     Joystick4
 }
-
+/*
 public enum PrimaryWeapon
 {
     MachineGun,
@@ -42,7 +43,7 @@ public struct WeaponState
         this.secondaryAmmunition = secondaryAmmunition;
     }
 }
-
+ */
 public class PlayerController : MonoBehaviour, Damageable
 {
     public Camera playerCamera;
@@ -61,13 +62,7 @@ public class PlayerController : MonoBehaviour, Damageable
     public float maxHealth = 100;
     public float maxThrustPower = 2000f;
     public float maxSpeed = 10f;
-    public float fireRate = 0.2f;
-    public float secondaryFireRate = 1f;
-    public float laserDamagePerSecond = 20f;
     public LayerMask laserLayerMask = ~(1 << 1);
-    public float deathrayDamage = 100f;
-    public float deathrayLoadingTimeMin = 0.5f;
-    public float deathrayLoadingTimeMax = 10f;
     public float deathrayDistance = 150f;
     public float deathrayWidth = 1f;
 
@@ -97,9 +92,6 @@ public class PlayerController : MonoBehaviour, Damageable
     private static Vector3 cameraOffset = new Vector3(0, 0, -10);
     private Rigidbody2D rb;
     private float originalDrag;
-    private float nextFire = 0.0f;
-    private float nextSecondaryFire = 0.0f;
-    private float secondaryLoaded = 0.0f;
     private float gravityForceMagnitude;
     private bool isInWater = false;
     private string turnAxis;
@@ -108,17 +100,8 @@ public class PlayerController : MonoBehaviour, Damageable
     private string fire2Button;
     private string fire3Button;
     private string fire4Button;
-    private WeaponState _weaponState = new WeaponState(PrimaryWeapon.MachineGun, 0, SecondaryWeapon.None, 0);
-    private WeaponState weaponState
-    {
-        get { return _weaponState; }
-        set
-        {
-            _weaponState = value;
-            hud.UpdateWeapons(value);
-        }
-    }
-
+    private IDevice primaryWeapon = new MachineGunDevice();
+    private IDevice secondaryWeapon;
     private void Awake()
     {
         rb = gameObject.GetComponent<Rigidbody2D>();
@@ -171,7 +154,7 @@ public class PlayerController : MonoBehaviour, Damageable
         }
     }
 
-    private void doInternalDamage(float damage)
+    public void doInternalDamage(float damage)
     {
         float oldHealt = health;
         health -= damage;
@@ -185,133 +168,12 @@ public class PlayerController : MonoBehaviour, Damageable
 
     void Update()
     {
-        bool flamerOn = false;
-        bool laserOn = false;
-        bool deathrayLoadingOn = false;
-        bool shieldOn = false;
-        switch (weaponState.primary)
+        primaryWeapon.Update(fire1Button, this);
+        if (primaryWeapon.Depleted) setPrimaryWeapon(new MachineGunDevice());
+        if (secondaryWeapon != null)
         {
-            case PrimaryWeapon.MachineGun:
-                if (Input.GetButton(fire1Button) && Time.time > nextFire)
-                {
-                    nextFire = Time.time + fireRate;
-                    GameObject clone = Instantiate(projectile, gunPoint.position, gunPoint.rotation) as GameObject;
-                    clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
-                }
-                break;
-            case PrimaryWeapon.Flamer:
-                flamerOn = Input.GetButton(fire1Button) && weaponState.primaryEnergy > 0;
-                break;
-            case PrimaryWeapon.Laser:
-                laserOn = Input.GetButton(fire1Button) && weaponState.primaryEnergy > 0;
-                break;
-        }
-        switch (weaponState.secondary)
-        {
-            case SecondaryWeapon.Missiles:
-                if (Input.GetButton(fire2Button) && Time.time > nextSecondaryFire && weaponState.secondaryAmmunition > 0)
-                {
-                    var oldState = weaponState;
-                    weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy, oldState.secondary, oldState.secondaryAmmunition - 1);
-                    nextSecondaryFire = Time.time + secondaryFireRate;
-                    GameObject clone = Instantiate(missile, gunPoint.position, gunPoint.rotation) as GameObject;
-                    clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
-                }
-                break;
-            case SecondaryWeapon.HomingMissiles:
-                if (Input.GetButton(fire2Button) && Time.time > nextSecondaryFire && weaponState.secondaryAmmunition > 0)
-                {
-                    var oldState = weaponState;
-                    weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy, oldState.secondary, oldState.secondaryAmmunition - 1);
-                    nextSecondaryFire = Time.time + secondaryFireRate;
-                    GameObject clone = Instantiate(homingMissile, gunPoint.position, gunPoint.rotation) as GameObject;
-                    clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
-                }
-                break;
-            case SecondaryWeapon.Bombs:
-                if (Input.GetButton(fire2Button) && Time.time > nextSecondaryFire && weaponState.secondaryAmmunition > 0)
-                {
-                    var oldState = weaponState;
-                    weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy, oldState.secondary, oldState.secondaryAmmunition - 1);
-                    nextSecondaryFire = Time.time + secondaryFireRate;
-                    GameObject clone = Instantiate(bomb, gunPoint.position, gunPoint.rotation) as GameObject;
-                    clone.GetComponent<Rigidbody2D>().velocity = rb.velocity;
-                }
-                break;
-            case SecondaryWeapon.Deathray:
-                if (weaponState.secondaryAmmunition > 0)
-                {
-                    if (Input.GetButtonDown(fire2Button))
-                    {
-                        secondaryLoaded = 0.0f;
-                    }
-                    if (Input.GetButton(fire2Button))
-                    {
-                        secondaryLoaded += Time.deltaTime;
-                        var loaded = Mathf.Clamp01(secondaryLoaded / deathrayLoadingTimeMax);
-                        var emission = deathrayLoading.emission;
-                        emission.rateOverTime = Mathf.Max(10, loaded * 100);
-                        doInternalDamage(loaded * Time.deltaTime);
-                        deathrayLoadingOn = true;
-                    }
-                    if (Input.GetButtonUp(fire2Button))
-                    {
-                        if (secondaryLoaded > deathrayLoadingTimeMin)
-                        {
-                            var oldState = weaponState;
-                            weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy, oldState.secondary, oldState.secondaryAmmunition - 1);
-                            fireDeathray();
-                        }
-                        secondaryLoaded = 0.0f;
-                    }
-                }
-                break;
-        }
-
-        shieldOn = Input.GetButton(fire3Button);
-
-        if (flamerOn || laserOn)
-        {
-            var oldState = weaponState;
-            weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy - Time.deltaTime, oldState.secondary, oldState.secondaryAmmunition);
-            if (weaponState.primaryEnergy <= 0)
-            {
-                setPrimaryWeapon(PrimaryWeapon.MachineGun, 0);
-            }
-        }
-        if (flamerOn != flamer.isEmitting)
-        {
-            if (flamerOn)
-                flamer.Play();
-            else
-                flamer.Stop();
-        }
-        bool laserSparklesOn = false;
-        if (laserOn)
-        {
-            laserSparklesOn = updateLaserBeam();
-        }
-        if (laserOn != laserRay.enabled)
-        {
-            laserRay.enabled = laserOn;
-        }
-        if (laserSparklesOn != laserSparkles.isEmitting)
-        {
-            if (laserSparklesOn)
-                laserSparkles.Play();
-            else
-                laserSparkles.Stop();
-        }
-        if (deathrayLoadingOn != deathrayLoading.isEmitting)
-        {
-            if (deathrayLoadingOn)
-                deathrayLoading.Play();
-            else
-                deathrayLoading.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        }
-        if (shieldOn != shield.activeSelf)
-        {
-            shield.SetActive(shieldOn);
+            secondaryWeapon.Update(fire2Button, this);
+            if (secondaryWeapon.Depleted) setSecondaryWeapon(null);
         }
 
         var smokeEmission = smoke.emission;
@@ -326,7 +188,6 @@ public class PlayerController : MonoBehaviour, Damageable
             else
             {
                 thruster.Stop();
-
                 smokeEmission.rateOverDistanceMultiplier = 0.0f;
             }
         }
@@ -341,61 +202,6 @@ public class PlayerController : MonoBehaviour, Damageable
         }
     }
 
-    private void fireDeathray()
-    {
-        var loaded = Mathf.Clamp01(secondaryLoaded / deathrayLoadingTimeMax);
-        var distance = loaded * deathrayDistance;
-        var damage = loaded * deathrayDamage;
-        var start = gunPoint.position;
-        var direction = transform.up * distance;
-        var center = start + direction * 0.5f;
-        var angle = rb.rotation;
-        Collider2D[] colliders = Physics2D.OverlapCapsuleAll(center, new Vector2(deathrayWidth, distance + deathrayWidth), CapsuleDirection2D.Vertical, angle);
-        Damageable damageable;
-        TerrainPiece terrainPiece;
-        foreach (Collider2D coll in colliders)
-        {
-            if (coll.gameObject == gameObject)
-            {
-                continue;
-            }
-            damageable = coll.GetComponent<Damageable>();
-            if (damageable != null)
-            {
-                damageable.doDamage(damage);
-            }
-            terrainPiece = coll.GetComponent<TerrainPiece>();
-            if (terrainPiece != null)
-            {
-                terrainPiece.destroyTerrain(start, direction, deathrayWidth);
-            }
-        }
-        var clone = Instantiate(deathrayBeam, center, gunPoint.rotation);
-        clone.radius = distance * 0.5f;
-    }
-
-    private bool updateLaserBeam()
-    {
-        var laserSparklesOn = false;
-        Vector2 position = laserRay.transform.position;
-        RaycastHit2D hit = Physics2D.Raycast(position, transform.up, 100, laserLayerMask);
-        if (hit.collider != null)
-        {
-            laserRay.SetPosition(1, laserRay.transform.InverseTransformPoint(hit.point));
-            laserSparkles.transform.position = hit.point;
-            laserSparklesOn = true;
-            Damageable damageable = hit.collider.GetComponent<Damageable>();
-            if (damageable != null)
-            {
-                damageable.doDamage(laserDamagePerSecond * Time.smoothDeltaTime);
-            }
-        }
-        else
-        {
-            laserRay.SetPosition(1, Vector3.up * 100);
-        }
-        return laserSparklesOn;
-    }
     private Vector2 previousPosition;
     void FixedUpdate()
     {
@@ -444,8 +250,9 @@ public class PlayerController : MonoBehaviour, Damageable
     public void respawn(Vector3 position)
     {
         health = maxHealth;
-        setPrimaryWeapon(PrimaryWeapon.MachineGun, 0);
-        setSecondaryWeapon(SecondaryWeapon.None, 0);
+        setPrimaryWeapon(new MachineGunDevice());
+        setSecondaryWeapon(null);
+        smoke.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         transform.position = position;
         isInWater = false;
         rb.drag = originalDrag;
@@ -460,15 +267,356 @@ public class PlayerController : MonoBehaviour, Damageable
         health = Mathf.Min(health + amount, maxHealth);
     }
 
-    public void setPrimaryWeapon(PrimaryWeapon primary, float energy)
+    public void setPrimaryWeapon(IDevice primary)
     {
-        var oldState = weaponState;
-        weaponState = new WeaponState(primary, energy, oldState.secondary, oldState.secondaryAmmunition);
+        var changed = this.primaryWeapon.GetType() == primary.GetType();
+        this.primaryWeapon = primary;
+        updateWeaponHud();
+        resetDeviceEffects();
     }
 
-    public void setSecondaryWeapon(SecondaryWeapon secondary, int ammunition)
+    public void setSecondaryWeapon(IDevice secondary)
     {
-        var oldState = weaponState;
-        weaponState = new WeaponState(oldState.primary, oldState.primaryEnergy, secondary, ammunition);
+        this.secondaryWeapon = secondary;
+        updateWeaponHud();
+        resetDeviceEffects();
+    }
+
+    private void resetDeviceEffects()
+    {
+        var devices = new IDevice[] { primaryWeapon, secondaryWeapon };
+        var flamerOff = !devices.Any(d => d is FlamerDevice);
+        var laserOff = !devices.Any(d => d is LaserDevice);
+        var deathrayOff = !devices.Any(d => d is DeathrayDevice);
+        var shieldOff = !devices.Any(d => d is ShieldDevice);
+        if (flamerOff) flamer.Stop();
+        if (laserOff)
+        {
+            laserSparkles.Stop();
+            laserRay.enabled = false;
+        }
+        if (deathrayOff) deathrayLoading.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        if (shieldOff) shield.SetActive(false);
+    }
+
+    public void updateWeaponHud()
+    {
+        hud.UpdateWeapons(primaryWeapon, secondaryWeapon);
+    }
+}
+
+public interface IDevice
+{
+    void Update(string button, PlayerController player);
+    string HudRow();
+    bool Depleted { get; }
+}
+
+public class MachineGunDevice : IDevice
+{
+    private float fireRate = 0.05f;
+    private float nextFire = 0.0f;
+
+    public void Update(string button, PlayerController player)
+    {
+        if (Input.GetButton(button) && Time.time > nextFire)
+        {
+            nextFire = Time.time + fireRate;
+            GameObject clone = GameObject.Instantiate(player.projectile, player.gunPoint.position, player.gunPoint.rotation);
+            clone.GetComponent<Rigidbody2D>().velocity = player.GetComponent<Rigidbody2D>().velocity;
+        }
+    }
+    public string HudRow()
+    {
+        return "Machine gun";
+    }
+
+    public bool Depleted
+    {
+        get { return false; }
+    }
+}
+
+public class LaserDevice : IDevice
+{
+    private float energy = 30;
+    private float laserDamagePerSecond = 20f;
+    public void Update(string button, PlayerController player)
+    {
+        bool laserOn = Input.GetButton(button) && energy > 0;
+        if (laserOn)
+        {
+            energy -= Time.deltaTime;
+            player.updateWeaponHud();
+        }
+        bool laserSparklesOn = false;
+        if (laserOn)
+        {
+            laserSparklesOn = updateLaserBeam(player);
+        }
+        if (laserOn != player.laserRay.enabled)
+        {
+            player.laserRay.enabled = laserOn;
+        }
+        if (laserSparklesOn != player.laserSparkles.isEmitting)
+        {
+            if (laserSparklesOn)
+                player.laserSparkles.Play();
+            else
+                player.laserSparkles.Stop();
+        }
+    }
+    private bool updateLaserBeam(PlayerController player)
+    {
+        var laserSparklesOn = false;
+        Vector2 position = player.laserRay.transform.position;
+        RaycastHit2D hit = Physics2D.Raycast(position, player.transform.up, 100, player.laserLayerMask);
+        var laserRay = player.laserRay;
+        if (hit.collider != null)
+        {
+            laserRay.SetPosition(1, laserRay.transform.InverseTransformPoint(hit.point));
+            player.laserSparkles.transform.position = hit.point;
+            laserSparklesOn = true;
+            Damageable damageable = hit.collider.GetComponent<Damageable>();
+            if (damageable != null)
+            {
+                damageable.doDamage(laserDamagePerSecond * Time.smoothDeltaTime);
+            }
+        }
+        else
+        {
+            laserRay.SetPosition(1, Vector3.up * 100);
+        }
+        return laserSparklesOn;
+    }
+    public string HudRow()
+    {
+        return "Laser: " + Hud.energyToString(energy);
+    }
+
+    public bool Depleted
+    {
+        get { return energy <= 0; }
+    }
+}
+
+public class FlamerDevice : IDevice
+{
+    private float energy = 10;
+    public void Update(string button, PlayerController player)
+    {
+        bool flamerOn = Input.GetButton(button) && energy > 0;
+        if (flamerOn)
+        {
+            energy -= Time.deltaTime;
+            player.updateWeaponHud();
+        }
+        if (flamerOn != player.flamer.isEmitting)
+        {
+            if (flamerOn)
+                player.flamer.Play();
+            else
+                player.flamer.Stop();
+        }
+    }
+    public string HudRow()
+    {
+        return "Flamer: " + Hud.energyToString(energy);
+    }
+    public bool Depleted
+    {
+        get { return energy <= 0; }
+    }
+}
+
+public class MissileDevice : IDevice
+{
+    private float fireRate = 1f;
+    private float nextFire = 0.0f;
+    private int missiles = 10;
+    public void Update(string button, PlayerController player)
+    {
+        if (Input.GetButton(button) && Time.time > nextFire && missiles > 0)
+        {
+            missiles--;
+            nextFire = Time.time + fireRate;
+            GameObject clone = GameObject.Instantiate(player.missile, player.gunPoint.position, player.gunPoint.rotation);
+            clone.GetComponent<Rigidbody2D>().velocity = player.GetComponent<Rigidbody2D>().velocity;
+            player.updateWeaponHud();
+        }
+    }
+    public string HudRow()
+    {
+        return "Missiles: " + missiles;
+    }
+    public bool Depleted
+    {
+        get { return missiles <= 0; }
+    }
+}
+
+public class HomingMissileDevice : IDevice
+{
+    private float fireRate = 1f;
+    private float nextFire = 0.0f;
+    private int missiles = 5;
+    public void Update(string button, PlayerController player)
+    {
+        if (Input.GetButton(button) && Time.time > nextFire && missiles > 0)
+        {
+            missiles--;
+            nextFire = Time.time + fireRate;
+            GameObject clone = GameObject.Instantiate(player.homingMissile, player.gunPoint.position, player.gunPoint.rotation);
+            clone.GetComponent<Rigidbody2D>().velocity = player.GetComponent<Rigidbody2D>().velocity;
+            player.updateWeaponHud();
+        }
+
+    }
+    public string HudRow()
+    {
+        return "Homing missiles: " + missiles;
+    }
+    public bool Depleted
+    {
+        get { return missiles <= 0; }
+    }
+}
+
+public class BombDevice : IDevice
+{
+    private float fireRate = 1f;
+    private float nextFire = 0.0f;
+    private int bombs = 5;
+    public void Update(string button, PlayerController player)
+    {
+        if (Input.GetButton(button) && Time.time > nextFire && bombs > 0)
+        {
+            bombs--;
+            nextFire = Time.time + fireRate;
+            GameObject clone = GameObject.Instantiate(player.bomb, player.gunPoint.position, player.gunPoint.rotation);
+            clone.GetComponent<Rigidbody2D>().velocity = player.GetComponent<Rigidbody2D>().velocity;
+            player.updateWeaponHud();
+        }
+    }
+    public string HudRow()
+    {
+        return "Bombs: " + bombs;
+    }
+    public bool Depleted
+    {
+        get { return bombs <= 0; }
+    }
+}
+
+public class DeathrayDevice : IDevice
+{
+    private int rays = 5;
+    private float deathrayDamage = 100f;
+    private float deathrayLoadingTimeMin = 0.5f;
+    private float deathrayLoadingTimeMax = 10f;
+    private float loaded = 0.0f;
+    public void Update(string button, PlayerController player)
+    {
+        bool deathrayLoadingOn = false;
+        if (rays > 0)
+        {
+            if (Input.GetButtonDown(button))
+            {
+                loaded = 0.0f;
+            }
+            if (Input.GetButton(button))
+            {
+                loaded += Time.deltaTime;
+                var loadedNormalized = Mathf.Clamp01(loaded / deathrayLoadingTimeMax);
+                var emission = player.deathrayLoading.emission;
+                emission.rateOverTime = Mathf.Max(10, loadedNormalized * 100);
+                player.doInternalDamage(loadedNormalized * Time.deltaTime);
+                deathrayLoadingOn = true;
+            }
+            if (Input.GetButtonUp(button))
+            {
+                if (loaded > deathrayLoadingTimeMin)
+                {
+                    rays--;
+                    fireDeathray(player);
+                    player.updateWeaponHud();
+                }
+                loaded = 0.0f;
+            }
+        }
+        if (deathrayLoadingOn != player.deathrayLoading.isEmitting)
+        {
+            if (deathrayLoadingOn)
+                player.deathrayLoading.Play();
+            else
+                player.deathrayLoading.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+    }
+
+    private void fireDeathray(PlayerController player)
+    {
+        var loadedNormalized = Mathf.Clamp01(loaded / deathrayLoadingTimeMax);
+        var distance = loadedNormalized * player.deathrayDistance;
+        var damage = loadedNormalized * deathrayDamage;
+        var start = player.gunPoint.position;
+        var direction = player.transform.up * distance;
+        var center = start + direction * 0.5f;
+        var angle = player.GetComponent<Rigidbody2D>().rotation;
+        Collider2D[] colliders = Physics2D.OverlapCapsuleAll(center, new Vector2(player.deathrayWidth, distance + player.deathrayWidth), CapsuleDirection2D.Vertical, angle);
+        Damageable damageable;
+        TerrainPiece terrainPiece;
+        foreach (Collider2D coll in colliders)
+        {
+            if (coll.gameObject == player.gameObject)
+            {
+                continue;
+            }
+            damageable = coll.GetComponent<Damageable>();
+            if (damageable != null)
+            {
+                damageable.doDamage(damage);
+            }
+            terrainPiece = coll.GetComponent<TerrainPiece>();
+            if (terrainPiece != null)
+            {
+                terrainPiece.destroyTerrain(start, direction, player.deathrayWidth);
+            }
+        }
+        var clone = GameObject.Instantiate(player.deathrayBeam, center, player.gunPoint.rotation);
+        clone.radius = distance * 0.5f;
+    }
+    public string HudRow()
+    {
+        return "Deathray: " + rays;
+    }
+    public bool Depleted
+    {
+        get { return rays <= 0; }
+    }
+}
+
+public class ShieldDevice : IDevice
+{
+    private float energy = 10;
+    public void Update(string button, PlayerController player)
+    {
+        bool shieldOn = Input.GetButton(button) && energy > 0;
+        if (shieldOn)
+        {
+            energy -= Time.deltaTime;
+            player.updateWeaponHud();
+        }
+        if (shieldOn != player.shield.activeSelf)
+        {
+            player.shield.SetActive(shieldOn);
+        }
+    }
+    public string HudRow()
+    {
+        return "Shield: " + Hud.energyToString(energy);
+    }
+    public bool Depleted
+    {
+        get { return energy <= 0; }
     }
 }
