@@ -64,7 +64,7 @@ public class HomingMissileMover : Explosive
     {
         var radarCenter = transform.position + transform.up * homingRadius;
         Collider2D[] colliders = Physics2D.OverlapCircleAll(radarCenter, homingRadius, homingLayerMask);
-        target = colliders.Where(c => c.tag == "Player").Select(c => c.transform).Aggregate(target, (memo, t) =>
+        target = colliders.Select(c => c.transform).Aggregate(target, (memo, t) =>
         {
             if (memo == null)
             {

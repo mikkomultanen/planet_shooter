@@ -11,39 +11,7 @@ public enum Controls
     Joystick3,
     Joystick4
 }
-/*
-public enum PrimaryWeapon
-{
-    MachineGun,
-    Flamer,
-    Laser
-}
 
-public enum SecondaryWeapon
-{
-    None,
-    Missiles,
-    HomingMissiles,
-    Bombs,
-    Deathray
-}
-
-public struct WeaponState
-{
-    public PrimaryWeapon primary;
-    public float primaryEnergy;
-    public SecondaryWeapon secondary;
-    public int secondaryAmmunition;
-
-    public WeaponState(PrimaryWeapon primary, float primaryEnergy, SecondaryWeapon secondary, int secondaryAmmunition)
-    {
-        this.primary = primary;
-        this.primaryEnergy = primaryEnergy;
-        this.secondary = secondary;
-        this.secondaryAmmunition = secondaryAmmunition;
-    }
-}
- */
 public class PlayerController : MonoBehaviour, Damageable
 {
     public Camera playerCamera;
@@ -59,6 +27,7 @@ public class PlayerController : MonoBehaviour, Damageable
     public GameObject bomb;
     public DeathrayBeamMover deathrayBeam;
     public GameObject shield;
+    public DroneController droneTemplate;
     public float maxHealth = 100;
     public float maxThrustPower = 2000f;
     public float maxSpeed = 10f;
@@ -285,6 +254,12 @@ public class PlayerController : MonoBehaviour, Damageable
         resetDeviceEffects();
     }
 
+    public void spawnDrone(Vector2 position)
+    {
+        var clone = Instantiate(droneTemplate, position, transform.rotation);
+        clone.player = this;
+        clone.gameObject.SetActive(true);
+    }
     private void resetDeviceEffects()
     {
         var devices = new IDevice[] { primaryWeapon, secondaryWeapon };

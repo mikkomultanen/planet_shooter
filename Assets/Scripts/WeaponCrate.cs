@@ -13,7 +13,8 @@ public class WeaponCrate : Explosive
         Bombs,
         Deathray,
         Shield,
-        AfterBurner
+        AfterBurner,
+        Drone
     }
     public Weapon weapon;
     private Rigidbody2D rb;
@@ -77,6 +78,9 @@ public class WeaponCrate : Explosive
                         break;
                     case Weapon.Shield:
                         player.setSecondaryWeapon(new ShieldDevice());
+                        break;
+                    case Weapon.Drone:
+                        player.spawnDrone(transform.position);
                         break;
                 }
                 Destroy(gameObject);
