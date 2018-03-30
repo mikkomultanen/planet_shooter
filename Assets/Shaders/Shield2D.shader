@@ -55,6 +55,9 @@
 				o.vertex = UnityObjectToClipPos(v.vertex);
 				float3 zeroPos = UnityObjectToClipPos(float4(0.0,0.0,0.0,1.0));
 				o.distort = normalize(o.vertex.xyz - zeroPos.xyz);
+			#if UNITY_UV_STARTS_AT_TOP
+				o.distort.y = -o.distort.y;
+			#endif				
 				o.normal = mul(fixed4(v.normal, 0.0), unity_WorldToObject);
 				o.texcoord = v.texcoord + half2(1, 1) * _Speed * _Time;
 				o.grabPos = ComputeGrabScreenPos(o.vertex);
@@ -69,10 +72,9 @@
 				i.grabPos.xy += i.distort * angPow * _Distort;
 				half4 bgColor = tex2Dproj(_BackgroundTexture, UNITY_PROJ_COORD(i.grabPos));
 				half4 rimCol = _RimColor * angPow * _RimIntensity;
+				half4 texColor = rimCol * tex2D(_MainTex, i.texcoord);
 
-				half4 texColor = tex2D(_MainTex, i.texcoord);
-
-				return bgColor + rimCol * texColor;
+				return half4(lerp(bgColor.rgb, texColor.rgb, texColor.a), 1);
 			}
 			ENDCG
 		}
