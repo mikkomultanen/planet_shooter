@@ -25497,7 +25497,7 @@ ParticleSystem:
   moveWithTransform: 1
   moveWithCustomTransform: {fileID: 0}
   scalingMode: 1
-  randomSeed: 484085199
+  randomSeed: 183631404
   InitialModule:
     serializedVersion: 3
     enabled: 1
@@ -29125,7 +29125,7 @@ ParticleSystem:
   moveWithTransform: 1
   moveWithCustomTransform: {fileID: 0}
   scalingMode: 1
-  randomSeed: 98913772
+  randomSeed: 1477538667
   InitialModule:
     serializedVersion: 3
     enabled: 1
@@ -52173,6 +52173,21 @@ Prefab:
       propertyPath: m_CullingMask.m_Bits
       value: 4294959103
       objectReference: {fileID: 0}
+    - target: {fileID: 20096365912890548, guid: debb52d6e8e11413091158a96dcca3c4,
+        type: 2}
+      propertyPath: m_RenderingPath
+      value: -1
+      objectReference: {fileID: 0}
+    - target: {fileID: 20096365912890548, guid: debb52d6e8e11413091158a96dcca3c4,
+        type: 2}
+      propertyPath: m_HDR
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 20096365912890548, guid: debb52d6e8e11413091158a96dcca3c4,
+        type: 2}
+      propertyPath: m_AllowMSAA
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: debb52d6e8e11413091158a96dcca3c4, type: 2}
   m_IsPrefabParent: 0
@@ -52367,12 +52382,12 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 1
-  m_Sprite: {fileID: 21300000, guid: 749c175af3d3748fa822d79c3f13c09e, type: 3}
-  m_Color: {r: 0.547, g: 0.547, b: 0.547, a: 1}
+  m_Sprite: {fileID: 21300000, guid: d303b1927900a46b688d8840b0da3410, type: 3}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 0.67, y: 0.67}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
