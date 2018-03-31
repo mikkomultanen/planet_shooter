@@ -36954,66 +36954,131 @@ MonoBehaviour:
   background: {fileID: 1149015804}
   terrainPieceTemplate: {fileID: 435229432}
   terrainParticleTemplate: {fileID: 1117460058}
+  terrainMaterials:
+  - background: {fileID: 2100000, guid: 18a29a3b868b540cbb3143576236358d, type: 2}
+    pieceBackground: {fileID: 2100000, guid: dcf65b654a01c453193f96eb7198dd03, type: 2}
+    piece: {fileID: 2100000, guid: 038890768e1ef4d8799cd649d7146d9f, type: 2}
+    tintColorU:
+      serializedVersion: 2
+      key0: {r: 0.34509805, g: 0.3764706, b: 0.5411765, a: 1}
+      key1: {r: 0.3943711, g: 0.616, b: 0.49866706, a: 1}
+      key2: {r: 0.34581572, g: 0.37763923, b: 0.541, a: 0}
+      key3: {r: 0.34581572, g: 0.37763923, b: 0.541, a: 0}
+      key4: {r: 0.34581572, g: 0.37763923, b: 0.541, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 32768
+      ctime2: 65535
+      ctime3: 65535
+      ctime4: 65535
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_NumColorKeys: 3
+      m_NumAlphaKeys: 2
+    tintColorV:
+      serializedVersion: 2
+      key0: {r: 0, g: 0.82352924, b: 1, a: 1}
+      key1: {r: 1, g: 0.54509807, b: 0, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+  - background: {fileID: 2100000, guid: 5802937990d43491cb77308c35e73bac, type: 2}
+    pieceBackground: {fileID: 2100000, guid: cbcef2809370448148c977f6665e91c8, type: 2}
+    piece: {fileID: 2100000, guid: bc9210ef58b2946d0bd62aa1a21c154f, type: 2}
+    tintColorU:
+      serializedVersion: 2
+      key0: {r: 0.5411765, g: 0.37803924, b: 0.34509805, a: 1}
+      key1: {r: 0.3943711, g: 0.616, b: 0.49866706, a: 1}
+      key2: {r: 0.5411765, g: 0.3764706, b: 0.34509805, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 32768
+      ctime2: 65535
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_NumColorKeys: 3
+      m_NumAlphaKeys: 2
+    tintColorV:
+      serializedVersion: 2
+      key0: {r: 0, g: 0.82352924, b: 1, a: 1}
+      key1: {r: 1, g: 0.54509807, b: 0, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
   outerRadius: 125
   innerRadius: 35
-  tintColorU:
-    serializedVersion: 2
-    key0: {r: 0.93333334, g: 0.61960787, b: 0.16470589, a: 1}
-    key1: {r: 0.61960787, g: 0.16470587, b: 0.6177884, a: 1}
-    key2: {r: 0.16470589, g: 0.7777085, b: 0.7666745, a: 0}
-    key3: {r: 0.93333334, g: 0.61960787, b: 0.16470589, a: 0}
-    key4: {r: 0.93333334, g: 0.61960787, b: 0.16470589, a: 0}
-    key5: {r: 0.93333334, g: 0.61960787, b: 0.16470589, a: 0}
-    key6: {r: 0.93333334, g: 0.61960787, b: 0.16470589, a: 0}
-    key7: {r: 0.93333334, g: 0.61960787, b: 0.16470589, a: 0}
-    ctime0: 0
-    ctime1: 21627
-    ctime2: 43908
-    ctime3: 65535
-    ctime4: 65535
-    ctime5: 65535
-    ctime6: 65535
-    ctime7: 65535
-    atime0: 0
-    atime1: 65535
-    atime2: 0
-    atime3: 0
-    atime4: 0
-    atime5: 0
-    atime6: 0
-    atime7: 0
-    m_Mode: 0
-    m_NumColorKeys: 4
-    m_NumAlphaKeys: 2
-  tintColorV:
-    serializedVersion: 2
-    key0: {r: 0.5827586, g: 0.3602941, b: 0.72794116, a: 1}
-    key1: {r: 0.93333334, g: 0.61960787, b: 0.16470589, a: 1}
-    key2: {r: 0.93333334, g: 0.2352941, b: 0.073529415, a: 0}
-    key3: {r: 0, g: 0, b: 0, a: 0}
-    key4: {r: 0, g: 0, b: 0, a: 0}
-    key5: {r: 0, g: 0, b: 0, a: 0}
-    key6: {r: 0, g: 0, b: 0, a: 0}
-    key7: {r: 0, g: 0, b: 0, a: 0}
-    ctime0: 0
-    ctime1: 32768
-    ctime2: 65535
-    ctime3: 0
-    ctime4: 0
-    ctime5: 0
-    ctime6: 0
-    ctime7: 0
-    atime0: 0
-    atime1: 65535
-    atime2: 0
-    atime3: 0
-    atime4: 0
-    atime5: 0
-    atime6: 0
-    atime7: 0
-    m_Mode: 0
-    m_NumColorKeys: 3
-    m_NumAlphaKeys: 2
   fragments: []
   caves:
   - r: 80

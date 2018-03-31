@@ -104,16 +104,26 @@ public class Cave : System.Object
     }
 }
 
+[System.Serializable]
+public struct TerrainMaterials {
+    public Material background;
+    public Material pieceBackground;
+    public Material piece;
+    public Gradient tintColorU;
+    public Gradient tintColorV;
+}
+
 public class TerrainMesh : MonoBehaviour
 {
     public MeshFilter caveBackground;
     public MeshFilter background;
     public TerrainPiece terrainPieceTemplate;
     public ParticleSystem terrainParticleTemplate;
+    public List<TerrainMaterials> terrainMaterials;
     public float outerRadius = 1;
     public float innerRadius = 0.1f;
-    public Gradient tintColorU;
-    public Gradient tintColorV;
+    private Gradient tintColorU;
+    private Gradient tintColorV;
     private float textureScaleU = 6;
     private float textureScaleV = 1;
     private float threshold = 1f;
@@ -199,7 +209,13 @@ public class TerrainMesh : MonoBehaviour
     {
         if (material == null)
         {
-            material = terrainPieceTemplate.GetComponent<MeshRenderer>().sharedMaterial;
+            var terrainMaterial = terrainMaterials[Random.Range(0, terrainMaterials.Count)];
+            terrainPieceTemplate.GetComponent<MeshRenderer>().sharedMaterial = terrainMaterial.piece;
+            caveBackground.GetComponent<MeshRenderer>().sharedMaterial = terrainMaterial.background;
+            background.GetComponent<MeshRenderer>().sharedMaterial = terrainMaterial.pieceBackground;
+            tintColorU = terrainMaterial.tintColorU;
+            tintColorV = terrainMaterial.tintColorV;
+            material = terrainMaterial.piece;
             mainTex = material.GetTexture("_MainTex") as Texture2D;
             mainTexOffset = material.GetTextureOffset("_MainTex");
             mainTexScale = material.GetTextureScale("_MainTex");
