@@ -56,7 +56,7 @@ Shader "PlanetShooter/Water"
                  {
                     float4 pos : SV_POSITION;
                     #if _TEX_ON
-                    half2 uv : TEXCOORD0;
+                    float2 uv : TEXCOORD0;
                     #endif
                     half2 uvn : TEXCOORD1;
                     #if _VCOLOR_ON
@@ -81,7 +81,7 @@ Shader "PlanetShooter/Water"
                     n = n * float3(0.5,0.5,0.5) + float3(0.5,0.5,0.5);
                     o.uvn = n.xy;
                     #if _TEX_ON
-                    o.uv = TRANSFORM_TEX ( v.texcoord, _MainTex );
+                    o.uv = TRANSFORM_TEX ( v.texcoord, _MainTex ) + half2(-1, -1) * _Time.x;
                     #endif
                     #if _VCOLOR_ON
                     o.color = v.color;
