@@ -52722,11 +52722,11 @@ Prefab:
     - target: {fileID: 2300000, guid: c6d2f8ccfeb0e497fafd64c601bc1d90, type: 3}
       propertyPath: m_Materials.Array.data[1]
       value: 
-      objectReference: {fileID: 2100000, guid: 22650f289a2d4473fb1f7e1706102994, type: 2}
+      objectReference: {fileID: 2100000, guid: 2c9ed250ce08b4efba40c790e57ea6f1, type: 2}
     - target: {fileID: 2300000, guid: c6d2f8ccfeb0e497fafd64c601bc1d90, type: 3}
       propertyPath: m_Materials.Array.data[0]
       value: 
-      objectReference: {fileID: 2100000, guid: 2c9ed250ce08b4efba40c790e57ea6f1, type: 2}
+      objectReference: {fileID: 2100000, guid: 22650f289a2d4473fb1f7e1706102994, type: 2}
     - target: {fileID: 2300000, guid: c6d2f8ccfeb0e497fafd64c601bc1d90, type: 3}
       propertyPath: m_Materials.Array.data[2]
       value: 

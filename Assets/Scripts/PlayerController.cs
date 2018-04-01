@@ -57,7 +57,7 @@ public class PlayerController : MonoBehaviour, Damageable
         }
         set
         {
-            rocket.materials[1].color = value;
+            rocket.material.color = value;
             _color = value;
         }
     }
