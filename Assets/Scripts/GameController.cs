@@ -61,7 +61,7 @@ public class GameController : MonoBehaviour
             playerController.gameController = this;
             var flamerTrigger = playerController.flamer.trigger;
             flamerTrigger.SetCollider(0, water);
-            ship.GetComponent<SpriteRenderer>().color = colors[i];
+            playerController.color = colors[i];
             playerControllers.Add(playerController);
             
             var repairBase = Instantiate(repairBaseTemplate, startPositions[i], Quaternion.identity) as RepairBase;

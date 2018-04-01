@@ -60,11 +60,10 @@ Shader "TSF/Base1"
                 {
                     v2f o;
                     o.pos = UnityObjectToClipPos ( v.vertex );
-                    float3 n = mul((float3x3)UNITY_MATRIX_IT_MV, normalize(v.normal));
-					normalize(n);
+                    float3 n = normalize(mul(UNITY_MATRIX_IT_MV, v.normal.xyzz).xyz);
                     n = n * float3(0.5,0.5,0.5) + float3(0.5,0.5,0.5);
                     o.uvn = n.xy;
-                     #if _TEX_ON
+                    #if _TEX_ON
                     o.uv = TRANSFORM_TEX ( v.texcoord, _MainTex );
                     #endif
                     return o;

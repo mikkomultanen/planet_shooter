@@ -48,7 +48,7 @@ public class Hud : MonoBehaviour
             indicator.transform.localPosition = Vector3.zero;
             indicator.rectTransform.anchoredPosition = Vector2.zero;
             indicator.gameObject.SetActive(true);
-            indicator.color = player.GetComponent<SpriteRenderer>().color;
+            indicator.color = player.color;
             return indicator;
         }).ToList();
     }

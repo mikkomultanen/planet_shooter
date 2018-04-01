@@ -46,6 +46,20 @@ public class PlayerController : MonoBehaviour, Damageable
     public ParticleSystem laserSparkles;
     public ParticleSystem deathrayLoading;
 
+    private Color _color;
+
+    public Color color
+    {
+        get
+        {
+            return _color;
+        }
+        set
+        {
+            _color = value;
+        }
+    }
+
     private float _health;
 
     private float health
