@@ -17,10 +17,26 @@ public class DroneController : MonoBehaviour, Damageable
     public LayerMask targetLayerMask = 0;
 	public float gunPointRadius = 1f;
 
+	public MeshRenderer body;
     public ParticleSystem explosion;
     public ParticleSystem thruster;
     public LineRenderer laserRay;
     public ParticleSystem laserSparkles;
+
+    private Color _color;
+
+    public Color color
+    {
+        get
+        {
+            return _color;
+        }
+        set
+        {
+            body.material.color = value;
+            _color = value;
+        }
+    }
 
     private Rigidbody2D rb;
     private Rigidbody2D playerRb;

@@ -20,6 +20,7 @@ public class PlayerController : MonoBehaviour, Damageable
     public float cameraMaxDistance = 105f;
     public GameController gameController;
     public Controls controls;
+    public MeshRenderer rocket;
     public GameObject projectile;
     public Transform gunPoint;
     public GameObject missile;
@@ -56,6 +57,7 @@ public class PlayerController : MonoBehaviour, Damageable
         }
         set
         {
+            rocket.materials[1].color = value;
             _color = value;
         }
     }
@@ -272,6 +274,7 @@ public class PlayerController : MonoBehaviour, Damageable
     {
         var clone = Instantiate(droneTemplate, position, transform.rotation);
         clone.player = this;
+        clone.color = color;
         clone.gameObject.SetActive(true);
     }
     private void resetDeviceEffects()
