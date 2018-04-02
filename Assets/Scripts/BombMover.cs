@@ -8,7 +8,6 @@ public class BombMover : Explosive
 
     private Rigidbody2D rb;
 
-    // Use this for initialization
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -27,5 +26,10 @@ public class BombMover : Explosive
         {
             explode();
         }
+    }
+
+    void LateUpdate()
+    {
+        transform.up = rb.velocity.normalized;
     }
 }

@@ -5,34 +5,30 @@ using UnityEngine;
 public class Mover : MonoBehaviour
 {
 
-	public float speed;
-	public float damage = 1f;
+    public float speed;
+    public float damage = 1f;
 
-	private Rigidbody2D rb;
+    private Rigidbody2D rb;
 
-	// Use this for initialization
-	void Start ()
-	{
-		rb = GetComponent<Rigidbody2D> ();
-		Vector2 initialVelocity = transform.up * speed;
-		rb.velocity += initialVelocity;
-	}
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+        Vector2 initialVelocity = transform.up * speed;
+        rb.velocity += initialVelocity;
+    }
 
-	void OnTriggerEnter2D(Collider2D other) {
-		Damageable damageable = other.GetComponent<Damageable> ();
-		if (damageable != null) {
-			damageable.doDamage (damage);
-		}
-		Destroy (gameObject);
-	}
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        Damageable damageable = other.GetComponent<Damageable>();
+        if (damageable != null)
+        {
+            damageable.doDamage(damage);
+        }
+        Destroy(gameObject);
+    }
 
-	// LateUpdate is called after Update each frame
-	void LateUpdate ()
-	{
-		if (rb.position.magnitude > 300f) {
-			Destroy (gameObject);
-		} else {
-			transform.up = rb.velocity.normalized;
-		}
-	}
+    void LateUpdate()
+    {
+        transform.up = rb.velocity.normalized;
+    }
 }
