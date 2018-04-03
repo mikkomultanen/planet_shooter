@@ -6,6 +6,7 @@ public class Explosive : MonoBehaviour, Damageable
 {
     public float explosionDamage = 100f;
     public ParticleSystem explosion;
+    public float health = 0.01f;
 
     private bool alive = true;
     protected void explode()
@@ -38,7 +39,8 @@ public class Explosive : MonoBehaviour, Damageable
                 terrainPiece.destroyTerrain(transform.position, explosionRadius * 0.6f);
             }
             water = coll.GetComponent<Water>();
-            if (water != null) {
+            if (water != null)
+            {
                 water.explosionSplash(transform.position, explosionRadius);
             }
         }
@@ -51,6 +53,7 @@ public class Explosive : MonoBehaviour, Damageable
 
     public void doDamage(float damage)
     {
-        explode();
+        health -= damage;
+        if (health < 0f) explode();
     }
 }

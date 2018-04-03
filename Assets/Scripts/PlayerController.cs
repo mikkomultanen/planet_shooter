@@ -46,6 +46,7 @@ public class PlayerController : MonoBehaviour, Damageable
     public LineRenderer laserRay;
     public ParticleSystem laserSparkles;
     public ParticleSystem deathrayLoading;
+    public GameObject spike;
 
     private Color _color;
 
@@ -128,9 +129,22 @@ public class PlayerController : MonoBehaviour, Damageable
 
     void OnCollisionEnter2D(Collision2D collision)
     {
-        if (collision.otherCollider.gameObject == gameObject)
+        if (collision.otherCollider.gameObject != shield.gameObject)
         {
-            doInternalDamage(collision.relativeVelocity.sqrMagnitude / 100);
+            var damage = collision.relativeVelocity.sqrMagnitude / 100;
+            if (collision.otherCollider.gameObject == gameObject || !spike.activeSelf)
+            {
+                doInternalDamage(damage);
+            }
+            else
+            {
+                // Spike visible and collided with the bumper
+                Damageable damageable = collision.collider.GetComponent<Damageable>();
+                if (damageable != null)
+                {
+                    damageable.doDamage(damage);
+                }
+            }
         }
     }
 
@@ -286,7 +300,11 @@ public class PlayerController : MonoBehaviour, Damageable
         var deathrayOff = !devices.Any(d => d is DeathrayDevice);
         var shieldOff = !devices.Any(d => d is ShieldDevice);
         if (flamerOff) flamer.Stop();
-        if (afterBurnerOff) afterBurner.Stop();
+        if (afterBurnerOff)
+        {
+            afterBurner.Stop();
+            spike.SetActive(false);
+        }
         if (laserOff)
         {
             laserSparkles.Stop();
@@ -443,6 +461,10 @@ public class AfterBurnerDevice : IDevice
                 player.afterBurner.Play();
             else
                 player.afterBurner.Stop();
+        }
+        if (!player.spike.activeSelf)
+        {
+            player.spike.SetActive(true);
         }
     }
     public string HudRow()
