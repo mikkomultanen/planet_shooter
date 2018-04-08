@@ -3,11 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class DroneController : MonoBehaviour, Damageable
+public class DroneController : Explosive
 {
 
     public PlayerController player;
-    public float health = 20f;
     public float maxHorizontalSpeed = 5f;
     public float maxHorizontalThrustPower = 10f;
     public float maxVerticalSpeed = 10f;
@@ -18,7 +17,6 @@ public class DroneController : MonoBehaviour, Damageable
 	public float gunPointRadius = 1f;
 
 	public MeshRenderer body;
-    public ParticleSystem explosion;
     public ParticleSystem thruster;
     public LineRenderer laserRay;
     public ParticleSystem laserSparkles;
@@ -135,17 +133,6 @@ public class DroneController : MonoBehaviour, Damageable
         }
     }
 
-    public void doDamage(float damage)
-    {
-        float oldHealt = health;
-        health -= damage;
-        if (health < 0 && oldHealt >= 0)
-        {
-            Instantiate(explosion, transform.position, transform.rotation);
-            Destroy(gameObject);
-        }
-    }
-
     private Transform GetTarget()
     {
         Collider2D[] colliders = Physics2D.OverlapCircleAll(rb.position, targetRadius, targetLayerMask);
@@ -223,7 +210,7 @@ public class DroneController : MonoBehaviour, Damageable
         if (hit.collider != null)
         {
             laserRay.SetPosition(1, laserRay.transform.InverseTransformPoint(hit.point));
-            laserSparkles.transform.position = hit.point;
+            laserSparkles.transform.position = new Vector3(hit.point.x, hit.point.y, laserSparkles.transform.position.z);
             Damageable damageable = hit.collider.GetComponent<Damageable>();
             if (damageable != null)
             {

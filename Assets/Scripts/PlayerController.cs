@@ -390,7 +390,7 @@ public class LaserDevice : IDevice
         if (hit.collider != null)
         {
             laserRay.SetPosition(1, laserRay.transform.InverseTransformPoint(hit.point));
-            player.laserSparkles.transform.position = hit.point;
+            player.laserSparkles.transform.position = new Vector3(hit.point.x, hit.point.y, player.laserSparkles.transform.position.z);
             laserSparklesOn = true;
             Damageable damageable = hit.collider.GetComponent<Damageable>();
             if (damageable != null)

@@ -45,9 +45,13 @@ public class Explosive : MonoBehaviour, Damageable
             }
         }
 
-        Instantiate(explosion, transform.position, transform.rotation);
+        var position = transform.position;
+        position.z = explosion.transform.position.z;
+        Instantiate(explosion, position, transform.rotation);
+
         ExplosionForce ef = GameObject.FindObjectOfType<ExplosionForce>();
         ef.doExplosion(transform.position, explosionForce, explosionRadius);
+
         Destroy(gameObject);
     }
 
