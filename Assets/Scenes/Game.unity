@@ -32856,7 +32856,6 @@ GameObject:
   - component: {fileID: 972957424}
   - component: {fileID: 972957423}
   - component: {fileID: 972957428}
-  - component: {fileID: 972957426}
   - component: {fileID: 972957429}
   m_Layer: 4
   m_Name: Water
@@ -32924,24 +32923,6 @@ MeshFilter:
   m_PrefabInternal: {fileID: 1558642700}
   m_GameObject: {fileID: 972957422}
   m_Mesh: {fileID: 0}
---- !u!114 &972957426
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_GameObject: {fileID: 972957422}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c7ce7574951bd455aa3af7630695db2e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  outerRadius: 50
-  outerColor: {r: 1, g: 1, b: 1, a: 0.8666667}
-  innerRadius: 35
-  innerColor: {r: 0, g: 0, b: 0, a: 1}
-  steps: 256
-  textureScaleU: 6
-  textureScaleV: 1
 --- !u!4 &972957427
 Transform:
   m_ObjectHideFlags: 0
@@ -32982,6 +32963,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 85c33214f503547fdad118d501d8ae47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  steps: 256
+  outerRadius: 50
+  innerRadius: 35
+  waterColors:
+  - outerColor: {r: 0, g: 0.5686275, b: 1, a: 0.822}
+    innerColor: {r: 0, g: 0, b: 0.003921569, a: 1}
+  - outerColor: {r: 0.634, g: 0.4031682, b: 0.22760601, a: 0.822}
+    innerColor: {r: 0, g: 0, b: 0.003921569, a: 1}
+  - outerColor: {r: 0.37925002, g: 0.697, b: 0.3244655, a: 0.822}
+    innerColor: {r: 0, g: 0, b: 0.003921569, a: 1}
+  - outerColor: {r: 0.797, g: 0.391327, b: 0.391327, a: 0.822}
+    innerColor: {r: 0, g: 0, b: 0.003921569, a: 1}
   splashTemplate: {fileID: 333198048}
   splashThreshold: 2
 --- !u!1001 &1001094584

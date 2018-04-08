@@ -7,10 +7,8 @@ Shader "PlanetShooter/Water"
 		[MaterialToggle(_TEX_ON)] _DetailTex ("Enable Detail texture", Float) = 0 	//1
 		_MainTex ("Detail", 2D) = "white" {}        								//2
 		_ToonShade ("Shade", 2D) = "white" {}  										//3
-		[MaterialToggle(_COLOR_ON)] _TintColor ("Enable Color Tint", Float) = 0 	//4
-		_Color ("Base Color", Color) = (1,1,1,1)									//5	
-		[MaterialToggle(_VCOLOR_ON)] _VertexColor ("Enable Vertex Color", Float) = 0//6        
-		_Brightness ("Brightness 1 = neutral", Float) = 1.0							//7	
+		[MaterialToggle(_VCOLOR_ON)] _VertexColor ("Enable Vertex Color", Float) = 0//4        
+		_Brightness ("Brightness 1 = neutral", Float) = 1.0							//5	
     }
    
     Subshader 
@@ -32,9 +30,9 @@ Shader "PlanetShooter/Water"
                 #pragma fragment frag
                 #pragma fragmentoption ARB_precision_hint_fastest
                 #include "UnityCG.cginc"
+                #include "HSL.cginc"
                 #pragma glsl_no_auto_normalization
                 #pragma multi_compile _TEX_OFF _TEX_ON
-                #pragma multi_compile _COLOR_OFF _COLOR_ON
                 #pragma multi_compile _VCOLOR_OFF _VCOLOR_ON
                 
                 #if _TEX_ON
@@ -92,23 +90,24 @@ Shader "PlanetShooter/Water"
               	sampler2D _ToonShade;
                 fixed _Brightness;
                 
-                #if _COLOR_ON
-                fixed4 _Color;
-                #endif
-                
                 fixed4 frag (v2f i) : COLOR
                 {
-                    fixed4 result = tex2D( _ToonShade, i.uvn );
-					#if _COLOR_ON
-					result = result*_Color;
-					#endif
-                    #if _VCOLOR_ON
-                    result = result*i.color;
-                    #endif
+                    half4 result = tex2D( _ToonShade, i.uvn )*_Brightness;
 					#if _TEX_ON
-                    result = result*tex2D ( _MainTex, i.uv );
+                    result = result * tex2D ( _MainTex, i.uv );
 					#endif
-                    return result*_Brightness;
+
+                    #if _VCOLOR_ON
+                    float3 hsl = rgb2hsl(result.rgb);
+                    float3 hslColor = rgb2hsl(i.color.rgb);
+                    hsl.r = hslColor.r;
+                    hsl.g = hslColor.g;
+                    hsl.b *= hslColor.b;
+					result.rgb = hsl2rgb(hsl);
+                    result.w *= i.color.w;
+                    #endif
+
+                    return result;
                 }
             ENDCG
         }
