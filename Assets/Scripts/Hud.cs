@@ -13,7 +13,7 @@ public class Hud : MonoBehaviour
     public Image enemyIndicatorTemplate;
 
     private Canvas canvas;
-    private Camera camera;
+    private Camera _camera;
     private List<PlayerController> players = new List<PlayerController>();
     private List<Image> enemyIndicators = new List<Image>();
     public void UpdateHealth(int health)
@@ -56,7 +56,7 @@ public class Hud : MonoBehaviour
     private void Start()
     {
         canvas = GetComponent<Canvas>();
-        camera = canvas.worldCamera;
+        _camera = canvas.worldCamera;
     }
     private void LateUpdate()
     {
@@ -71,7 +71,7 @@ public class Hud : MonoBehaviour
             player = players[i];
             indicator = enemyIndicators[i];
 
-            screenPos = camera.WorldToViewportPoint(player.transform.position); //get viewport positions
+            screenPos = _camera.WorldToViewportPoint(player.transform.position); //get viewport positions
 
             if (screenPos.x >= 0 && screenPos.x <= 1 && screenPos.y >= 0 && screenPos.y <= 1)
             {
