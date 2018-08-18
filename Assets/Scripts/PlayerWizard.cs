@@ -24,6 +24,6 @@ public class PlayerWizard : MonoBehaviour {
 	}
 
 	public bool isReady() {
-		return readyPage.active;
+		return readyPage.activeSelf;
 	}
 }
