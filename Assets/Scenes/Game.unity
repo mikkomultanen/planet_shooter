@@ -4747,7 +4747,7 @@ ParticleSystemRenderer:
   m_ReflectionProbeUsage: 0
   m_RenderingLayerMask: 4294967295
   m_Materials:
-  - {fileID: 10301, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: b1e5a7f0fc307464182d3514ea38282e, type: 2}
   - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -5071,7 +5071,7 @@ ParticleSystemRenderer:
   m_ReflectionProbeUsage: 0
   m_RenderingLayerMask: 4294967295
   m_Materials:
-  - {fileID: 10301, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: bc5289d560bbcfe4ba2032803a813e2f, type: 2}
   - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -5361,7 +5361,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.4
+      scalar: 0.7
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -14594,7 +14594,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 1
+      scalar: 1.3
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -18905,7 +18905,7 @@ ParticleSystemRenderer:
   m_ReflectionProbeUsage: 0
   m_RenderingLayerMask: 4294967295
   m_Materials:
-  - {fileID: 10301, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: bc5289d560bbcfe4ba2032803a813e2f, type: 2}
   - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -29195,7 +29195,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.4
+      scalar: 0.7
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -33497,7 +33497,7 @@ ParticleSystemRenderer:
   m_ReflectionProbeUsage: 0
   m_RenderingLayerMask: 4294967295
   m_Materials:
-  - {fileID: 10301, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: bc5289d560bbcfe4ba2032803a813e2f, type: 2}
   - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -33913,7 +33913,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.4
+      scalar: 0.5
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -34029,7 +34029,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.3
+      scalar: 0.5
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -38859,7 +38859,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.3
+      scalar: 0.6
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -43161,7 +43161,7 @@ ParticleSystemRenderer:
   m_ReflectionProbeUsage: 0
   m_RenderingLayerMask: 4294967295
   m_Materials:
-  - {fileID: 10301, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: bc5289d560bbcfe4ba2032803a813e2f, type: 2}
   - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -48909,106 +48909,7 @@ MonoBehaviour:
   outerRadius: 125
   innerRadius: 35
   fragments: []
-  caves:
-  - r: 80
-    wave:
-      aMin: -22.5
-      aMax: 33.75
-      a:
-      - 0.33563897
-      - 0.26684615
-      - 0.20453426
-      - 0.12503229
-      - 0.06794834
-      f: 0400000006000000070000000500000012000000
-      p:
-      - 1.4197599
-      - 1.9580888
-      - 1.7189891
-      - 4.2071815
-      - 3.0574114
-    thickness:
-      aMin: 11.25
-      aMax: 22.5
-      a:
-      - 0.40115818
-      - 0.2600144
-      - 0.19694878
-      - 0.10474317
-      - 0.037135456
-      f: 1000000018000000240000003000000040000000
-      p:
-      - 4.306399
-      - 3.14715
-      - 3.2666395
-      - 3.4597526
-      - 4.944741
-  - r: 68.75
-    wave:
-      aMin: -22.5
-      aMax: 33.75
-      a:
-      - 0.34644336
-      - 0.27563608
-      - 0.16600093
-      - 0.14947534
-      - 0.06244427
-      f: 04000000030000000c0000000e00000012000000
-      p:
-      - 3.443824
-      - 5.0339446
-      - 5.873258
-      - 4.2306695
-      - 6.0142574
-    thickness:
-      aMin: 11.25
-      aMax: 22.5
-      a:
-      - 0.35694236
-      - 0.27181685
-      - 0.21550687
-      - 0.14364561
-      - 0.012088219
-      f: 0e0000001b0000002f0000003f00000045000000
-      p:
-      - 1.6542159
-      - 0.22507349
-      - 1.40636
-      - 2.1694994
-      - 3.5199103
-  - r: 57.5
-    wave:
-      aMin: -22.5
-      aMax: 33.75
-      a:
-      - 0.37212142
-      - 0.30347833
-      - 0.20784004
-      - 0.100049205
-      - 0.016510952
-      f: 0200000004000000060000000600000010000000
-      p:
-      - 0.16041335
-      - 2.8027713
-      - 5.5592327
-      - 1.7609557
-      - 0.4798656
-    thickness:
-      aMin: 11.25
-      aMax: 22.5
-      a:
-      - 0.37105843
-      - 0.27558067
-      - 0.19057016
-      - 0.13666075
-      - 0.026129974
-      f: 0c00000020000000230000004200000039000000
-      p:
-      - 5.9245343
-      - 0.83187973
-      - 3.5529397
-      - 3.2160668
-      - 3.4499419
+  caves: []
 --- !u!4 &1085178995
 Transform:
   m_ObjectHideFlags: 0
@@ -54545,7 +54446,7 @@ ParticleSystemRenderer:
   m_ReflectionProbeUsage: 0
   m_RenderingLayerMask: 4294967295
   m_Materials:
-  - {fileID: 10301, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: bc5289d560bbcfe4ba2032803a813e2f, type: 2}
   - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -54835,7 +54736,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.4
+      scalar: 0.7
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -59169,11 +59070,11 @@ MonoBehaviour:
   shield: {fileID: 1265431779}
   droneTemplate: {fileID: 1673015762}
   maxHealth: 100
-  maxThrustPower: 450
-  maxSpeed: 15
+  maxThrustPower: 300
+  maxSpeed: 10
   airDrag: 0.5
   waterDrag: 2.5
-  orthogonalScale: 5
+  orthogonalDrag: 2
   afterBurnerMaxSpeed: 30
   afterBurnerThrustPower: 900
   laserLayerMask:
@@ -63978,7 +63879,7 @@ ParticleSystemRenderer:
   m_ReflectionProbeUsage: 0
   m_RenderingLayerMask: 4294967295
   m_Materials:
-  - {fileID: 10301, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: bc5289d560bbcfe4ba2032803a813e2f, type: 2}
   - {fileID: 0}
   m_StaticBatchInfo:
     firstSubMesh: 0
@@ -64283,14 +64184,20 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
---- !u!124 &1590116402
-Behaviour:
+--- !u!114 &1590116402
+MonoBehaviour:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 124861989355393222, guid: debb52d6e8e11413091158a96dcca3c4,
-    type: 2}
-  m_PrefabInternal: {fileID: 1630730521}
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1590116401}
   m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2a176462037d60c48ae5a1a851389014, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  threshold: 1.1
+  bloomShader: {fileID: 4800000, guid: 12de2820b9dee5b45ae31b390ce46fc6, type: 3}
+  debug: 0
 --- !u!20 &1590116403
 Camera:
   m_ObjectHideFlags: 0
@@ -64321,12 +64228,12 @@ Camera:
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294959103
-  m_RenderingPath: -1
+  m_RenderingPath: 1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
   m_TargetEye: 3
   m_HDR: 1
-  m_AllowMSAA: 1
+  m_AllowMSAA: 0
   m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
@@ -64497,7 +64404,7 @@ ParticleSystem:
     startSpeed:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.4
+      scalar: 0.5
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -64613,7 +64520,7 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.3
+      scalar: 0.5
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -69162,7 +69069,7 @@ Prefab:
     - target: {fileID: 20096365912890548, guid: debb52d6e8e11413091158a96dcca3c4,
         type: 2}
       propertyPath: m_RenderingPath
-      value: -1
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 20096365912890548, guid: debb52d6e8e11413091158a96dcca3c4,
         type: 2}
@@ -69172,9 +69079,10 @@ Prefab:
     - target: {fileID: 20096365912890548, guid: debb52d6e8e11413091158a96dcca3c4,
         type: 2}
       propertyPath: m_AllowMSAA
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: debb52d6e8e11413091158a96dcca3c4, type: 2}
   m_IsPrefabAsset: 0
 --- !u!1 &1648132581

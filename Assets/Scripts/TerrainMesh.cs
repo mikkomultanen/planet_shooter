@@ -660,10 +660,10 @@ public class TerrainMesh : MonoBehaviour
 
     public Color32 getColor(Vector2 mainTexUV, Vector2 overlayTexUV, Color tintColor)
     {
-        var color = mainTex.GetPixelBilinear(mainTexUV.x, mainTexUV.y);
+        var color = mainTex.GetPixelBilinear(mainTexUV.x, mainTexUV.y).linear;
         color = color * tintColor * brightness;
         color.a = 1f;
-        var overlayColor = overlayTex.GetPixelBilinear(overlayTexUV.x, overlayTexUV.y);
+        var overlayColor = overlayTex.GetPixelBilinear(overlayTexUV.x, overlayTexUV.y).linear;
         var a = overlayColor.a;
         overlayColor.a = 1f;
         return Color.Lerp(color, overlayColor, a);
