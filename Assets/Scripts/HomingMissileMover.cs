@@ -7,6 +7,8 @@ public class HomingMissileMover : Explosive
 {
     public float thrustAcceleration = 10f;
     public float maxSpeed = 10f;
+    [Range(0.0f, 10f)]
+    public float orthogonalDrag = 2f;
     public float homingRadius = 10f;
     public LayerMask homingLayerMask = 1;
 
@@ -35,19 +37,21 @@ public class HomingMissileMover : Explosive
 
     void FixedUpdate()
     {
-        var thrustFactor = 1f;
-        var forwardSpeed = Vector2.Dot(rb.velocity, transform.up);
         if (target != null)
         {
-            var currentDirection = forwardSpeed > 0.5f * maxSpeed ? rb.velocity : (Vector2)transform.up;
             var targetDirection = target.position - transform.position;
-            var angle = Vector2.SignedAngle(currentDirection, targetDirection);
-            thrustFactor = 0.5f + 0.5f * (1f - Mathf.Clamp01(Mathf.Abs(angle / 15f)));
+            var angle = Vector2.SignedAngle(transform.up, targetDirection);
             rb.angularVelocity = Mathf.Clamp(angle / 15f, -1, 1) * 300f;
         }
+
+        var forwardSpeed = Vector2.Dot(rb.velocity, transform.up);
+        var forwardVelocity = forwardSpeed * (Vector2)transform.up;
+        var orthogonalVelocity = rb.velocity - forwardVelocity;
+        rb.AddForce(-orthogonalVelocity * orthogonalVelocity.magnitude * orthogonalDrag);
+
         if (forwardSpeed < maxSpeed)
         {
-            rb.AddForce(transform.up * (thurstForceMagnitude * thrustFactor));
+            rb.AddForce(transform.up * thurstForceMagnitude);
         }
     }
 

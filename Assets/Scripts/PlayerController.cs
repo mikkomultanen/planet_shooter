@@ -32,6 +32,12 @@ public class PlayerController : MonoBehaviour, Damageable
     public float maxHealth = 100;
     public float maxThrustPower = 2000f;
     public float maxSpeed = 10f;
+    [Range(0.0f, 10f)]
+    public float airDrag = 0.5f;
+    [Range(0.0f, 10f)]
+    public float waterDrag = 2.5f;
+    [Range(0.0f, 10f)]
+    public float orthogonalDrag = 2f;
     public float afterBurnerMaxSpeed = 30f;
     public float afterBurnerThrustPower = 6000f;
     public LayerMask laserLayerMask = ~(1 << 1);
@@ -80,7 +86,6 @@ public class PlayerController : MonoBehaviour, Damageable
 
     private static Vector3 cameraOffset = new Vector3(0, 0, -10);
     private Rigidbody2D rb;
-    private float originalDrag;
     private float gravityForceMagnitude;
     private bool isInWater = false;
     private string turnAxis;
@@ -94,7 +99,6 @@ public class PlayerController : MonoBehaviour, Damageable
     private void Awake()
     {
         rb = gameObject.GetComponent<Rigidbody2D>();
-        originalDrag = rb.drag;
         gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
     }
     // Use this for initialization
@@ -114,7 +118,6 @@ public class PlayerController : MonoBehaviour, Damageable
         if (other.tag == "Water")
         {
             isInWater = true;
-            rb.drag = 5;
         }
     }
 
@@ -123,7 +126,6 @@ public class PlayerController : MonoBehaviour, Damageable
         if (other.tag == "Water")
         {
             isInWater = false;
-            rb.drag = originalDrag;
         }
     }
 
@@ -214,7 +216,8 @@ public class PlayerController : MonoBehaviour, Damageable
         float floatingAndGravityForceMagnitude = (isInWater ? -1.2f : 1f) * gravityForceMagnitude;
         float thursterForceMagnitude = 0f;
         var afterBurnerOn = afterBurner.isEmitting;
-        if (Vector2.Dot(rb.velocity, transform.up) < (afterBurnerOn ? afterBurnerMaxSpeed : maxSpeed))
+        var forwardSpeed = Vector2.Dot(rb.velocity, transform.up);
+        if (forwardSpeed < (afterBurnerOn ? afterBurnerMaxSpeed : maxSpeed))
         {
             float thrust = Mathf.Max(Input.GetAxis(thrustAxis), 0f);
             float athmosphereCoefficient = Mathf.Clamp((120f - h) / 20f, 0f, 1f);
@@ -227,6 +230,12 @@ public class PlayerController : MonoBehaviour, Damageable
 
         Vector2 gravity = positionNormalized * floatingAndGravityForceMagnitude;
         Vector2 thrusters = transform.up * thursterForceMagnitude;
+
+        var drag = isInWater ? waterDrag : airDrag;
+        var forwardVelocity = forwardSpeed * (Vector2)transform.up;
+        var orthogonalVelocity = rb.velocity - forwardVelocity;
+        rb.AddForce(-orthogonalVelocity * orthogonalVelocity.magnitude * (drag + orthogonalDrag));
+        rb.AddForce(-forwardVelocity * forwardVelocity.magnitude * drag);
 
         rb.AddForce(thrusters + gravity);
         rb.angularVelocity = -turn * 300f;
@@ -258,7 +267,6 @@ public class PlayerController : MonoBehaviour, Damageable
         smoke.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         transform.position = position;
         isInWater = false;
-        rb.drag = originalDrag;
         rb.velocity = Vector2.zero;
         rb.angularVelocity = 0;
         rb.rotation = -Mathf.Atan2(position.x, position.y) * Mathf.Rad2Deg;
