@@ -6,6 +6,10 @@ public class BloomEffect : MonoBehaviour {
 
 	[Range(0, 10)]
 	public float threshold = 1;
+	[Range(0, 1)]
+	public float softThreshold = 0.5f;
+	[Range(0, 10)]
+	public float intensity = 1;
 	public Shader bloomShader;
 	public bool debug;
 
@@ -26,7 +30,14 @@ public class BloomEffect : MonoBehaviour {
 			bloom = new Material(bloomShader);
 			bloom.hideFlags = HideFlags.HideAndDontSave;
 		}
-		bloom.SetFloat("_Threshold", threshold);
+		float knee = threshold * softThreshold;
+		Vector4 filter;
+		filter.x = threshold;
+		filter.y = filter.x - knee;
+		filter.z = 2f * knee;
+		filter.w = 0.25f / (knee + 0.00001f);
+		bloom.SetVector("_Filter", filter);
+		bloom.SetFloat("_Intensity", Mathf.GammaToLinearSpace(intensity));
 
 		if (currentWidth != source.width) {
 			currentWidth = source.width;

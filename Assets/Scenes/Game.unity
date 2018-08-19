@@ -64196,6 +64196,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   threshold: 1.1
+  softThreshold: 0.2
+  intensity: 1
   bloomShader: {fileID: 4800000, guid: 12de2820b9dee5b45ae31b390ce46fc6, type: 3}
   debug: 0
 --- !u!20 &1590116403
