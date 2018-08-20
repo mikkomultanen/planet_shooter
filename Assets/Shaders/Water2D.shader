@@ -9,6 +9,7 @@ Shader "PlanetShooter/Water"
 		_ToonShade ("Shade", 2D) = "white" {}  										//3
 		[MaterialToggle(_VCOLOR_ON)] _VertexColor ("Enable Vertex Color", Float) = 0//4        
 		_Brightness ("Brightness 1 = neutral", Float) = 1.0							//5	
+        [KeywordEnum(None, Add, Multiply)] _Shadow("Shadow Blending", Float) = 0    //6
     }
    
     Subshader 
@@ -34,11 +35,13 @@ Shader "PlanetShooter/Water"
                 #pragma glsl_no_auto_normalization
                 #pragma multi_compile _TEX_OFF _TEX_ON
                 #pragma multi_compile _VCOLOR_OFF _VCOLOR_ON
+                #pragma multi_compile _SHADOW_NONE, _SHADOW_ADD, _SHADOW_MULTIPLY
                 
                 #if _TEX_ON
                 sampler2D _MainTex;
 				half4 _MainTex_ST;
 				#endif
+                uniform sampler2D Lightmap_RT;
 				
                 struct appdata_base0 
 				{
@@ -59,6 +62,10 @@ Shader "PlanetShooter/Water"
                     half2 uvn : TEXCOORD1;
                     #if _VCOLOR_ON
                     fixed4 color : COLOR;
+                    #endif
+                    #if _SHADOW_NONE
+                    #else
+                    float4 screenPos : TEXCOORD2;
                     #endif
                  };
                
@@ -84,6 +91,10 @@ Shader "PlanetShooter/Water"
                     #if _VCOLOR_ON
                     o.color = v.color;
                     #endif
+                    #if _SHADOW_NONE
+                    #else
+                    o.screenPos = ComputeScreenPos(o.pos);
+                    #endif
                     return o;
                 }
 
@@ -105,6 +116,13 @@ Shader "PlanetShooter/Water"
                     hsl.b *= hslColor.b;
 					result.rgb = hsl2rgb(hsl);
                     result.w *= i.color.w;
+                    #endif
+
+                    #if _SHADOW_ADD
+                    result.rgb = (result + tex2Dproj(Lightmap_RT, i.screenPos)).rgb;
+                    #endif
+                    #if _SHADOW_MULTIPLY
+                    result.rgb = (result * tex2Dproj(Lightmap_RT, i.screenPos)).rgb;
                     #endif
 
                     return result;
