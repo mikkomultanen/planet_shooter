@@ -17,6 +17,8 @@ public class ShadowEffect : MonoBehaviour
 	//Shadow color
 	public Color shadowColor = Color.black;
 	
+	//Terrain shadow color
+	public Color terrainShadowColor = Color.gray;
 	//List of all lights, this is READ ONLY
 	public List<LightSource> lights;
 	
@@ -28,6 +30,7 @@ public class ShadowEffect : MonoBehaviour
 	Material occlusion;
 	Material lookupMat;
 	Material lightMat;
+	Material lightTerrainMat;
 	Material lightAccumulation;
 	
 	List<ShadowCaster2D> occluders;
@@ -37,9 +40,11 @@ public class ShadowEffect : MonoBehaviour
 	
 	//RTI's cause I'm lazy
 	RenderTargetIdentifier lightmap;
+	RenderTargetIdentifier terrainMap;
 	RenderTargetIdentifier occlusionMap;
 	RenderTargetIdentifier lookupMap;
 	RenderTargetIdentifier lightAreaMap;
+	RenderTargetIdentifier lightTerrainAreaMap;
 
 	Camera renderingCamera;
 	
@@ -61,13 +66,16 @@ public class ShadowEffect : MonoBehaviour
 		occlusion = new Material(Shader.Find("Hidden/2DLighting/Occlusion"));
 		lookupMat = new Material(Shader.Find("Hidden/2DLighting/Distance"));
 		lightMat = new Material(Shader.Find("Hidden/2DLighting/Light"));
+		lightTerrainMat = new Material(Shader.Find("Hidden/2DLighting/LightTerrain"));
 		lightAccumulation = new Material(Shader.Find("Hidden/2DLighting/Accumulation"));
 
 		//Create RTI's for easy reference
 		lightmap = new RenderTargetIdentifier(Shader.PropertyToID("Lightmap_RT"));
+		terrainMap = new RenderTargetIdentifier(Shader.PropertyToID("Terrain_RT"));
 		occlusionMap = new RenderTargetIdentifier(Shader.PropertyToID("Occluders_RT"));
 		lookupMap = new RenderTargetIdentifier(Shader.PropertyToID("Lookup_RT"));
 		lightAreaMap = new RenderTargetIdentifier(Shader.PropertyToID("LightArea_RT"));
+		lightTerrainAreaMap = new RenderTargetIdentifier(Shader.PropertyToID("TerrainArea_RT"));
 		//Attach buffer to camera. Haven't experimented much with render order, but AfterForwardOpaque works
         renderingCamera = this.GetComponent<Camera>();
 		renderingCamera.AddCommandBuffer(CameraEvent.BeforeForwardOpaque, buffer);
@@ -100,6 +108,9 @@ public class ShadowEffect : MonoBehaviour
 		buffer.GetTemporaryRT(Shader.PropertyToID("Lightmap_RT"), renderingCamera.pixelWidth, renderingCamera.pixelHeight, 0, textureFilterMode); //Set the first shader to be used
 		buffer.SetRenderTarget(lightmap); //Set the rendertarget to our lightmap texture
 		buffer.ClearRenderTarget(false, true, shadowColor); //Clear the lightmap with the shadow color
+		buffer.GetTemporaryRT(Shader.PropertyToID("Terrain_RT"), renderingCamera.pixelWidth, renderingCamera.pixelHeight, 0, textureFilterMode);
+		buffer.SetRenderTarget(terrainMap);
+		buffer.ClearRenderTarget(false, true, terrainShadowColor);
 		foreach (LightSource light in lights) //Loop through each light and render out their small lightmap
 		{
 			if (!light.on)
@@ -170,15 +181,26 @@ public class ShadowEffect : MonoBehaviour
 			buffer.SetGlobalFloat(Shader.PropertyToID("_Intensity"), light.intensity);
             buffer.SetGlobalFloat(Shader.PropertyToID("_Blurring"), light.blurAmount);
 			buffer.Blit(lookupMap, lightAreaMap, lightMat);
+			buffer.GetTemporaryRT(Shader.PropertyToID("TerrainArea_RT"), ligthResolution, ligthResolution, 0, textureFilterMode);
+			buffer.SetGlobalFloat(Shader.PropertyToID("_Intensity"), light.intensity);
+            buffer.SetGlobalFloat(Shader.PropertyToID("_Blurring"), light.blurAmount);
+			buffer.Blit(lookupMap, lightTerrainAreaMap, lightTerrainMat);
 			buffer.ReleaseTemporaryRT(Shader.PropertyToID("Lookup_RT"));
 			
+
+
 			//Render into composite lightmap
 			buffer.SetRenderTarget(lightmap);
 			buffer.SetGlobalTexture(Shader.PropertyToID("LightArea_RT"), lightAreaMap);
 			buffer.SetGlobalVector(Shader.PropertyToID("LightColor"), light.lightColor);
 			buffer.DrawMesh(lightMesh, light.lightMvp, lightAccumulation);
+			buffer.SetRenderTarget(terrainMap);
+			buffer.SetGlobalTexture(Shader.PropertyToID("LightArea_RT"), lightTerrainAreaMap);
+			buffer.SetGlobalVector(Shader.PropertyToID("LightColor"), light.lightColor);
+			buffer.DrawMesh(lightMesh, light.lightMvp, lightAccumulation);
 			buffer.ReleaseTemporaryRT(Shader.PropertyToID("LightArea_RT"));
 		}
 		buffer.SetGlobalTexture(Shader.PropertyToID("Lightmap_RT"), lightmap); //Set the composite lightmap as a global texture for easy shader access
+		buffer.SetGlobalTexture(Shader.PropertyToID("Terrain_RT"), terrainMap);
 	}
 }

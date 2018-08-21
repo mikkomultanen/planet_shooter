@@ -41,7 +41,7 @@ Shader "PlanetShooter/Water"
                 sampler2D _MainTex;
 				half4 _MainTex_ST;
 				#endif
-                uniform sampler2D Lightmap_RT;
+                uniform sampler2D Terrain_RT;
 				
                 struct appdata_base0 
 				{
@@ -119,10 +119,10 @@ Shader "PlanetShooter/Water"
                     #endif
 
                     #if _SHADOW_ADD
-                    result.rgb = (result + tex2Dproj(Lightmap_RT, i.screenPos)).rgb;
+                    result.rgb = (result + tex2Dproj(Terrain_RT, i.screenPos)).rgb;
                     #endif
                     #if _SHADOW_MULTIPLY
-                    result.rgb = (result * tex2Dproj(Lightmap_RT, i.screenPos)).rgb;
+                    result.rgb = (result * tex2Dproj(Terrain_RT, i.screenPos)).rgb;
                     #endif
 
                     return result;

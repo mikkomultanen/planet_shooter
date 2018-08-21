@@ -10,6 +10,7 @@ Shader "PlanetShooter/Terrain2D"
 		_Color ("Base Color", Color) = (1,1,1,1)									//4
 		[MaterialToggle(_VCOLOR_ON)] _VertexColor ("Enable Vertex Color", Float) = 0//5
 		_Brightness ("Brightness 1 = neutral", Float) = 1.0							//6
+        [KeywordEnum(None, Add, Multiply)] _Shadow("Shadow Blending", Float) = 0    //7
     }
    
     Subshader 
@@ -33,12 +34,14 @@ Shader "PlanetShooter/Terrain2D"
                 #pragma multi_compile _TEX_OFF _TEX_ON
                 #pragma multi_compile _COLOR_OFF _COLOR_ON
                 #pragma multi_compile _VCOLOR_OFF _VCOLOR_ON
+                #pragma multi_compile _SHADOW_NONE, _SHADOW_ADD, _SHADOW_MULTIPLY
 
                 
                 sampler2D _MainTex;
 				half4 _MainTex_ST;
 				sampler2D _OverlayTex;
 				half4 _OverlayTex_ST;
+                uniform sampler2D Terrain_RT;
 
                 struct appdata_base0 
 				{
@@ -58,6 +61,10 @@ Shader "PlanetShooter/Terrain2D"
                     #if _VCOLOR_ON
                     fixed4 color : COLOR;
                     #endif
+                    #if _SHADOW_NONE
+                    #else
+                    float4 screenPos : TEXCOORD2;
+                    #endif
                  };
                
                 v2f vert (appdata_base0 v)
@@ -68,6 +75,10 @@ Shader "PlanetShooter/Terrain2D"
 					o.uvo = TRANSFORM_TEX (v.overlaycoord, _OverlayTex );
                     #if _VCOLOR_ON
                     o.color = v.color;
+                    #endif
+                    #if _SHADOW_NONE
+                    #else
+                    o.screenPos = ComputeScreenPos(o.pos);
                     #endif
                     return o;
                 }
@@ -89,8 +100,14 @@ Shader "PlanetShooter/Terrain2D"
                     #if _VCOLOR_ON
                     detail = detail*i.color;
                     #endif
-
-					return float4(lerp(detail.rgb, overlay.rgb, overlay.a), 1);
+					detail = float4(lerp(detail.rgb, overlay.rgb, overlay.a), 1);
+                    #if _SHADOW_ADD
+                    detail.rgb = (detail + tex2Dproj(Terrain_RT, i.screenPos)).rgb;
+                    #endif
+                    #if _SHADOW_MULTIPLY
+                    detail.rgb = (detail * tex2Dproj(Terrain_RT, i.screenPos)).rgb;
+                    #endif
+                    return detail;
                 }
             ENDCG
         }
