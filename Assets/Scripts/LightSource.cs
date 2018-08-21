@@ -23,7 +23,8 @@ public class LightSource : MonoBehaviour
 	public float intensity = 1;
 	
 	//Diameter of the light in unity units (the bigger the light, the higher imprecision)
-	public int size;
+	[Range(0, 100)]
+	public float size = 1;
 	//Color of the light
 	public Color lightColor;
 	//How blurry the light is (values > 2 might cause artifacts)
@@ -49,7 +50,7 @@ public class LightSource : MonoBehaviour
 	float lastInt;
 	Vector3 lastPos;
 	Vector3 lastRot;
-	int lastSize;
+	float lastSize;
 	Color lastCol;
 	Vector3 initScale;
     float lastBlur;

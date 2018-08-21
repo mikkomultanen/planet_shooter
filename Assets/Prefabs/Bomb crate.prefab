@@ -100,7 +100,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   explosionDamage: 100
-  explosion: {fileID: 198221980394113368, guid: 56e25eb96b97e48ff8a42a34d78bf714,
+  explosion: {fileID: 198539498345428444, guid: 56e25eb96b97e48ff8a42a34d78bf714,
     type: 2}
   health: 5
   weapon: 4
