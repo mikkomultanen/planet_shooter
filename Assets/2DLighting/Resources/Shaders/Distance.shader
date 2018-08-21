@@ -57,7 +57,9 @@
 					float cSin = cos(theta);
 					
 					//UNITY_UNROLL is necessary to make the shader WebGL compatible, forcing it to unroll the loop
+					#if defined(QUALITY_CRAP) || defined(QUALITY_LOW) || defined(QUALITY_MEDIUM)
 					UNITY_UNROLL
+					#endif
 					for(int y = 0; y < res; y += 1)
 					{
 						//Rectangular to polar
