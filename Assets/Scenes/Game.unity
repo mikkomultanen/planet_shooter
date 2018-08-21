@@ -69361,7 +69361,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   angle: 360
   intensity: 1
-  size: 10
+  size: 20
   lightColor: {r: 1, g: 0.916376, b: 0.495283, a: 1}
   blurAmount: 1
   MapResolution: 6
@@ -70232,8 +70232,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   angle: 360
   intensity: 1
-  size: 20
-  lightColor: {r: 0.2971698, g: 1, b: 1, a: 1}
+  size: 40
+  lightColor: {r: 1, g: 0.916376, b: 0.495283, a: 1}
   blurAmount: 1
   MapResolution: 7
   needsUpdate: 1

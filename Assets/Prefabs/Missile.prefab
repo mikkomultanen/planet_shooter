@@ -43,6 +43,7 @@ GameObject:
   - component: {fileID: 70139354322547844}
   - component: {fileID: 50686149397542512}
   - component: {fileID: 114097966009495564}
+  - component: {fileID: 114260696613156056}
   m_Layer: 12
   m_Name: Missile
   m_TagString: Untagged
@@ -173,6 +174,76 @@ MonoBehaviour:
   health: 0.01
   thrustAcceleration: 60
   maxSpeed: 15
+--- !u!114 &114260696613156056
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1952200868272222}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5448c4f3cdeff5e4ba687cd0fa2a9db6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  angle: 360
+  intensity: 1
+  size: 20
+  lightColor: {r: 1, g: 0.916376, b: 0.495283, a: 1}
+  blurAmount: 1
+  MapResolution: 6
+  needsUpdate: 1
+  on: 1
+  mvp:
+    e00: 0
+    e01: 0
+    e02: 0
+    e03: 0
+    e10: 0
+    e11: 0
+    e12: 0
+    e13: 0
+    e20: 0
+    e21: 0
+    e22: 0
+    e23: 0
+    e30: 0
+    e31: 0
+    e32: 0
+    e33: 0
+  lightMvp:
+    e00: 0
+    e01: 0
+    e02: 0
+    e03: 0
+    e10: 0
+    e11: 0
+    e12: 0
+    e13: 0
+    e20: 0
+    e21: 0
+    e22: 0
+    e23: 0
+    e30: 0
+    e31: 0
+    e32: 0
+    e33: 0
+  orthoProj:
+    e00: 0
+    e01: 0
+    e02: 0
+    e03: 0
+    e10: 0
+    e11: 0
+    e12: 0
+    e13: 0
+    e20: 0
+    e21: 0
+    e22: 0
+    e23: 0
+    e30: 0
+    e31: 0
+    e32: 0
+    e33: 0
 --- !u!114 &114833743338975792
 MonoBehaviour:
   m_ObjectHideFlags: 1
