@@ -53782,7 +53782,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1149015801}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1085178995}
@@ -54449,7 +54449,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1382745255}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1085178995}
@@ -64307,6 +64307,7 @@ GameObject:
   - component: {fileID: 1590116403}
   - component: {fileID: 1590116402}
   - component: {fileID: 1590116405}
+  - component: {fileID: 1590116406}
   m_Layer: 0
   m_Name: PlayerCamera template
   m_TagString: MainCamera
@@ -64352,7 +64353,7 @@ Camera:
     width: 0.5
     height: 0.5
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 20
   field of view: 90
   orthographic: 1
   orthographic size: 15
@@ -64402,6 +64403,20 @@ MonoBehaviour:
   terrainShadowColor: {r: 0, g: 0, b: 0, a: 1}
   lights: []
   lightMesh: {fileID: 0}
+--- !u!114 &1590116406
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1590116401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07ad702003b2b824ebcb21d9d33ddb8a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  color: {r: 0, g: 1, b: 0, a: 1}
+  radarDistance: 2
+  radarSpeed: 1.5
 --- !u!1 &1607834494
 GameObject:
   m_ObjectHideFlags: 0
@@ -69229,6 +69244,11 @@ Prefab:
         type: 2}
       propertyPath: m_AllowMSAA
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 20096365912890548, guid: debb52d6e8e11413091158a96dcca3c4,
+        type: 2}
+      propertyPath: far clip plane
+      value: 20
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 0}
