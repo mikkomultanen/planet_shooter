@@ -4,6 +4,13 @@ using UnityEngine;
 
 public class WeaponCrate : Explosive
 {
+
+    static T RandomEnumValue<T> ()
+    {
+        var v = System.Enum.GetValues (typeof (T));
+        return (T) v.GetValue (new System.Random ().Next(v.Length));
+    }
+
     public enum Weapon
     {
         Flamer,
@@ -16,7 +23,6 @@ public class WeaponCrate : Explosive
         AfterBurner,
         Drone
     }
-    public Weapon weapon;
     private Rigidbody2D rb;
     private float originalDrag;
     private bool isInWater = false;
@@ -53,7 +59,7 @@ public class WeaponCrate : Explosive
             PlayerController player = other.rigidbody.GetComponent<PlayerController>();
             if (player != null)
             {
-                switch (weapon)
+                switch (RandomEnumValue<Weapon>())
                 {
                     case Weapon.Flamer:
                         player.setPrimaryWeapon(new FlamerDevice());

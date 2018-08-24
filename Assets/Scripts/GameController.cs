@@ -172,7 +172,8 @@ public class GameController : MonoBehaviour
             GameObject weaponCrateTemplate = weaponCrateTemplates[Random.Range(0, weaponCrateTemplates.Count)];
             Vector2 position = terrain.randomCaveCenter();
             Quaternion rotation = Quaternion.Euler(0, 0, Random.Range(0, 2 * Mathf.PI));
-            Instantiate(weaponCrateTemplate, position, rotation);
+            GameObject newCrate = Instantiate(weaponCrateTemplate, position, rotation);
+            newCrate.SetActive(true);
         }
     }
 

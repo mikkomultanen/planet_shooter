@@ -14327,6 +14327,141 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
+--- !u!1 &150540751
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 150540757}
+  - component: {fileID: 150540756}
+  - component: {fileID: 150540755}
+  - component: {fileID: 150540754}
+  - component: {fileID: 150540753}
+  - component: {fileID: 150540752}
+  m_Layer: 0
+  m_Name: Wooden crate
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!61 &150540752
+BoxCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 150540751}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0, y: 0}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0, y: 0}
+    oldSize: {x: 0, y: 0}
+    newSize: {x: 0, y: 0}
+    adaptiveTilingThreshold: 0
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  serializedVersion: 2
+  m_Size: {x: 1, y: 1}
+  m_EdgeRadius: 0
+--- !u!50 &150540753
+Rigidbody2D:
+  serializedVersion: 4
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 150540751}
+  m_BodyType: 0
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDrag: 1
+  m_AngularDrag: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
+--- !u!114 &150540754
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 150540751}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bd753027abf844e52a1cbf054cd682ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  explosionDamage: 100
+  explosion: {fileID: 198539498345428444, guid: 56e25eb96b97e48ff8a42a34d78bf714,
+    type: 2}
+  health: 5
+--- !u!23 &150540755
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 150540751}
+  m_Enabled: 1
+  m_CastShadows: 0
+  m_ReceiveShadows: 0
+  m_DynamicOccludee: 1
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RenderingLayerMask: 4294967295
+  m_Materials:
+  - {fileID: 2100000, guid: 33c62717892294f56a9ebbf8df7c658c, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 0
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+--- !u!33 &150540756
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 150540751}
+  m_Mesh: {fileID: 10210, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &150540757
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 150540751}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1.7, y: 1.7, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 12
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &209205112
 GameObject:
   m_ObjectHideFlags: 0
@@ -38579,15 +38714,7 @@ MonoBehaviour:
   shipTemplate: {fileID: 1429218460}
   repairBaseTemplate: {fileID: 2016279801}
   weaponCrateTemplates:
-  - {fileID: 1286141876901602, guid: 1beb0e2d717d84dcf879257eddb6da8d, type: 2}
-  - {fileID: 1295151227454786, guid: a3cc828f968bb4bee9c88d7e6bd6b27e, type: 2}
-  - {fileID: 1329819336226902, guid: 2b44d64a2c9c8436fa767c598a4142e0, type: 2}
-  - {fileID: 1584684473900274, guid: 2799de5ffb8354a79bd185542477599c, type: 2}
-  - {fileID: 1900538953719992, guid: 9808dd3f3bbff46c4a3d0f03e1186c34, type: 2}
-  - {fileID: 1329819336226902, guid: 943daa8f03d11426d9fea82cc0b1f411, type: 2}
-  - {fileID: 1584684473900274, guid: 224a1887cf2da407cb3df922b7ad83ca, type: 2}
-  - {fileID: 1584684473900274, guid: a7181473b796543df99704cd507bd42a, type: 2}
-  - {fileID: 1584684473900274, guid: 6542db1de33624036a1272e5361f1998, type: 2}
+  - {fileID: 150540751}
   cameraTemplate: {fileID: 1590116403}
   hudTemplate: {fileID: 1750554230}
   colors:
@@ -48509,7 +48636,7 @@ Prefab:
     - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
         type: 2}
       propertyPath: weaponCrateTemplates.Array.size
-      value: 9
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4770492995992040, guid: 6fe0a73b2bef74843966379c220d1558, type: 2}
       propertyPath: m_LocalPosition.x
@@ -48736,14 +48863,12 @@ Prefab:
         type: 2}
       propertyPath: weaponCrateTemplate
       value: 
-      objectReference: {fileID: 1607939581704236, guid: 85a02ebc2b92e4424b66f82678594c15,
-        type: 2}
+      objectReference: {fileID: 150540754}
     - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
         type: 2}
       propertyPath: weaponCrateTemplates.Array.data[0]
       value: 
-      objectReference: {fileID: 1286141876901602, guid: 1beb0e2d717d84dcf879257eddb6da8d,
-        type: 2}
+      objectReference: {fileID: 150540751}
     - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
         type: 2}
       propertyPath: weaponCrateTemplates.Array.data[1]
@@ -48799,8 +48924,7 @@ Prefab:
         type: 2}
       propertyPath: weaponCrateTemplates.Array.data[7]
       value: 
-      objectReference: {fileID: 1584684473900274, guid: a7181473b796543df99704cd507bd42a,
-        type: 2}
+      objectReference: {fileID: 150540751}
     - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
         type: 2}
       propertyPath: weaponCrateTemplates.Array.data[8]
