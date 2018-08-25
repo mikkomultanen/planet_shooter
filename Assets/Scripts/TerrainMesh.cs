@@ -806,6 +806,25 @@ public class TerrainMesh : MonoBehaviour
                 poly.Add(createContour(polygon.points), true);
             }
             poly.Add(new Vertex());
+            if (polygonBoundsCenter.x < 0) {
+                poly.Add(new Vertex(-outerRadius, 0));
+                if (polygonBoundsCenter.y < 0) {
+                    poly.Add(new Vertex(-outerRadius, -outerRadius));
+                    poly.Add(new Vertex(0, -outerRadius));
+                } else {
+                    poly.Add(new Vertex(-outerRadius, outerRadius));
+                    poly.Add(new Vertex(0, outerRadius));
+                }
+            } else {
+                poly.Add(new Vertex(outerRadius, 0));
+                if (polygonBoundsCenter.y < 0) {
+                    poly.Add(new Vertex(outerRadius, -outerRadius));
+                    poly.Add(new Vertex(0, -outerRadius));
+                } else {
+                    poly.Add(new Vertex(outerRadius, outerRadius));
+                    poly.Add(new Vertex(0, outerRadius));
+                }
+            }
             var constraint = new ConstraintOptions();
             constraint.Convex = true;
             var quality = new QualityOptions();
