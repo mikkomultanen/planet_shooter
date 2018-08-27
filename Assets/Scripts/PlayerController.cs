@@ -271,6 +271,7 @@ public class PlayerController : MonoBehaviour, Damageable
         rb.angularVelocity = 0;
         rb.rotation = -Mathf.Atan2(position.x, position.y) * Mathf.Rad2Deg;
         previousPosition = position;
+        rocket.GetComponent<Teleporter>().Restart();
     }
 
     public void repair(float amount)

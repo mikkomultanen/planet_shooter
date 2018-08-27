@@ -1,5 +1,3 @@
-// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
-
 Shader "PlanetShooter/Mesh" 
 {
     Properties 
@@ -9,9 +7,11 @@ Shader "PlanetShooter/Mesh"
 		_ToonShade ("Shade", 2D) = "white" {}  										//3
 		[MaterialToggle(_COLOR_ON)] _TintColor ("Enable Color Tint", Float) = 0 	//4
 		_Color ("Base Color", Color) = (1,1,1,1)									//5	
-		[MaterialToggle(_VCOLOR_ON)] _VertexColor ("Enable Vertex Color", Float) = 0//6        
-		_Brightness ("Brightness 1 = neutral", Float) = 1.0							//7	
-        [KeywordEnum(None, Add, Multiply)] _Shadow("Shadow Blending", Float) = 0    //6
+		_Brightness ("Brightness 1 = neutral", Float) = 1.0							//6	
+        [KeywordEnum(None, Add, Multiply)] _Shadow("Shadow Blending", Float) = 0    //7
+        [PerRendererData]_Disolve ("Disolve value", range(0.0, 1.0)) = 0            //8
+        _DisolveRes ("Disolve resolution", range(0.01, 1.0)) = 1.0                  //9
+        [HDR]_Emission ("Disolve emission", Color) = (0,0,0,0)                      //10
     }
    
     Subshader 
@@ -41,6 +41,9 @@ Shader "PlanetShooter/Mesh"
                 sampler2D _MainTex;
 				half4 _MainTex_ST;
 				#endif
+                float _Disolve;
+                float _DisolveRes;
+                float4 _Emission;
                 uniform sampler2D Lightmap_RT;
 				
                 struct appdata_base0 
@@ -50,8 +53,8 @@ Shader "PlanetShooter/Mesh"
 					float4 texcoord : TEXCOORD0;
 				};
 				
-                 struct v2f 
-                 {
+                struct v2f 
+                {
                     float4 pos : SV_POSITION;
                     #if _TEX_ON
                     half2 uv : TEXCOORD0;
@@ -61,7 +64,7 @@ Shader "PlanetShooter/Mesh"
                     #else
                     float4 screenPos : TEXCOORD2;
                     #endif
-                 };
+                };
                
                 v2f vert (appdata_base0 v)
                 {
@@ -87,6 +90,13 @@ Shader "PlanetShooter/Mesh"
                 fixed4 _Color;
                 #endif
                 
+                float hash12(float2 p)
+                {
+                    float3 p3  = frac(p.xyx * 0.1031);
+                    p3 += dot(p3, p3.yzx + 19.19);
+                    return frac((p3.x + p3.y) * p3.z + _Time.y);
+                }
+
                 fixed4 frag (v2f i) : COLOR
                 {
                     fixed4 result = tex2D( _ToonShade, i.uvn );
@@ -106,6 +116,10 @@ Shader "PlanetShooter/Mesh"
                     #if _SHADOW_MULTIPLY
                     result.rgb = (result * tex2Dproj(Lightmap_RT, i.screenPos)).rgb;
                     #endif
+
+                    float hash = hash12(floor(i.pos.xy * _DisolveRes));
+                    result.rgb += _Emission.xyz * hash * _Disolve * _Disolve;
+                    clip(hash - _Disolve);
 
                     return result;
                 }
