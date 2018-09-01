@@ -52,7 +52,7 @@ public class WeaponCrate : Explosive
     {
         if (other.gameObject.tag == "Player")
         {
-            RocketController ship = other.rigidbody.GetComponent<RocketController>();
+            ShipController ship = other.rigidbody.GetComponent<ShipController>();
             if (ship != null)
             {
                 var player = ship.playerController;

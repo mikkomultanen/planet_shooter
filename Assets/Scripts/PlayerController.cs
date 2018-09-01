@@ -202,7 +202,7 @@ public class LaserDevice : IDevice
     {
         var laserSparklesOn = false;
         Vector2 position = ship.laserRay.transform.position;
-        RaycastHit2D hit = Physics2D.Raycast(position, ship.transform.up, 100, player.laserLayerMask);
+        RaycastHit2D hit = Physics2D.Raycast(position, ship.laserRay.transform.up, 100, player.laserLayerMask);
         var laserRay = ship.laserRay;
         if (hit.collider != null)
         {
