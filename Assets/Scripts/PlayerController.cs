@@ -24,7 +24,7 @@ public class PlayerController : MonoBehaviour
     public float deathrayDistance = 50f;
     public float deathrayWidth = 1f;
 
-    public RocketController shipTemplate;
+    public ShipController shipTemplate;
     public GameObject projectileTemplate;
     public GameObject missileTemplate;
     public GameObject homingMissileTemplate;
@@ -42,7 +42,7 @@ public class PlayerController : MonoBehaviour
     [HideInInspector]
     public Camera _camera;
     [HideInInspector]
-    public RocketController ship;
+    public ShipController ship;
 
     private void Awake() {
         _camera = GetComponent<Camera>();
@@ -90,7 +90,7 @@ public class PlayerController : MonoBehaviour
         if (ship != null) {
             Destroy(ship.gameObject);
         }
-        ship = Instantiate(shipTemplate, position, Quaternion.Euler(0, 0, -Mathf.Atan2(position.x, position.y) * Mathf.Rad2Deg)) as RocketController;
+        ship = Instantiate(shipTemplate, position, Quaternion.Euler(0, 0, -Mathf.Atan2(position.x, position.y) * Mathf.Rad2Deg)) as ShipController;
         ship.gameObject.SetActive(true);
         ship.playerController = this;
         ship.color = color;
@@ -139,7 +139,7 @@ public class PlayerController : MonoBehaviour
 
 public interface IDevice
 {
-    void Update(string button, PlayerController player, RocketController ship);
+    void Update(string button, PlayerController player, ShipController ship);
     string HudRow();
     bool Depleted { get; }
 }
@@ -149,7 +149,7 @@ public class MachineGunDevice : IDevice
     private float fireRate = 0.05f;
     private float nextFire = 0.0f;
 
-    public void Update(string button, PlayerController player, RocketController ship)
+    public void Update(string button, PlayerController player, ShipController ship)
     {
         if (Input.GetButton(button) && Time.time > nextFire)
         {
@@ -173,7 +173,7 @@ public class LaserDevice : IDevice
 {
     private float energy = 30;
     private float laserDamagePerSecond = 20f;
-    public void Update(string button, PlayerController player, RocketController ship)
+    public void Update(string button, PlayerController player, ShipController ship)
     {
         bool laserOn = Input.GetButton(button) && energy > 0;
         if (laserOn)
@@ -198,7 +198,7 @@ public class LaserDevice : IDevice
                 ship.laserSparkles.Stop();
         }
     }
-    private bool updateLaserBeam(PlayerController player, RocketController ship)
+    private bool updateLaserBeam(PlayerController player, ShipController ship)
     {
         var laserSparklesOn = false;
         Vector2 position = ship.laserRay.transform.position;
@@ -235,7 +235,7 @@ public class LaserDevice : IDevice
 public class FlamerDevice : IDevice
 {
     private float energy = 10;
-    public void Update(string button, PlayerController player, RocketController ship)
+    public void Update(string button, PlayerController player, ShipController ship)
     {
         bool flamerOn = Input.GetButton(button) && energy > 0;
         if (flamerOn)
@@ -264,7 +264,7 @@ public class FlamerDevice : IDevice
 public class AfterBurnerDevice : IDevice
 {
     private float energy = 10;
-    public void Update(string button, PlayerController player, RocketController ship)
+    public void Update(string button, PlayerController player, ShipController ship)
     {
         var afterBurnerOn = Input.GetButton(button) && energy > 0;
         if (afterBurnerOn)
@@ -299,7 +299,7 @@ public class MissileDevice : IDevice
     private float fireRate = 0.5f;
     private float nextFire = 0.0f;
     private int missiles = 10;
-    public void Update(string button, PlayerController player, RocketController ship)
+    public void Update(string button, PlayerController player, ShipController ship)
     {
         if (Input.GetButton(button) && Time.time > nextFire && missiles > 0)
         {
@@ -325,7 +325,7 @@ public class HomingMissileDevice : IDevice
     private float fireRate = 1f;
     private float nextFire = 0.0f;
     private int missiles = 5;
-    public void Update(string button, PlayerController player, RocketController ship)
+    public void Update(string button, PlayerController player, ShipController ship)
     {
         if (Input.GetButton(button) && Time.time > nextFire && missiles > 0)
         {
@@ -352,7 +352,7 @@ public class BombDevice : IDevice
     private float fireRate = 1f;
     private float nextFire = 0.0f;
     private int bombs = 5;
-    public void Update(string button, PlayerController player, RocketController ship)
+    public void Update(string button, PlayerController player, ShipController ship)
     {
         if (Input.GetButton(button) && Time.time > nextFire && bombs > 0)
         {
@@ -380,7 +380,7 @@ public class DeathrayDevice : IDevice
     private float deathrayLoadingTimeMin = 0.5f;
     private float deathrayLoadingTimeMax = 10f;
     private float loaded = 0.0f;
-    public void Update(string button, PlayerController player, RocketController ship)
+    public void Update(string button, PlayerController player, ShipController ship)
     {
         bool deathrayLoadingOn = false;
         if (rays > 0)
@@ -418,7 +418,7 @@ public class DeathrayDevice : IDevice
         }
     }
 
-    private void fireDeathray(PlayerController player, RocketController ship)
+    private void fireDeathray(PlayerController player, ShipController ship)
     {
         var loadedNormalized = Mathf.Clamp01(loaded / deathrayLoadingTimeMax);
         var distance = loadedNormalized * player.deathrayDistance;
@@ -463,7 +463,7 @@ public class DeathrayDevice : IDevice
 public class ShieldDevice : IDevice
 {
     private float energy = 10;
-    public void Update(string button, PlayerController player, RocketController ship)
+    public void Update(string button, PlayerController player, ShipController ship)
     {
         bool shieldOn = Input.GetButton(button) && energy > 0;
         if (shieldOn)
