@@ -24,13 +24,11 @@ public class WeaponCrate : Explosive
         Drone
     }
     private Rigidbody2D rb;
-    private float originalDrag;
     private bool isInWater = false;
     private float gravityForceMagnitude;
     void Start()
     {
         rb = gameObject.GetComponent<Rigidbody2D>();
-        originalDrag = rb.drag;
         gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
     }
 
@@ -39,7 +37,6 @@ public class WeaponCrate : Explosive
         if (other.tag == "Water")
         {
             isInWater = true;
-            rb.drag = 5;
         }
     }
 
@@ -48,7 +45,6 @@ public class WeaponCrate : Explosive
         if (other.tag == "Water")
         {
             isInWater = false;
-            rb.drag = originalDrag;
         }
     }
 
@@ -56,10 +52,12 @@ public class WeaponCrate : Explosive
     {
         if (other.gameObject.tag == "Player")
         {
-            PlayerController player = other.rigidbody.GetComponent<PlayerController>();
-            if (player != null)
+            RocketController ship = other.rigidbody.GetComponent<RocketController>();
+            if (ship != null)
             {
-                switch (RandomEnumValue<Weapon>())
+                var player = ship.playerController;
+                var weapon = RandomEnumValue<Weapon>();
+                switch (weapon)
                 {
                     case Weapon.Flamer:
                         player.setPrimaryWeapon(new FlamerDevice());

@@ -8,10 +8,9 @@ using UnityEngine.UI;
 public class GameController : MonoBehaviour
 {
 
-    public GameObject shipTemplate;
     public RepairBase repairBaseTemplate;
     public List<GameObject> weaponCrateTemplates;
-    public Camera cameraTemplate;
+    public PlayerController cameraTemplate;
     public Hud hudTemplate;
     public List<Color> colors;
     public Collider2D water;
@@ -33,11 +32,9 @@ public class GameController : MonoBehaviour
         var startPositions = terrain.startPositions(playerCount);
         for (int i = 0; i < playerCount; i++)
         {
-            GameObject ship = Instantiate(shipTemplate, startPositions[i], Quaternion.identity) as GameObject;
-            Hud hud = Instantiate(hudTemplate, startPositions[i], Quaternion.identity) as Hud;
-            hud.gameObject.SetActive(true);
-            Camera camera = Instantiate(cameraTemplate, startPositions[i], Quaternion.identity) as Camera;
-            camera.gameObject.SetActive(true);
+            PlayerController playerController = Instantiate(cameraTemplate, startPositions[i], Quaternion.identity) as PlayerController;
+            playerController.gameObject.SetActive(true);
+            Camera camera = playerController._camera;
             switch (i)
             {
                 case 0:
@@ -53,14 +50,12 @@ public class GameController : MonoBehaviour
                     camera.rect = new Rect(0.5f, 0.0f, 0.5f, 0.5f);
                     break;
             }
-            var playerController = ship.GetComponent<PlayerController>();
-            playerController.playerCamera = camera;
+            Hud hud = Instantiate(hudTemplate, startPositions[i], Quaternion.identity) as Hud;
+            hud.gameObject.SetActive(true);
             hud.GetComponent<Canvas>().worldCamera = camera;
             playerController.hud = hud;
             playerController.controls = players[i].controls;
             playerController.gameController = this;
-            var flamerTrigger = playerController.flamer.trigger;
-            flamerTrigger.SetCollider(0, water);
             playerController.color = colors[i];
             playerControllers.Add(playerController);
             
@@ -71,8 +66,8 @@ public class GameController : MonoBehaviour
         playerControllers.ForEach(c => c.hud.InitializeEnemyIndicators(playerControllers));
         if (playerCount == 2)
         {
-            playerControllers[0].playerCamera.rect = new Rect(0.25f, 0.5f, 0.5f, 0.5f);
-            playerControllers[1].playerCamera.rect = new Rect(0.25f, 0f, 0.5f, 0.5f);
+            playerControllers[0]._camera.rect = new Rect(0.25f, 0.5f, 0.5f, 0.5f);
+            playerControllers[1]._camera.rect = new Rect(0.25f, 0f, 0.5f, 0.5f);
         }
         eventSystem = GetComponent<EventSystem>();
         eventSystem.enabled = false;
@@ -152,7 +147,6 @@ public class GameController : MonoBehaviour
         var startPositions = terrain.startPositions(playerCount);
         for (int i = 0; i < playerCount; i++)
         {
-            playerControllers[i].gameObject.SetActive(true);
             playerControllers[i].respawn(startPositions[i]);
             repairBases[i].gameObject.SetActive(true);
             repairBases[i].respawn(startPositions[i]);

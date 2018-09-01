@@ -71,6 +71,11 @@ public class Hud : MonoBehaviour
             player = players[i];
             indicator = enemyIndicators[i];
 
+            if (player.ship == null) {
+                indicator.gameObject.SetActive(false);
+                return;
+            }
+
             screenPos = _camera.WorldToViewportPoint(player.transform.position); //get viewport positions
 
             if (screenPos.x >= 0 && screenPos.x <= 1 && screenPos.y >= 0 && screenPos.y <= 1)

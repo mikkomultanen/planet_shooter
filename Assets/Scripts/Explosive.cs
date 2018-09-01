@@ -52,12 +52,17 @@ public class Explosive : MonoBehaviour, Damageable
         ExplosionForce ef = GameObject.FindObjectOfType<ExplosionForce>();
         ef.doExplosion(transform.position, explosionForce, explosionRadius);
 
-        Destroy(gameObject);
+        afterExposion();
     }
 
-    public void doDamage(float damage)
+    public virtual void doDamage(float damage)
     {
         health -= damage;
         if (health < 0f) explode();
+    }
+
+    protected virtual void afterExposion()
+    {
+        Destroy(gameObject);
     }
 }
