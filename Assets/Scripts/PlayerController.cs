@@ -21,7 +21,7 @@ public class PlayerController : MonoBehaviour
     public float cameraMaxDistance = 105f;
     public Controls controls;
     public LayerMask laserLayerMask = ~(1 << 1);
-    public float deathrayDistance = 150f;
+    public float deathrayDistance = 50f;
     public float deathrayWidth = 1f;
 
     public RocketController shipTemplate;

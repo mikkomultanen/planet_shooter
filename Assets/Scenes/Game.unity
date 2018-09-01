@@ -59264,10 +59264,10 @@ MonoBehaviour:
   rocket: {fileID: 1362886240}
   gunPoint: {fileID: 1102706436}
   shield: {fileID: 1265431779}
-  maxThrustPower: 1000
+  maxThrustPower: 300
   maxSpeed: 10
-  airDrag: 1
-  waterDrag: 5
+  airDrag: 0.5
+  waterDrag: 2.5
   orthogonalDrag: 2
   thruster: {fileID: 629460618}
   afterBurner: {fileID: 209205113}
@@ -59278,7 +59278,7 @@ MonoBehaviour:
   deathrayLoading: {fileID: 321619614}
   spike: {fileID: 1862619495}
   afterBurnerMaxSpeed: 30
-  afterBurnerThrustPower: 3000
+  afterBurnerThrustPower: 900
   playerController: {fileID: 0}
 --- !u!60 &1429218462
 PolygonCollider2D:
@@ -64577,8 +64577,8 @@ MonoBehaviour:
   controls: 0
   laserLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967293
-  deathrayDistance: 150
+    m_Bits: 7441
+  deathrayDistance: 50
   deathrayWidth: 1
   shipTemplate: {fileID: 1429218461}
   projectileTemplate: {fileID: 1211334698357148, guid: ab111d034448c430a862e52f0b7ff31b,
@@ -69584,7 +69584,7 @@ MonoBehaviour:
   laserSparkles: {fileID: 747125547}
   laserLayerMask:
     serializedVersion: 2
-    m_Bits: 4294967293
+    m_Bits: 7441
 --- !u!58 &1673015763
 CircleCollider2D:
   m_ObjectHideFlags: 0

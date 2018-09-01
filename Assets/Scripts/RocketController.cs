@@ -8,7 +8,7 @@ public class RocketController : Explosive, Repairable
     public MeshRenderer rocket;
     public Transform gunPoint;
     public GameObject shield;
-    public float maxThrustPower = 2000f;
+    public float maxThrustPower = 300f;
     public float maxSpeed = 10f;
     [Range(0.0f, 10f)]
     public float airDrag = 0.5f;
@@ -27,7 +27,7 @@ public class RocketController : Explosive, Repairable
     public GameObject spike;
 
     public float afterBurnerMaxSpeed = 30f;
-    public float afterBurnerThrustPower = 6000f;
+    public float afterBurnerThrustPower = 900f;
 
     [HideInInspector]
     public PlayerController playerController;
