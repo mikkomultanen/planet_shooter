@@ -161,6 +161,10 @@ public class GameController : MonoBehaviour
         {
             Destroy(crate.gameObject);
         }
+        foreach (var drone in GameObject.FindObjectsOfType<DroneController>())
+        {
+            Destroy(drone.gameObject);
+        }
     }
 
     private IEnumerator spawnWeaponCrateWithInterval(float interval)
