@@ -38735,11 +38735,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 088a7ef85c411400f85c29bd366896ad, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shipTemplate: {fileID: 1429218460}
   repairBaseTemplate: {fileID: 2016279801}
   weaponCrateTemplates:
   - {fileID: 150540751}
-  cameraTemplate: {fileID: 1590116403}
+  cameraTemplate: {fileID: 1590116407}
   hudTemplate: {fileID: 1750554230}
   colors:
   - {r: 1, g: 0.20300001, b: 0.20300001, a: 1}
@@ -48920,7 +48919,7 @@ Prefab:
         type: 2}
       propertyPath: cameraTemplate
       value: 
-      objectReference: {fileID: 1590116403}
+      objectReference: {fileID: 1590116407}
     - target: {fileID: 114381074067947574, guid: 6fe0a73b2bef74843966379c220d1558,
         type: 2}
       propertyPath: weaponCrateTemplates.Array.data[4]
@@ -59238,8 +59237,8 @@ GameObject:
   - component: {fileID: 1429218465}
   - component: {fileID: 1429218463}
   - component: {fileID: 1429218462}
-  - component: {fileID: 1429218461}
   - component: {fileID: 1429218464}
+  - component: {fileID: 1429218461}
   m_Layer: 10
   m_Name: Ship template
   m_TagString: Player
@@ -59250,55 +59249,37 @@ GameObject:
 --- !u!114 &1429218461
 MonoBehaviour:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 114759628304147876, guid: e800ed23abbda4c54975c877f1d50202,
-    type: 2}
+  m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1429218460}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 539ba1b72469546ed91fb7a24f85156b, type: 3}
+  m_Script: {fileID: 11500000, guid: 8288b7efca88fa14792922a4d6cd0f6a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerCamera: {fileID: 0}
-  hud: {fileID: 0}
-  cameraMinDistance: 55
-  cameraMaxDistance: 105
-  gameController: {fileID: 0}
-  controls: 0
+  explosionDamage: 100
+  explosion: {fileID: 198539498345428444, guid: 56e25eb96b97e48ff8a42a34d78bf714,
+    type: 2}
+  health: 100
   rocket: {fileID: 1362886240}
-  projectile: {fileID: 1211334698357148, guid: ab111d034448c430a862e52f0b7ff31b, type: 2}
   gunPoint: {fileID: 1102706436}
-  missile: {fileID: 1952200868272222, guid: 666e4626064014412845b0f68a6e03ec, type: 2}
-  homingMissile: {fileID: 1952200868272222, guid: bf6fbb91f627e403097e630e4c7c960a,
-    type: 2}
-  bomb: {fileID: 1439679081883394, guid: 6683d13e338964bb3b20c7ef64dca29a, type: 2}
-  deathrayBeam: {fileID: 114879035741800718, guid: e4301f0b0643c4885a046575a7e946a7,
-    type: 2}
   shield: {fileID: 1265431779}
-  droneTemplate: {fileID: 1673015762}
-  maxHealth: 100
-  maxThrustPower: 300
+  maxThrustPower: 1000
   maxSpeed: 10
-  airDrag: 0.5
-  waterDrag: 2.5
+  airDrag: 1
+  waterDrag: 5
   orthogonalDrag: 2
-  afterBurnerMaxSpeed: 30
-  afterBurnerThrustPower: 900
-  laserLayerMask:
-    serializedVersion: 2
-    m_Bits: 4294958557
-  deathrayDistance: 30
-  deathrayWidth: 1
   thruster: {fileID: 629460618}
   afterBurner: {fileID: 209205113}
   flamer: {fileID: 1459200324}
   smoke: {fileID: 45707597}
-  explosion: {fileID: 198539498345428444, guid: 56e25eb96b97e48ff8a42a34d78bf714,
-    type: 2}
   laserRay: {fileID: 956011615}
   laserSparkles: {fileID: 1607834495}
   deathrayLoading: {fileID: 321619614}
   spike: {fileID: 1862619495}
+  afterBurnerMaxSpeed: 30
+  afterBurnerThrustPower: 3000
+  playerController: {fileID: 0}
 --- !u!60 &1429218462
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -64468,6 +64449,7 @@ GameObject:
   - component: {fileID: 1590116402}
   - component: {fileID: 1590116405}
   - component: {fileID: 1590116406}
+  - component: {fileID: 1590116407}
   m_Layer: 0
   m_Name: PlayerCamera template
   m_TagString: MainCamera
@@ -64577,6 +64559,42 @@ MonoBehaviour:
   color: {r: 0, g: 1, b: 0, a: 1}
   radarDistance: 2
   radarSpeed: 1.5
+--- !u!114 &1590116407
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 1590116401}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 539ba1b72469546ed91fb7a24f85156b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gameController: {fileID: 0}
+  hud: {fileID: 0}
+  cameraMinDistance: 55
+  cameraMaxDistance: 105
+  controls: 0
+  laserLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967293
+  deathrayDistance: 150
+  deathrayWidth: 1
+  shipTemplate: {fileID: 1429218461}
+  projectileTemplate: {fileID: 1211334698357148, guid: ab111d034448c430a862e52f0b7ff31b,
+    type: 2}
+  missileTemplate: {fileID: 1952200868272222, guid: 666e4626064014412845b0f68a6e03ec,
+    type: 2}
+  homingMissileTemplate: {fileID: 1952200868272222, guid: bf6fbb91f627e403097e630e4c7c960a,
+    type: 2}
+  bombTemplate: {fileID: 1439679081883394, guid: 6683d13e338964bb3b20c7ef64dca29a,
+    type: 2}
+  deathrayBeamTemplate: {fileID: 114879035741800718, guid: e4301f0b0643c4885a046575a7e946a7,
+    type: 2}
+  droneTemplate: {fileID: 1673015762}
+  color: {r: 0, g: 0, b: 0, a: 0}
+  _camera: {fileID: 0}
+  ship: {fileID: 0}
 --- !u!1 &1607834494
 GameObject:
   m_ObjectHideFlags: 0
@@ -69549,7 +69567,7 @@ MonoBehaviour:
   explosion: {fileID: 198539498345428444, guid: 56e25eb96b97e48ff8a42a34d78bf714,
     type: 2}
   health: 20
-  player: {fileID: 0}
+  ship: {fileID: 0}
   maxHorizontalSpeed: 10
   maxHorizontalThrustPower: 10
   maxVerticalSpeed: 10
@@ -69564,6 +69582,9 @@ MonoBehaviour:
   thruster: {fileID: 825157315}
   laserRay: {fileID: 341286275}
   laserSparkles: {fileID: 747125547}
+  laserLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967293
 --- !u!58 &1673015763
 CircleCollider2D:
   m_ObjectHideFlags: 0

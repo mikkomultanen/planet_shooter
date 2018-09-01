@@ -6,7 +6,7 @@ using UnityEngine;
 public class DroneController : Explosive
 {
 
-    public PlayerController player;
+    public Rigidbody2D ship;
     public float maxHorizontalSpeed = 5f;
     public float maxHorizontalThrustPower = 10f;
     public float maxVerticalSpeed = 10f;
@@ -20,6 +20,7 @@ public class DroneController : Explosive
     public ParticleSystem thruster;
     public LineRenderer laserRay;
     public ParticleSystem laserSparkles;
+    public LayerMask laserLayerMask = ~(1 << 1);
 
     private Color _color;
 
@@ -37,7 +38,6 @@ public class DroneController : Explosive
     }
 
     private Rigidbody2D rb;
-    private Rigidbody2D playerRb;
     private float originalDrag;
     private float gravityForceMagnitude;
 
@@ -47,11 +47,6 @@ public class DroneController : Explosive
         rb = gameObject.GetComponent<Rigidbody2D>();
         originalDrag = rb.drag;
         gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
-    }
-
-    private void Start()
-    {
-        playerRb = player.GetComponent<Rigidbody2D>();
     }
 
     private void Update()
@@ -99,7 +94,7 @@ public class DroneController : Explosive
 
     private Vector2 Direction()
     {
-        var direction = playerRb.position - rb.position;
+        var direction = ship.position - rb.position;
         if (direction.magnitude < minDistance)
         {
             direction = -direction;
@@ -138,7 +133,7 @@ public class DroneController : Explosive
         Collider2D[] colliders = Physics2D.OverlapCircleAll(rb.position, targetRadius, targetLayerMask);
         return colliders.Aggregate((Transform)null, (memo, c) =>
         {
-            if (c.gameObject == player.gameObject || c.gameObject == gameObject)
+            if (c.gameObject == ship.gameObject || c.gameObject == gameObject)
             {
                 return memo;
             }
@@ -206,7 +201,7 @@ public class DroneController : Explosive
     {
         Vector2 position = transform.position;
         Vector2 direction = ((Vector2)target.position - position).normalized;
-        RaycastHit2D hit = Physics2D.Raycast(position + (direction * gunPointRadius), direction, 100, player.laserLayerMask);
+        RaycastHit2D hit = Physics2D.Raycast(position + (direction * gunPointRadius), direction, 100, laserLayerMask);
         if (hit.collider != null)
         {
             laserRay.SetPosition(1, laserRay.transform.InverseTransformPoint(hit.point));
