@@ -93129,7 +93129,7 @@ MonoBehaviour:
     m_Bits: 7441
   deathrayDistance: 50
   deathrayWidth: 1
-  shipTemplate: {fileID: 1429218461}
+  shipTemplate: {fileID: 1133514697}
   projectileTemplate: {fileID: 1211334698357148, guid: ab111d034448c430a862e52f0b7ff31b,
     type: 2}
   missileTemplate: {fileID: 1952200868272222, guid: 666e4626064014412845b0f68a6e03ec,
@@ -98989,7 +98989,7 @@ Transform:
   m_GameObject: {fileID: 2014018011}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 1, z: -1.5}
-  m_LocalScale: {x: 0.2, y: 0.5, z: 1}
+  m_LocalScale: {x: 0.3, y: 0.5, z: 1}
   m_Children: []
   m_Father: {fileID: 66156833}
   m_RootOrder: 5
@@ -99009,7 +99009,7 @@ SpriteRenderer:
   m_ReflectionProbeUsage: 1
   m_RenderingLayerMask: 4294967295
   m_Materials:
-  - {fileID: 10754, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: b62cf92cae0c26246a839dedea750100, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -99030,7 +99030,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_Sprite: {fileID: 21300000, guid: a5bd9c8e2cbd547fd9c32876ebc7f45c, type: 3}
-  m_Color: {r: 0, g: 1, b: 0.9903991, a: 0.30588236}
+  m_Color: {r: 0, g: 1, b: 0.24671865, a: 0.30588236}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
