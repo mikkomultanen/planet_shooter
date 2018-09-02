@@ -41,27 +41,21 @@ public class UfoController : ShipController
     {
         float x = Input.GetAxis(xAxis);
         float y = Input.GetAxis(yAxis);
-        var localDirection = Vector2.ClampMagnitude(new Vector2(x, y), 1);
-        Vector2 direction = transform.TransformDirection(localDirection);
-        if (direction.sqrMagnitude > 0.01f) {
-            targeting.rotation = Quaternion.Euler(0, 0, -Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg);
-        }
-
+        bool thrustersOn = Mathf.Abs(x) > 0.01f || Mathf.Abs(y) > 0.01f;
         var smokeEmission = smoke.emission;
-        bool thrustersOn = Input.GetAxis(yAxis) > 0f;
         if (thrustersOn != thruster.isEmitting)
         {
             if (thrustersOn)
+            {
                 thruster.Play();
+                smokeEmission.rateOverDistanceMultiplier = 5.0f;
+            }
             else
+            {
                 thruster.Stop();
+                smokeEmission.rateOverDistanceMultiplier = 0.0f;
+            }
         }
-
-        bool movingHorizontally = Input.GetAxis(xAxis) != 0f;
-        if (thrustersOn || movingHorizontally)
-            smokeEmission.rateOverDistanceMultiplier = 5.0f;
-        else
-            smokeEmission.rateOverDistanceMultiplier = 0.0f;
 
         bool lowHealth = this.health < 30;
         smokeEmission.rateOverTimeMultiplier = 10 * Mathf.Clamp01(1.0f - this.health / 30);
@@ -78,11 +72,16 @@ public class UfoController : ShipController
     {
         float x = Input.GetAxis(xAxis);
         float y = Input.GetAxis(yAxis);
-        var localDirection = Vector2.ClampMagnitude(new Vector2(x, y), 1);
-        Vector2 direction = transform.TransformDirection(localDirection);
-        
         var h = rb.position.magnitude;
         var positionNormalized = rb.position.normalized;
+
+        Vector2 direction = Vector2.ClampMagnitude(positionNormalized * y - Vector2.Perpendicular(positionNormalized) * x, 1);
+        if (direction.sqrMagnitude > 0.01f) {
+            var targetAngleDiff = Vector2.SignedAngle(targeting.up, direction);
+            var maxRotation = 300f * Time.deltaTime;
+            targeting.Rotate(0, 0 , Mathf.Clamp(targetAngleDiff, -maxRotation, maxRotation));
+        }
+
         float athmosphereCoefficient = Mathf.Clamp((120f - h) / 20f, 0f, 1f);
         float floatingAndGravityForceMagnitude = (IsInWater ? -1.2f : (1f - athmosphereCoefficient)) * gravityForceMagnitude;
         float thursterForceMagnitude = 0f;
@@ -104,6 +103,8 @@ public class UfoController : ShipController
         rb.AddForce(-rb.velocity * rb.velocity.magnitude * drag);
 
         rb.AddForce(thrusters + gravity);
-        rb.rotation = -Mathf.Atan2(rb.position.x, rb.position.y) * Mathf.Rad2Deg;
+
+        var angle = Vector2.SignedAngle(transform.up, rb.position) - x * 15f;
+        rb.angularVelocity = Mathf.Clamp(angle / 15f, -1, 1) * 180f;
     }
 }

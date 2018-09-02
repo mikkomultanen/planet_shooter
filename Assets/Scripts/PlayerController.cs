@@ -201,8 +201,8 @@ public class LaserDevice : IDevice
     private bool updateLaserBeam(PlayerController player, ShipController ship)
     {
         var laserSparklesOn = false;
-        Vector2 position = ship.laserRay.transform.position;
-        RaycastHit2D hit = Physics2D.Raycast(position, ship.laserRay.transform.up, 100, player.laserLayerMask);
+        Vector2 position = ship.gunPoint.transform.position;
+        RaycastHit2D hit = Physics2D.Raycast(position, ship.gunPoint.transform.up, 100, player.laserLayerMask);
         var laserRay = ship.laserRay;
         if (hit.collider != null)
         {
@@ -424,9 +424,9 @@ public class DeathrayDevice : IDevice
         var distance = loadedNormalized * player.deathrayDistance;
         var damage = loadedNormalized * deathrayDamage;
         var start = ship.gunPoint.position;
-        var direction = ship.transform.up * distance;
+        var direction = ship.gunPoint.transform.up * distance;
         var center = start + direction * 0.5f;
-        var angle = ship.GetComponent<Rigidbody2D>().rotation;
+        var angle = ship.gunPoint.transform.eulerAngles.z;
         Collider2D[] colliders = Physics2D.OverlapCapsuleAll(center, new Vector2(player.deathrayWidth, distance + player.deathrayWidth), CapsuleDirection2D.Vertical, angle);
         Damageable damageable;
         TerrainPiece terrainPiece;
