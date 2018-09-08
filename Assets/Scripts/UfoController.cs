@@ -12,6 +12,7 @@ public class UfoController : ShipController
     [Range(0.0f, 10f)]
     public float waterDrag = 2.5f;
 
+    public Transform disc;
     public Transform targeting;
     public ParticleSystem thruster;
     public ParticleSystem smoke;
@@ -66,6 +67,8 @@ public class UfoController : ShipController
             else
                 smoke.Stop();
         }
+
+        disc.Rotate(0, x * 360 * Time.deltaTime, 0);
     }
 
     void FixedUpdate()
