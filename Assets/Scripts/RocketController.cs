@@ -106,4 +106,10 @@ public class RocketController : ShipController
         var t = positionDelta - (positionNormalized * Vector2.Dot(positionDelta, positionNormalized));
         rb.rotation -= Mathf.Atan(t.magnitude / h) * Mathf.Sign(PSEdge.Cross(t, positionNormalized)) * Mathf.Rad2Deg;
     }
+
+    public override string Name {
+        get {
+            return "Rocket";
+        }
+    }
 }

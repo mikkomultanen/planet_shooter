@@ -110,4 +110,10 @@ public class UfoController : ShipController
         var angle = Vector2.SignedAngle(transform.up, rb.position) - x * 15f;
         rb.angularVelocity = Mathf.Clamp(angle / 15f, -1, 1) * 180f;
     }
+
+    public override string Name {
+        get {
+            return "Ufo";
+        }
+    }
 }

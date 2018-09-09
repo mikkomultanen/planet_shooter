@@ -126,4 +126,6 @@ public class ShipController : Explosive, Repairable
     {
         health = Mathf.Min(health + amount, originalHealth);
     }
+
+    public virtual string Name { get; }
 }

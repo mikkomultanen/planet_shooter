@@ -7,7 +7,7 @@ using UnityEngine.UI;
 [RequireComponent(typeof(Canvas))]
 public class Hud : MonoBehaviour
 {
-
+    public Text selectShip;
     public Text health;
     public Text weapons;
     public Image enemyIndicatorTemplate;
@@ -16,6 +16,7 @@ public class Hud : MonoBehaviour
     private Camera _camera;
     private List<PlayerController> players = new List<PlayerController>();
     private List<Image> enemyIndicators = new List<Image>();
+
     public void UpdateHealth(int health)
     {
         this.health.text = "Health: " + health;
@@ -30,6 +31,14 @@ public class Hud : MonoBehaviour
             text.Add(secondary.HudRow());
         }
         weapons.text = string.Join("\n", text.ToArray());
+    }
+
+    public void UpdateSelectShip(ShipController shipTemplate)
+    {
+        selectShip.gameObject.SetActive(shipTemplate != null);
+        if (shipTemplate != null) {
+            selectShip.text = "Select ship:\n< " + shipTemplate.Name + " >\npress fire";
+        }
     }
 
     public static string energyToString(float energy)
@@ -73,7 +82,7 @@ public class Hud : MonoBehaviour
 
             if (player.ship == null) {
                 indicator.gameObject.SetActive(false);
-                return;
+                continue;
             }
 
             screenPos = _camera.WorldToViewportPoint(player.transform.position); //get viewport positions

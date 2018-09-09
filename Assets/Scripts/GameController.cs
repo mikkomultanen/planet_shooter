@@ -22,13 +22,11 @@ public class GameController : MonoBehaviour
     private int playerCount;
     private EventSystem eventSystem;
     private List<PlayerController> playerControllers;
-    private List<RepairBase> repairBases;
 
     private void Awake()
     {
         playerCount = players.Count;
         playerControllers = new List<PlayerController>();
-        repairBases = new List<RepairBase>();
         var startPositions = terrain.startPositions(playerCount);
         for (int i = 0; i < playerCount; i++)
         {
@@ -50,18 +48,23 @@ public class GameController : MonoBehaviour
                     camera.rect = new Rect(0.5f, 0.0f, 0.5f, 0.5f);
                     break;
             }
+
+            playerController.gameController = this;
+
             Hud hud = Instantiate(hudTemplate, startPositions[i], Quaternion.identity) as Hud;
             hud.gameObject.SetActive(true);
             hud.GetComponent<Canvas>().worldCamera = camera;
             playerController.hud = hud;
+
+            var repairBase = Instantiate(repairBaseTemplate, startPositions[i], Quaternion.identity) as RepairBase;
+            repairBase.gameObject.SetActive(true);
+            repairBase.terrain = terrain;
+            playerController.repairBase = repairBase;
+
             playerController.controls = players[i].controls;
-            playerController.gameController = this;
             playerController.color = colors[i];
             playerControllers.Add(playerController);
             
-            var repairBase = Instantiate(repairBaseTemplate, startPositions[i], Quaternion.identity) as RepairBase;
-            repairBase.terrain = terrain;
-            repairBases.Add(repairBase);
         }
         playerControllers.ForEach(c => c.hud.InitializeEnemyIndicators(playerControllers));
         if (playerCount == 2)
@@ -148,8 +151,6 @@ public class GameController : MonoBehaviour
         for (int i = 0; i < playerCount; i++)
         {
             playerControllers[i].respawn(startPositions[i]);
-            repairBases[i].gameObject.SetActive(true);
-            repairBases[i].respawn(startPositions[i]);
         }
         foreach (var crate in GameObject.FindObjectsOfType<WeaponCrate>())
         {
