@@ -5,13 +5,16 @@ Shader "PlanetShooter/Mesh"
 		[MaterialToggle(_TEX_ON)] _DetailTex ("Enable Detail texture", Float) = 0 	//1
 		_MainTex ("Detail", 2D) = "white" {}        								//2
 		_ToonShade ("Shade", 2D) = "white" {}  										//3
-		[MaterialToggle(_COLOR_ON)] _TintColor ("Enable Color Tint", Float) = 0 	//4
-		_Color ("Base Color", Color) = (1,1,1,1)									//5	
-		_Brightness ("Brightness 1 = neutral", Float) = 1.0							//6	
-        [KeywordEnum(None, Add, Multiply)] _Shadow("Shadow Blending", Float) = 0    //7
-        [PerRendererData]_Disolve ("Disolve value", range(0.0, 1.0)) = 0            //8
-        _DisolveRes ("Disolve resolution", range(0.01, 1.0)) = 1.0                  //9
-        [HDR]_Emission ("Disolve emission", Color) = (0,0,0,0)                      //10
+		[MaterialToggle(_DECAL_ON)] _DecalTex ("Enable Decal texture", Float) = 0 	//4
+		_EmissionTex ("Decal", 2D) = "white" {}        								//5
+		_DecalBrightness ("Decal brightness 1 = neutral", Float) = 1.0				//6	
+		[MaterialToggle(_COLOR_ON)] _TintColor ("Enable Color Tint", Float) = 0 	//7
+		_Color ("Base Color", Color) = (1,1,1,1)									//8	
+		_Brightness ("Brightness 1 = neutral", Float) = 1.0							//9	
+        [KeywordEnum(None, Add, Multiply)] _Shadow("Shadow Blending", Float) = 0    //10
+        [PerRendererData]_Disolve ("Disolve value", range(0.0, 1.0)) = 0            //11
+        _DisolveRes ("Disolve resolution", range(0.01, 1.0)) = 1.0                  //12
+        [HDR]_Emission ("Disolve emission", Color) = (0,0,0,0)                      //13
     }
    
     Subshader 
@@ -33,6 +36,7 @@ Shader "PlanetShooter/Mesh"
                 #include "UnityCG.cginc"
                 #pragma glsl_no_auto_normalization
                 #pragma multi_compile _TEX_OFF _TEX_ON
+                #pragma multi_compile _DECAL_OFF _DECAL_ON
                 #pragma multi_compile _COLOR_OFF _COLOR_ON
                 #pragma multi_compile _SHADOW_NONE, _SHADOW_ADD, _SHADOW_MULTIPLY
 
@@ -40,6 +44,11 @@ Shader "PlanetShooter/Mesh"
                 #if _TEX_ON
                 sampler2D _MainTex;
 				half4 _MainTex_ST;
+				#endif
+                #if _DECAL_ON
+                sampler2D _EmissionTex;
+				half4 _EmissionTex_ST;
+                float _DecalBrightness;
 				#endif
                 float _Disolve;
                 float _DisolveRes;
@@ -60,9 +69,12 @@ Shader "PlanetShooter/Mesh"
                     half2 uv : TEXCOORD0;
                     #endif
                     half2 uvn : TEXCOORD1;
+                    #if _DECAL_ON
+                    half2 uvd : TEXCOORD2;
+                    #endif
                     #if _SHADOW_NONE
                     #else
-                    float4 screenPos : TEXCOORD2;
+                    float4 screenPos : TEXCOORD3;
                     #endif
                 };
                
@@ -75,6 +87,9 @@ Shader "PlanetShooter/Mesh"
                     o.uvn = n.xy;
                     #if _TEX_ON
                     o.uv = TRANSFORM_TEX ( v.texcoord, _MainTex );
+                    #endif
+                    #if _DECAL_ON
+                    o.uvd = TRANSFORM_TEX ( v.texcoord, _EmissionTex );
                     #endif
                     #if _SHADOW_NONE
                     #else
@@ -97,9 +112,9 @@ Shader "PlanetShooter/Mesh"
                     return frac((p3.x + p3.y) * p3.z + _Time.y);
                 }
 
-                fixed4 frag (v2f i) : COLOR
+                float4 frag (v2f i) : COLOR
                 {
-                    fixed4 result = tex2D( _ToonShade, i.uvn );
+                    float4 result = tex2D( _ToonShade, i.uvn );
 					#if _COLOR_ON
 					result *= _Color;
 					#endif
@@ -117,9 +132,17 @@ Shader "PlanetShooter/Mesh"
                     result.rgb = (result * tex2Dproj(Lightmap_RT, i.screenPos)).rgb;
                     #endif
 
+                    #if _DECAL_ON
+                    fixed4 decal = tex2D( _EmissionTex, i.uvd );
+                    decal *= _DecalBrightness;
+                    result = lerp(result, decal, decal.a);
+                    #endif
+
                     float hash = hash12(floor(i.pos.xy * _DisolveRes));
-                    result.rgb += _Emission.xyz * hash * _Disolve * _Disolve;
+                    result += _Emission * hash * _Disolve * _Disolve;
                     clip(hash - _Disolve);
+
+                    result.a = 1;
 
                     return result;
                 }

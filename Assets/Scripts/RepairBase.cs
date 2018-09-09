@@ -21,7 +21,9 @@ public class RepairBase : MonoBehaviour
         var forceMagnitude = Mathf.Clamp((rb.position.magnitude - targetMagnitude), -3f, 1f) * gravityForceMagnitude;
         Vector2 force = rb.position.normalized * forceMagnitude;
         rb.AddForce(force);
-        rb.rotation = -Mathf.Atan2(rb.position.x, rb.position.y) * Mathf.Rad2Deg;
+
+        var angle = Vector2.SignedAngle(transform.up, rb.position);
+        rb.angularVelocity = Mathf.Clamp(angle / 15f, -1, 1) * 180f;
     }
 
     private void Update()

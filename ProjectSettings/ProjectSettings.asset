@@ -623,7 +623,7 @@ PlayerSettings:
   apiCompatibilityLevel: 3
   cloudProjectId: 6d61f27c-ea9c-42fe-9c2a-e947c38e8fd7
   projectName: PlanetShooter
-  organizationId: mvnkoski
+  organizationId: vaanakoski
   cloudEnabled: 0
   enableNativePlatformBackendsForNewInputSystem: 0
   disableOldInputManagerSupport: 0

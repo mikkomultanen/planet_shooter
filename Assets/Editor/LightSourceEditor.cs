@@ -9,6 +9,10 @@ public class LightSourceEditor : Editor
 	{
 		LightSource source = (LightSource)target;
 
+		if (!source.on || !source.enabled)
+		{
+			return;
+		}
 		Handles.color = Color.white;
 		Handles.DrawWireArc(source.transform.position, Vector3.back, Vector3.up, 360, (source.size / 2));
 		Vector3 pa = source.DirFromAngle(source.angle / 2, false) * (source.size / 2);

@@ -3,25 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class RocketController : ShipController
+public class UfoController : ShipController
 {
     public float maxThrustPower = 300f;
-    public float maxSpeed = 10f;
+    public float maxSpeed = 8f;
     [Range(0.0f, 10f)]
     public float airDrag = 0.5f;
     [Range(0.0f, 10f)]
     public float waterDrag = 2.5f;
-    [Range(0.0f, 10f)]
-    public float orthogonalDrag = 2f;
 
+    public Transform disc;
+    public Transform targeting;
     public ParticleSystem thruster;
     public ParticleSystem smoke;
 
-    public float afterBurnerMaxSpeed = 30f;
+    public float afterBurnerMaxSpeed = 25f;
     public float afterBurnerThrustPower = 900f;
 
-    private string turnAxis;
-    private string thrustAxis;
+    private string xAxis;
+    private string yAxis;
 
     private Rigidbody2D rb;
     private float gravityForceMagnitude;
@@ -30,19 +30,20 @@ public class RocketController : ShipController
         base.Awake();
         rb = gameObject.GetComponent<Rigidbody2D>();
         gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
-        previousPosition = rb.position;
     }
 
     void Start()
     {
-        turnAxis = playerController.controls.ToString() + " Turn";
-        thrustAxis = playerController.controls.ToString() + " Thrust";
+        xAxis = playerController.controls.ToString() + " Turn";
+        yAxis = playerController.controls.ToString() + " Thrust";
     }
 
     void Update()
     {
+        float x = Input.GetAxis(xAxis);
+        float y = Input.GetAxis(yAxis);
+        bool thrustersOn = Mathf.Abs(x) > 0.01f || Mathf.Abs(y) > 0.01f;
         var smokeEmission = smoke.emission;
-        bool thrustersOn = Input.GetAxis(thrustAxis) > 0f && !afterBurner.isEmitting;
         if (thrustersOn != thruster.isEmitting)
         {
             if (thrustersOn)
@@ -56,6 +57,7 @@ public class RocketController : ShipController
                 smokeEmission.rateOverDistanceMultiplier = 0.0f;
             }
         }
+
         bool lowHealth = this.health < 30;
         smokeEmission.rateOverTimeMultiplier = 10 * Mathf.Clamp01(1.0f - this.health / 30);
         if (lowHealth != smoke.isEmitting)
@@ -65,24 +67,32 @@ public class RocketController : ShipController
             else
                 smoke.Stop();
         }
+
+        disc.Rotate(0, x * 360 * Time.deltaTime, 0);
     }
 
-    private Vector2 previousPosition;
     void FixedUpdate()
     {
-        float turn = Input.GetAxis(turnAxis);
-
+        float x = Input.GetAxis(xAxis);
+        float y = Input.GetAxis(yAxis);
         var h = rb.position.magnitude;
         var positionNormalized = rb.position.normalized;
-        float floatingAndGravityForceMagnitude = (IsInWater ? -1.2f : 1f) * gravityForceMagnitude;
+
+        Vector2 direction = Vector2.ClampMagnitude(positionNormalized * y - Vector2.Perpendicular(positionNormalized) * x, 1);
+        if (direction.sqrMagnitude > 0.01f) {
+            var targetAngleDiff = Vector2.SignedAngle(targeting.up, direction);
+            var maxRotation = 300f * Time.deltaTime;
+            targeting.Rotate(0, 0 , Mathf.Clamp(targetAngleDiff, -maxRotation, maxRotation));
+        }
+
+        float athmosphereCoefficient = Mathf.Clamp((120f - h) / 20f, 0f, 1f);
+        float floatingAndGravityForceMagnitude = (IsInWater ? -1.2f : (1f - athmosphereCoefficient)) * gravityForceMagnitude;
         float thursterForceMagnitude = 0f;
         var afterBurnerOn = afterBurner.isEmitting;
-        var forwardSpeed = Vector2.Dot(rb.velocity, transform.up);
+        var forwardSpeed = Vector2.Dot(rb.velocity, direction.normalized);
         if (forwardSpeed < (afterBurnerOn ? afterBurnerMaxSpeed : maxSpeed))
         {
-            float thrust = Mathf.Max(Input.GetAxis(thrustAxis), 0f);
-            float athmosphereCoefficient = Mathf.Clamp((120f - h) / 20f, 0f, 1f);
-            thursterForceMagnitude = athmosphereCoefficient * (afterBurnerOn ? afterBurnerThrustPower : thrust * maxThrustPower);
+            thursterForceMagnitude = athmosphereCoefficient * (afterBurnerOn ? afterBurnerThrustPower : maxThrustPower);
             if (IsInWater)
             {
                 thursterForceMagnitude = Mathf.Min(thursterForceMagnitude, 0.8f * floatingAndGravityForceMagnitude);
@@ -90,26 +100,20 @@ public class RocketController : ShipController
         }
 
         Vector2 gravity = positionNormalized * floatingAndGravityForceMagnitude;
-        Vector2 thrusters = transform.up * thursterForceMagnitude;
+        Vector2 thrusters = direction * thursterForceMagnitude;
 
         var drag = IsInWater ? waterDrag : airDrag;
-        var forwardVelocity = forwardSpeed * (Vector2)transform.up;
-        var orthogonalVelocity = rb.velocity - forwardVelocity;
-        rb.AddForce(-orthogonalVelocity * orthogonalVelocity.magnitude * (drag + orthogonalDrag));
-        rb.AddForce(-forwardVelocity * forwardVelocity.magnitude * drag);
+        rb.AddForce(-rb.velocity * rb.velocity.magnitude * drag);
 
         rb.AddForce(thrusters + gravity);
-        rb.angularVelocity = -turn * 300f;
 
-        var positionDelta = rb.position - previousPosition;
-        previousPosition = rb.position;
-        var t = positionDelta - (positionNormalized * Vector2.Dot(positionDelta, positionNormalized));
-        rb.rotation -= Mathf.Atan(t.magnitude / h) * Mathf.Sign(PSEdge.Cross(t, positionNormalized)) * Mathf.Rad2Deg;
+        var angle = Vector2.SignedAngle(transform.up, rb.position) - x * 15f;
+        rb.angularVelocity = Mathf.Clamp(angle / 15f, -1, 1) * 180f;
     }
 
     public override string Name {
         get {
-            return "Rocket";
+            return "Ufo";
         }
     }
 }

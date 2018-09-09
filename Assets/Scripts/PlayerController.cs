@@ -17,6 +17,7 @@ public class PlayerController : MonoBehaviour
 {
     public GameController gameController;
     public Hud hud;
+    public RepairBase repairBase;
     public float cameraMinDistance = 55f;
     public float cameraMaxDistance = 105f;
     public Controls controls;
@@ -24,7 +25,7 @@ public class PlayerController : MonoBehaviour
     public float deathrayDistance = 50f;
     public float deathrayWidth = 1f;
 
-    public ShipController shipTemplate;
+    public List<ShipController> shipTemplates;
     public GameObject projectileTemplate;
     public GameObject missileTemplate;
     public GameObject homingMissileTemplate;
@@ -35,6 +36,7 @@ public class PlayerController : MonoBehaviour
     public Color color;
 
     private static Vector3 cameraOffset = new Vector3(0, 0, -10);
+    private string turnAxis;
     private string fire1Button;
     private string fire2Button;
     private IDevice primaryWeapon = new MachineGunDevice();
@@ -44,18 +46,37 @@ public class PlayerController : MonoBehaviour
     [HideInInspector]
     public ShipController ship;
 
+    private int lives = 0;
+    private int selectedShipTemplateIndex = 0;
+    private float nextSwitchShip = 0.0f;
+
     private void Awake() {
         _camera = GetComponent<Camera>();
     }
 
     void Start()
     {
+        turnAxis = controls.ToString() + " Turn";
         fire1Button = controls.ToString() + " Fire1";
         fire2Button = controls.ToString() + " Fire2";
     }
 
     void Update()
     {
+        if (ship == null && lives > 0) {
+            float turn = Input.GetAxis(turnAxis);
+            if (Mathf.Abs(turn) > 0.5f && Time.time > nextSwitchShip)
+            {
+                nextSwitchShip = Time.time + 0.5f;
+                var count = shipTemplates.Count();
+                selectedShipTemplateIndex = (selectedShipTemplateIndex + Mathf.RoundToInt(Mathf.Sign(turn)) + count) % count;
+                updateSelectShip();
+            }
+            if (Input.GetButton(fire1Button) || Input.GetButton(fire2Button)) {
+                spawnShip();
+                updateSelectShip();
+            }
+        }
         if (ship != null) {
             primaryWeapon.Update(fire1Button, this, ship);
             if (primaryWeapon.Depleted) setPrimaryWeapon(new MachineGunDevice());
@@ -70,35 +91,59 @@ public class PlayerController : MonoBehaviour
     void LateUpdate()
     {
         if (ship != null) {
-            Vector3 up = ship.transform.position.normalized;
-            Vector3 lookAt = up * Mathf.Clamp(ship.transform.position.magnitude, cameraMinDistance, cameraMaxDistance);
-            _camera.transform.position = lookAt + cameraOffset;
-            _camera.transform.LookAt(lookAt, up);
+            UpdateCameraTransform(ship.transform.position);
             hud.UpdateHealth(Mathf.RoundToInt(ship.health));
         } else {
+            UpdateCameraTransform(repairBase.transform.position);
             hud.UpdateHealth(0);
         }
     }
 
+    private void UpdateCameraTransform(Vector3 position)
+    {
+        Vector3 up = position.normalized;
+        Vector3 lookAt = up * Mathf.Clamp(position.magnitude, cameraMinDistance, cameraMaxDistance);
+        _camera.transform.position = lookAt + cameraOffset;
+        _camera.transform.LookAt(lookAt, up);
+    }
+
     public bool isAlive()
     {
-        return ship != null && ship.health > 0.0f;
+        return (ship != null && ship.health > 0.0f) || lives > 0;
     }
 
     public void respawn(Vector3 position)
     {
+        repairBase.respawn(position);
+        lives = 1;
         if (ship != null) {
             Destroy(ship.gameObject);
         }
+        setPrimaryWeapon(new MachineGunDevice());
+        setSecondaryWeapon(null);
+        updateSelectShip();
+    }
+
+    private void spawnShip() {
+        var position = repairBase.transform.position;
+        lives--;
+        var shipTemplate = shipTemplates[selectedShipTemplateIndex];
         ship = Instantiate(shipTemplate, position, Quaternion.Euler(0, 0, -Mathf.Atan2(position.x, position.y) * Mathf.Rad2Deg)) as ShipController;
         ship.gameObject.SetActive(true);
         ship.playerController = this;
         ship.color = color;
         var flamerTrigger = ship.flamer.trigger;
         flamerTrigger.SetCollider(0, gameController.water);
-        setPrimaryWeapon(new MachineGunDevice());
-        setSecondaryWeapon(null);
+        resetDeviceEffects();
         hud.UpdateHealth(Mathf.RoundToInt(ship.health));
+    }
+
+    private void updateSelectShip() {
+        if (ship == null && lives > 0) {
+            hud.UpdateSelectShip(shipTemplates[selectedShipTemplateIndex]);
+        } else {
+            hud.UpdateSelectShip(null);
+        }
     }
 
     public void setPrimaryWeapon(IDevice primary)
@@ -201,8 +246,8 @@ public class LaserDevice : IDevice
     private bool updateLaserBeam(PlayerController player, ShipController ship)
     {
         var laserSparklesOn = false;
-        Vector2 position = ship.laserRay.transform.position;
-        RaycastHit2D hit = Physics2D.Raycast(position, ship.transform.up, 100, player.laserLayerMask);
+        Vector2 position = ship.gunPoint.transform.position;
+        RaycastHit2D hit = Physics2D.Raycast(position, ship.gunPoint.transform.up, 100, player.laserLayerMask);
         var laserRay = ship.laserRay;
         if (hit.collider != null)
         {
@@ -424,9 +469,9 @@ public class DeathrayDevice : IDevice
         var distance = loadedNormalized * player.deathrayDistance;
         var damage = loadedNormalized * deathrayDamage;
         var start = ship.gunPoint.position;
-        var direction = ship.transform.up * distance;
+        var direction = ship.gunPoint.transform.up * distance;
         var center = start + direction * 0.5f;
-        var angle = ship.GetComponent<Rigidbody2D>().rotation;
+        var angle = ship.gunPoint.transform.eulerAngles.z;
         Collider2D[] colliders = Physics2D.OverlapCapsuleAll(center, new Vector2(player.deathrayWidth, distance + player.deathrayWidth), CapsuleDirection2D.Vertical, angle);
         Damageable damageable;
         TerrainPiece terrainPiece;
