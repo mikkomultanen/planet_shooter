@@ -165,7 +165,7 @@ public class WaterSystem : MonoBehaviour {
 	}
 
 	private void Update() {
-		waterSystem.Simulate(DT, true, false, true);
+		waterSystem.Simulate(DT, true, false, false);
 
 		int numParticlesAlive = waterSystem.GetParticles(particles);
 
