@@ -8,12 +8,20 @@ using Unity.Mathematics;
 
 [RequireComponent (typeof(ParticleSystem))]
 public class WaterSystem : MonoBehaviour {
-	public const float RADIUS = 1.2f;
-	public const float VISCOSITY = 0.004f;
+	[Range(1f, 10f)]
+	public float pressure0 = 5f;
+	[Range(0f, 5f)]
+	public float stiffness = 1f;
+	[Range(0f, 1f)]
+	public float compressibility = 0.5f;
+
+	[Range(0f, 0.01f)]
+	public float viscosity = 0.004f;
+	[Range(0.05f, 1f)]
+	public float radius = 1f;
 	public const float IDEAL_RADIUS = 50f;
 	public const float IDEAL_RADIUS_SQ = IDEAL_RADIUS * IDEAL_RADIUS;
 	public const float CELL_SIZE = IDEAL_RADIUS * 1f;
-	public const float MULTIPLIER = IDEAL_RADIUS / RADIUS;
 	public const float DT = 1f / 60f;
 
 	private ParticleSystem waterSystem;
@@ -39,6 +47,9 @@ public class WaterSystem : MonoBehaviour {
 	[BurstCompile]
 	struct CalculatePressure : IJobParallelFor
 	{
+		[ReadOnly] public float pressure0;
+		[ReadOnly] public float stiffness;
+		[ReadOnly] public float compressibility;
 		[ReadOnly] public NativeArray<float2> positions;
 		[ReadOnly] public NativeMultiHashMap<int, int> hashMap;
 		public NativeArray<float> ps;
@@ -66,6 +77,9 @@ public class WaterSystem : MonoBehaviour {
 					}
 				}
 			}
+			float p = ps[index] / pressure0;
+			ps[index] = stiffness * (p * p - 1f); //normal pressure term
+			pnears[index] = compressibility * pnears[index]; // pressure near
 		}
 
 		private void Calculate(int index, int otherIndex, float2 position)
@@ -92,6 +106,7 @@ public class WaterSystem : MonoBehaviour {
 	[BurstCompile]
 	struct CalculateForce : IJobParallelFor
 	{
+		[ReadOnly] public float viscosity;
 		[ReadOnly] public NativeArray<float2> positions;
 		[ReadOnly] public NativeArray<float2> velocities;
 		[ReadOnly] public NativeArray<float> ps;
@@ -107,8 +122,8 @@ public class WaterSystem : MonoBehaviour {
 			int otherIndex;
             var iterator = new NativeMultiHashMapIterator<int>();
 			int hash;
-			float pressure = (ps[index] - 5f) / 2f; //normal pressure term
-			float presnear = pnears[index] / 2f; //near particles term
+			float pressure = ps[index];
+			float presnear = pnears[index];
 			for (int i = -1; i < 2; ++i) {
 				for (int j = -1; j < 2; ++j) {
 					hash = Hash(position + new float2(i * CELL_SIZE, j * CELL_SIZE), CELL_SIZE);
@@ -140,11 +155,12 @@ public class WaterSystem : MonoBehaviour {
 				float distance = math.sqrt(distanceSq);
 				float q = distance / IDEAL_RADIUS;
 				float oneminusq = 1.0f - q;
-				float factor = oneminusq * (pressure + presnear * oneminusq) / (2f * distance);
+				float p = 0.5f * (pressure + ps[otherIndex]);
+				float factor = 0.5f * oneminusq * (p + presnear * oneminusq) / distance;
 				float2 d = relativePosition * factor;
 				float2 relativeVelocity = velocities[otherIndex] - velocities[index];
 
-				factor = VISCOSITY * oneminusq * DT;
+				factor = viscosity * oneminusq * DT;
 				d -= relativeVelocity * factor;
 				delta[index] -= 2 * d;
 			}
@@ -160,12 +176,13 @@ public class WaterSystem : MonoBehaviour {
 		public void Execute(int index)
 		{
 			velocities[index] += delta[index] / DT;
-			velocities[index] += new float2(0, -9.81f) * DT * MULTIPLIER;
 		}
 	}
 
 	private void Update() {
 		waterSystem.Simulate(DT, true, false, false);
+
+		float multiplier = IDEAL_RADIUS / radius;
 
 		int numParticlesAlive = waterSystem.GetParticles(particles);
 
@@ -180,9 +197,9 @@ public class WaterSystem : MonoBehaviour {
 		for(int i = 0; i < numParticlesAlive; i++)
 		{
 			vec = particles[i].position;
-			scaledPositions[i] = new float2(vec.x, vec.y) * MULTIPLIER;
+			scaledPositions[i] = new float2(vec.x, vec.y) * multiplier;
 			vec = particles[i].velocity;
-			scaledVelocities[i] = new float2(vec.x, vec.y) * MULTIPLIER;
+			scaledVelocities[i] = new float2(vec.x, vec.y) * multiplier;
 		}
 
 		var hashMapJob = new HashPositions()
@@ -192,6 +209,9 @@ public class WaterSystem : MonoBehaviour {
 		};
 		var calculatePressure = new CalculatePressure()
 		{
+			pressure0 = pressure0,
+			stiffness = stiffness,
+			compressibility = compressibility,
 			positions = scaledPositions,
 			hashMap = hashMap,
 			ps = ps,
@@ -199,6 +219,7 @@ public class WaterSystem : MonoBehaviour {
 		};
 		var calculateForce = new CalculateForce()
 		{
+			viscosity = viscosity,
 			positions = scaledPositions,
 			velocities = scaledVelocities,
 			ps = ps,
@@ -222,7 +243,8 @@ public class WaterSystem : MonoBehaviour {
 		float2 v;
 		for(int i = 0; i < numParticlesAlive; i++)
 		{
-			v = scaledVelocities[i] / MULTIPLIER;
+			v = scaledVelocities[i] / multiplier;
+			v += new float2(0, -9.81f) * DT;
 			particles[i].velocity = new Vector3(v.x, v.y, 0);
 		}
 		waterSystem.SetParticles(particles, numParticlesAlive);
