@@ -26,11 +26,48 @@ public class WaterSystem : MonoBehaviour {
 
 	private ParticleSystem waterSystem;
 	private ParticleSystem.Particle[] particles;
+
+	private int numParticlesAlive;
+	private NativeArray<float2> scaledPositions;
+	private NativeArray<float2> scaledVelocities;
+	private NativeMultiHashMap<int, int> hashMap;
+	private NativeArray<float> ps;
+	private NativeArray<float> pnears;
+	private NativeArray<float2> deltas;
+	private JobHandle jobHandle;
 	void Start () {
 		waterSystem = GetComponent<ParticleSystem>();
         particles = new ParticleSystem.Particle[waterSystem.main.maxParticles];
 	}
 	
+	[BurstCompile]
+	struct ApplyMultiplier : IJobParallelFor
+	{
+		[ReadOnly] public float multiplier;
+		public NativeArray<float2> positions;
+		public NativeArray<float2> velocities;
+
+		public void Execute(int index)
+		{
+			positions[index] = positions[index] * multiplier;
+			velocities[index] = velocities[index] * multiplier;
+		}
+	}
+
+	[BurstCompile]
+	struct DeapplyMultiplier : IJobParallelFor
+	{
+		[ReadOnly] public float multiplier;
+		public NativeArray<float2> positions;
+		public NativeArray<float2> velocities;
+
+		public void Execute(int index)
+		{
+			positions[index] = positions[index] / multiplier;
+			velocities[index] = velocities[index] / multiplier;
+		}
+	}
+
 	[BurstCompile]
 	struct HashPositions : IJobParallelFor
 	{
@@ -176,25 +213,31 @@ public class WaterSystem : MonoBehaviour {
 
 		float multiplier = IDEAL_RADIUS / radius;
 
-		int numParticlesAlive = waterSystem.GetParticles(particles);
+		numParticlesAlive = waterSystem.GetParticles(particles);
 
-		var scaledPositions = new NativeArray<float2>(numParticlesAlive, Allocator.Temp);
-		var scaledVelocities = new NativeArray<float2>(numParticlesAlive, Allocator.Temp);
-		var hashMap = new NativeMultiHashMap<int, int>(numParticlesAlive, Allocator.Temp);
-		var ps = new NativeArray<float>(numParticlesAlive, Allocator.Temp);
-		var pnears = new NativeArray<float>(numParticlesAlive, Allocator.Temp);
-		var deltas = new NativeArray<float2>(numParticlesAlive, Allocator.Temp);
+		scaledPositions = new NativeArray<float2>(numParticlesAlive, Allocator.Temp);
+		scaledVelocities = new NativeArray<float2>(numParticlesAlive, Allocator.Temp);
+		hashMap = new NativeMultiHashMap<int, int>(numParticlesAlive, Allocator.Temp);
+		ps = new NativeArray<float>(numParticlesAlive, Allocator.Temp);
+		pnears = new NativeArray<float>(numParticlesAlive, Allocator.Temp);
+		deltas = new NativeArray<float2>(numParticlesAlive, Allocator.Temp);
 
 		Vector2 vec;
 		for(int i = 0; i < numParticlesAlive; i++)
 		{
 			vec = particles[i].position;
-			scaledPositions[i] = new float2(vec.x, vec.y) * multiplier;
+			scaledPositions[i] = new float2(vec.x, vec.y);
 			vec = particles[i].velocity;
-			scaledVelocities[i] = new float2(vec.x, vec.y) * multiplier;
+			scaledVelocities[i] = new float2(vec.x, vec.y);
 		}
 
-		var hashMapJob = new HashPositions()
+		var applyMultiplier = new ApplyMultiplier()
+		{
+			multiplier = multiplier,
+			positions = scaledPositions,
+			velocities = scaledVelocities
+		};
+		var hashPositions = new HashPositions()
 		{
 			positions = scaledPositions,
 			hashMap = hashMap.ToConcurrent()
@@ -224,18 +267,28 @@ public class WaterSystem : MonoBehaviour {
 			delta = deltas,
 			velocities = scaledVelocities
 		};
+		var deapplyMultiplier = new DeapplyMultiplier()
+		{
+			multiplier = multiplier,
+			positions = scaledPositions,
+			velocities = scaledVelocities
+		};
 
-		var hashMapHandle = hashMapJob.Schedule(numParticlesAlive, 64);
+		var applyMultiplierHandle = applyMultiplier.Schedule(numParticlesAlive, 64);
+		var hashMapHandle = hashPositions.Schedule(numParticlesAlive, 64, applyMultiplierHandle);
 		var calculatePressureHandle = calculatePressure.Schedule(numParticlesAlive, 64, hashMapHandle);
 		var calculateForceHandle = calculateForce.Schedule(numParticlesAlive, 64, calculatePressureHandle);
 		var velocityChangesHandle = velocityChanges.Schedule(numParticlesAlive, 64, calculateForceHandle);
+		jobHandle = deapplyMultiplier.Schedule(numParticlesAlive, 64, velocityChangesHandle);
+	}
 
-		velocityChangesHandle.Complete();
+	private void LateUpdate() {
+		jobHandle.Complete();
 
 		float2 v;
 		for(int i = 0; i < numParticlesAlive; i++)
 		{
-			v = scaledVelocities[i] / multiplier;
+			v = scaledVelocities[i];
 			v += new float2(0, -9.81f) * DT;
 			particles[i].velocity = new Vector3(v.x, v.y, 0);
 		}
@@ -246,7 +299,7 @@ public class WaterSystem : MonoBehaviour {
 		hashMap.Dispose();
 		ps.Dispose();
 		pnears.Dispose();
-		deltas.Dispose();
+		deltas.Dispose();		
 	}
 
 	public static int Hash(float2 v, float cellSize)
