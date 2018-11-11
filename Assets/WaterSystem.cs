@@ -84,16 +84,8 @@ public class WaterSystem : MonoBehaviour {
 
 		private void Calculate(int index, int otherIndex, float2 position)
 		{
-			if (index == otherIndex) {
-				return;
-			}
 			float2 relativePosition = positions[otherIndex] - position;
 			float distanceSq = math.lengthsq(relativePosition);
-			if (distanceSq < 0.01f) {
-				var random = new Unity.Mathematics.Random(math.hash(new float4(index, otherIndex, position.x, position.y)));
-				relativePosition = random.NextFloat2Direction() * 0.1f;
-				distanceSq = 0.01f;
-			}
 			if (distanceSq < IDEAL_RADIUS_SQ) {
 				float distance = math.sqrt(distanceSq);
 				float oneminusq = 1.0f - (distance / IDEAL_RADIUS);
