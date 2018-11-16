@@ -17,6 +17,7 @@ public class WaterSystem : MonoBehaviour {
 	public float viscosity = 1f;
 	[Range(0.05f, 1f)]
 	public float radius = 1f;
+	public float skippingFrames = 0f;
 	public const float H = 1f;
 	public const float H2 = H * H;
 	public const float H3 = H * H2;
@@ -227,6 +228,7 @@ public class WaterSystem : MonoBehaviour {
 				skippedFrames++;
 				return;
 			}
+			skippingFrames = Mathf.Lerp(skippingFrames, 1f * skippedFrames, 0.01f);
 			skippedFrames = 0;
 			jobHandle.Complete();
 
