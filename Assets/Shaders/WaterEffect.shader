@@ -1,25 +1,21 @@
-// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
-
-// Unlit alpha-cutout shader.
-// - no lighting
-// - no lightmap support
-// - no per-material color
-
-Shader "Custom/Transparent Cutout" {
+Shader "PlanetShooter/Water Effect" {
 Properties {
-	_MainTex ("Base (RGB) Trans (A)", 2D) = "white" {}
-	_Color ("Main color", Color) = (1,1,1,1)
+	_Color ("Main color", Color) = (0,0,1,0.5)
 
-	_Cutoff ("Alpha cutoff", Range(0,1)) = 0.5
+	_Cutoff ("Alpha cutoff", Range(0,1)) = 0.2
 
-	_Stroke ("Stroke alpha", Range(0,1)) = 0.1
-	_StrokeColor ("Stroke color", Color) = (1,1,1,1)
+	_Stroke ("Stroke alpha", Range(0,1)) = 0.3
+	_StrokeColor ("Stroke color", Color) = (1,1,1,0.5)
 }
 SubShader {
-	Tags {"Queue"="AlphaTest" "IgnoreProjector"="True" "RenderType"="TransparentCutout"}
+	Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"}
 	LOD 100
 
+	ZWrite Off
+	Blend SrcAlpha OneMinusSrcAlpha
+	Cull Back
 	Lighting Off
+	Fog { Mode Off }
 
 	Pass {  
 		CGPROGRAM
@@ -29,6 +25,9 @@ SubShader {
 			
 			#include "UnityCG.cginc"
 
+			uniform sampler2D Watermap_RT;
+			uniform sampler2D Terrain_RT;
+
 			struct appdata_t {
 				float4 vertex : POSITION;
 				float2 texcoord : TEXCOORD0;
@@ -37,6 +36,7 @@ SubShader {
 			struct v2f {
 				float4 vertex : SV_POSITION;
 				half2 texcoord : TEXCOORD0;
+				float4 screenPos : TEXCOORD3;
 			};
 
 			sampler2D _MainTex;
@@ -52,18 +52,21 @@ SubShader {
 				v2f o;
 				o.vertex = UnityObjectToClipPos(v.vertex);
 				o.texcoord = TRANSFORM_TEX(v.texcoord, _MainTex);
+				o.screenPos = ComputeScreenPos(o.vertex);
 				return o;
 			}
 			
 			fixed4 frag (v2f i) : SV_Target {
-				fixed4 col = tex2D(_MainTex, i.texcoord);
-				clip(col.r - _Cutoff);
-
-				if (col.r < _Stroke) {
+				fixed4 col = tex2Dproj(Watermap_RT, i.screenPos);
+				if (col.r < _Cutoff) {
+					col.a = 0;
+				} else if (col.r < _Stroke) {
 					col = _StrokeColor;
 				} else {
 					col = _Color;
 				}
+
+				col.rgb = (col * tex2Dproj(Terrain_RT, i.screenPos)).rgb;
 
 				return col;
 			}

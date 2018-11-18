@@ -41,7 +41,6 @@ public class DroneController : Explosive
     private float originalDrag;
     private float gravityForceMagnitude;
 
-    private bool isInWater = false;
     private void Awake()
     {
         rb = gameObject.GetComponent<Rigidbody2D>();
@@ -68,8 +67,7 @@ public class DroneController : Explosive
         var h = rb.position.magnitude;
         var positionNormalized = rb.position.normalized;
         float athmosphereCoefficient = Mathf.Clamp((120f - h) / 20f, 0f, 1f);
-        float floatingAndGravityForceMagnitude = (isInWater ? -1.2f : 1f) * gravityForceMagnitude;
-        Vector2 gravity = positionNormalized * floatingAndGravityForceMagnitude;
+        Vector2 gravity = positionNormalized * gravityForceMagnitude;
 
         var direction = Direction();
 
@@ -100,24 +98,6 @@ public class DroneController : Explosive
             direction = -direction;
         }
         return direction;
-    }
-
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.tag == "Water")
-        {
-            isInWater = true;
-            rb.drag = 5;
-        }
-    }
-
-    void OnTriggerExit2D(Collider2D other)
-    {
-        if (other.tag == "Water")
-        {
-            isInWater = false;
-            rb.drag = originalDrag;
-        }
     }
 
     void OnCollisionEnter2D(Collision2D collision)

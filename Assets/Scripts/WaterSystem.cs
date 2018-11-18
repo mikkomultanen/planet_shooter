@@ -28,7 +28,7 @@ public class WaterSystem : MonoBehaviour {
 	public const float laplacianWviscosity = 45 / (Mathf.PI * H6);
 	public const float DT = 0.016f;
 
-	public Camera _camera;
+	private List<Vector3> particlesToEmit = new List<Vector3>();
 	private int skippedFrames = 0;
 	private ParticleSystem waterSystem;
 	private ParticleSystem.Particle[] particles;
@@ -212,17 +212,19 @@ public class WaterSystem : MonoBehaviour {
 	[BurstCompile]
 	struct VelocityChanges : IJobParallelFor
 	{
+		[ReadOnly] public NativeArray<float2> positions;
 		[ReadOnly] public NativeArray<float2> delta;
 		public NativeArray<float2> velocities;
 
 		public void Execute(int index)
 		{
-			velocities[index] += (delta[index] + new float2(0, -9.81f)) * DT;
+			//float2 gravity = new float2(0, -9.81f);
+			float2 gravity = -9.81f * math.normalizesafe(positions[index]);
+			velocities[index] += (delta[index] + gravity) * DT;
 		}
 	}
 
 	private void Update() {
-		int oldParticleCount = numParticlesAlive;
 		if(numParticlesAlive > 0) {
 			if (!jobHandle.IsCompleted && skippedFrames < 3) {
 				skippedFrames++;
@@ -242,17 +244,13 @@ public class WaterSystem : MonoBehaviour {
 			numParticlesAlive = 0;
 		}
 
-		if(Input.GetMouseButton(0)) {
-			Vector3 mousePos = new Vector3(Input.mousePosition.x, Input.mousePosition.y, 0f);
-			Vector3 wordPos = _camera.ScreenToWorldPoint(mousePos);
-			for (int i = 0; i < 5; i++) {
-				Vector3 position = wordPos + UnityEngine.Random.insideUnitSphere * radius;
-				position.z = 0f;
-				var emitParams = new ParticleSystem.EmitParams();
-				emitParams.position = position;
-				waterSystem.Emit(emitParams, 1);
-			}
+		foreach (var position in particlesToEmit)
+		{
+			var emitParams = new ParticleSystem.EmitParams();
+			emitParams.position = position;
+			waterSystem.Emit(emitParams, 1);
 		}
+		particlesToEmit.Clear();
 
 		waterSystem.Simulate(DT, true, false, false);
 
@@ -310,6 +308,7 @@ public class WaterSystem : MonoBehaviour {
 		};
 		var velocityChanges = new VelocityChanges()
 		{
+			positions = scaledPositions,
 			delta = deltas,
 			velocities = scaledVelocities
 		};
@@ -339,6 +338,11 @@ public class WaterSystem : MonoBehaviour {
 		densities.Dispose();
 		pressures.Dispose();
 		deltas.Dispose();
+	}
+
+	public void Emit(Vector3 position)
+	{
+		particlesToEmit.Add(position);
 	}
 
 	public static int Hash(float2 v, float cellSize)

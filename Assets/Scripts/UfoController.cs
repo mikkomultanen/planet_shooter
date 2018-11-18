@@ -9,8 +9,6 @@ public class UfoController : ShipController
     public float maxSpeed = 8f;
     [Range(0.0f, 10f)]
     public float airDrag = 0.5f;
-    [Range(0.0f, 10f)]
-    public float waterDrag = 2.5f;
 
     public Transform disc;
     public Transform targeting;
@@ -86,24 +84,18 @@ public class UfoController : ShipController
         }
 
         float athmosphereCoefficient = Mathf.Clamp((120f - h) / 20f, 0f, 1f);
-        float floatingAndGravityForceMagnitude = (IsInWater ? -1.2f : (1f - athmosphereCoefficient)) * gravityForceMagnitude;
         float thursterForceMagnitude = 0f;
         var afterBurnerOn = afterBurner.isEmitting;
         var forwardSpeed = Vector2.Dot(rb.velocity, direction.normalized);
         if (forwardSpeed < (afterBurnerOn ? afterBurnerMaxSpeed : maxSpeed))
         {
             thursterForceMagnitude = athmosphereCoefficient * (afterBurnerOn ? afterBurnerThrustPower : maxThrustPower);
-            if (IsInWater)
-            {
-                thursterForceMagnitude = Mathf.Min(thursterForceMagnitude, 0.8f * floatingAndGravityForceMagnitude);
-            }
         }
 
-        Vector2 gravity = positionNormalized * floatingAndGravityForceMagnitude;
+        Vector2 gravity = positionNormalized * gravityForceMagnitude;
         Vector2 thrusters = direction * thursterForceMagnitude;
 
-        var drag = IsInWater ? waterDrag : airDrag;
-        rb.AddForce(-rb.velocity * rb.velocity.magnitude * drag);
+        rb.AddForce(-rb.velocity * rb.velocity.magnitude * airDrag);
 
         rb.AddForce(thrusters + gravity);
 

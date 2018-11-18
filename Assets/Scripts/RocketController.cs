@@ -10,8 +10,6 @@ public class RocketController : ShipController
     [Range(0.0f, 10f)]
     public float airDrag = 0.5f;
     [Range(0.0f, 10f)]
-    public float waterDrag = 2.5f;
-    [Range(0.0f, 10f)]
     public float orthogonalDrag = 2f;
 
     public ParticleSystem thruster;
@@ -74,7 +72,6 @@ public class RocketController : ShipController
 
         var h = rb.position.magnitude;
         var positionNormalized = rb.position.normalized;
-        float floatingAndGravityForceMagnitude = (IsInWater ? -1.2f : 1f) * gravityForceMagnitude;
         float thursterForceMagnitude = 0f;
         var afterBurnerOn = afterBurner.isEmitting;
         var forwardSpeed = Vector2.Dot(rb.velocity, transform.up);
@@ -83,20 +80,15 @@ public class RocketController : ShipController
             float thrust = Mathf.Max(Input.GetAxis(thrustAxis), 0f);
             float athmosphereCoefficient = Mathf.Clamp((120f - h) / 20f, 0f, 1f);
             thursterForceMagnitude = athmosphereCoefficient * (afterBurnerOn ? afterBurnerThrustPower : thrust * maxThrustPower);
-            if (IsInWater)
-            {
-                thursterForceMagnitude = Mathf.Min(thursterForceMagnitude, 0.8f * floatingAndGravityForceMagnitude);
-            }
         }
 
-        Vector2 gravity = positionNormalized * floatingAndGravityForceMagnitude;
+        Vector2 gravity = positionNormalized * gravityForceMagnitude;
         Vector2 thrusters = transform.up * thursterForceMagnitude;
 
-        var drag = IsInWater ? waterDrag : airDrag;
         var forwardVelocity = forwardSpeed * (Vector2)transform.up;
         var orthogonalVelocity = rb.velocity - forwardVelocity;
-        rb.AddForce(-orthogonalVelocity * orthogonalVelocity.magnitude * (drag + orthogonalDrag));
-        rb.AddForce(-forwardVelocity * forwardVelocity.magnitude * drag);
+        rb.AddForce(-orthogonalVelocity * orthogonalVelocity.magnitude * (airDrag + orthogonalDrag));
+        rb.AddForce(-forwardVelocity * forwardVelocity.magnitude * airDrag);
 
         rb.AddForce(thrusters + gravity);
         rb.angularVelocity = -turn * 300f;

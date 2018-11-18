@@ -35,34 +35,9 @@ public class ShipController : Explosive, Repairable
     }
 
     private float originalHealth;
-    private bool isInWater = false;
-
-    public bool IsInWater 
-    {
-        get
-        {
-            return isInWater;
-        }
-    }
 
     protected virtual void Awake() {
         originalHealth = health;
-    }
-
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.tag == "Water")
-        {
-            isInWater = true;
-        }
-    }
-
-    void OnTriggerExit2D(Collider2D other)
-    {
-        if (other.tag == "Water")
-        {
-            isInWater = false;
-        }
     }
 
     void OnCollisionEnter2D(Collision2D collision)

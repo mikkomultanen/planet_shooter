@@ -24,28 +24,11 @@ public class WeaponCrate : Explosive
         Drone
     }
     private Rigidbody2D rb;
-    private bool isInWater = false;
     private float gravityForceMagnitude;
     void Start()
     {
         rb = gameObject.GetComponent<Rigidbody2D>();
         gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
-    }
-
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.tag == "Water")
-        {
-            isInWater = true;
-        }
-    }
-
-    void OnTriggerExit2D(Collider2D other)
-    {
-        if (other.tag == "Water")
-        {
-            isInWater = false;
-        }
     }
 
     private void OnCollisionEnter2D(Collision2D other)
@@ -94,8 +77,7 @@ public class WeaponCrate : Explosive
 
     void FixedUpdate()
     {
-        float floatingAndGravityForceMagnitude = (isInWater ? -1.2f : 1f) * gravityForceMagnitude;
-        Vector2 gravity = rb.position.normalized * floatingAndGravityForceMagnitude;
+        Vector2 gravity = rb.position.normalized * gravityForceMagnitude;
         rb.AddForce(gravity);
     }
 }

@@ -23,7 +23,7 @@ GameObject:
   - component: {fileID: 199829663323618140}
   - component: {fileID: 114452579324343004}
   - component: {fileID: 114404654965688168}
-  m_Layer: 1
+  m_Layer: 0
   m_Name: Explosion
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -40,7 +40,7 @@ GameObject:
   - component: {fileID: 4158503230861926}
   - component: {fileID: 198645928795240808}
   - component: {fileID: 199651516773552652}
-  m_Layer: 1
+  m_Layer: 0
   m_Name: Smoke
   m_TagString: Untagged
   m_Icon: {fileID: 0}
