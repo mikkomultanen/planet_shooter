@@ -9,7 +9,6 @@ public struct KinematicParticle
 	// dynamic properties
 	public Vector2 position;
 	public Vector2 velocity;
-	public float pressure;
 }
 
 [RequireComponent(typeof(Rigidbody2D))]
@@ -29,7 +28,6 @@ public class WaterKinematicBody : MonoBehaviour {
 			particles[i] = new KinematicParticle();
 			particles[i].mass = particleMass;
 			particles[i].relativePosition = points[i];
-			particles[i].pressure = 0;
 		}
 	}
 
