@@ -27,6 +27,7 @@ public class WaterSystem : MonoBehaviour {
 	public const float gradientWspiky = -45 / (Mathf.PI * H6);
 	public const float laplacianWviscosity = 45 / (Mathf.PI * H6);
 	public const float DT = 0.016f;
+	public const int MaxKinematicParticles = 1000;
 
 	private List<Vector3> particlesToEmit = new List<Vector3>();
 	private int skippedFrames = 0;
@@ -34,8 +35,9 @@ public class WaterSystem : MonoBehaviour {
 	private ParticleSystem.Particle[] particles;
 
 	private int numParticlesAlive;
-	private NativeArray<float2> scaledPositions;
-	private NativeArray<float2> scaledVelocities;
+	private int numWaterParticlesAlive;
+	private NativeArray<float2> positions;
+	private NativeArray<float2> velocities;
 	private NativeMultiHashMap<int, int> hashMap;
 	private NativeArray<float> densities;
 	private NativeArray<float> pressures;
@@ -49,12 +51,13 @@ public class WaterSystem : MonoBehaviour {
         particles = new ParticleSystem.Particle[waterSystem.main.maxParticles];
 		numParticlesAlive = 0;
 
-		scaledPositions = new NativeArray<float2>(waterSystem.main.maxParticles, Allocator.Persistent);
-		scaledVelocities = new NativeArray<float2>(waterSystem.main.maxParticles, Allocator.Persistent);
-		hashMap = new NativeMultiHashMap<int, int>(waterSystem.main.maxParticles, Allocator.Persistent);
-		densities = new NativeArray<float>(waterSystem.main.maxParticles, Allocator.Persistent);
-		pressures = new NativeArray<float>(waterSystem.main.maxParticles, Allocator.Persistent);
-		forces = new NativeArray<float2>(waterSystem.main.maxParticles, Allocator.Persistent);
+		int maxParticles = waterSystem.main.maxParticles + MaxKinematicParticles;
+		positions = new NativeArray<float2>(maxParticles, Allocator.Persistent);
+		velocities = new NativeArray<float2>(maxParticles, Allocator.Persistent);
+		hashMap = new NativeMultiHashMap<int, int>(maxParticles, Allocator.Persistent);
+		densities = new NativeArray<float>(maxParticles, Allocator.Persistent);
+		pressures = new NativeArray<float>(maxParticles, Allocator.Persistent);
+		forces = new NativeArray<float2>(maxParticles, Allocator.Persistent);
 	}
 	
 	[BurstCompile]
@@ -158,11 +161,11 @@ public class WaterSystem : MonoBehaviour {
 		[ReadOnly] public NativeArray<float> densities;
 		[ReadOnly] public NativeArray<float> pressures;
 		[ReadOnly] public NativeMultiHashMap<int, int> hashMap;
-		public NativeArray<float2> force;
+		public NativeArray<float2> forces;
 
 		public void Execute(int index)
 		{
-			force[index] = float2.zero;
+			forces[index] = float2.zero;
 
 			float2 position = positions[index];
 			int otherIndex;
@@ -182,7 +185,7 @@ public class WaterSystem : MonoBehaviour {
 					}
 				}
 			}
-			force[index] = force[index] / densities[index];
+			forces[index] = forces[index] / densities[index];
 		}
 
 		private void Calculate(int index, int otherIndex, float2 position, float pressure_p)
@@ -198,30 +201,29 @@ public class WaterSystem : MonoBehaviour {
 
 				//add mass-n * (pressure-p + pressure-n) / (2 * density-n) * gradient-W-spiky(r, h) to pressure-force of particle
 				// mass = 1
-				force[index] += (_r / r) * ((pressure_p + pressure_n) / (2 * density_n) * gradientWspiky * math.pow(H - r, 2));
+				forces[index] += (_r / r) * ((pressure_p + pressure_n) / (2 * density_n) * gradientWspiky * math.pow(H - r, 2));
 
 				float2 _v = velocities[otherIndex] - velocities[index];
 
 				//add viscosity * mass-n * (velocity of neighbour – velocity of particle) / density-n * laplacian-W-viscosity(r, h) to viscosity-force of particle
 				// mass = 1
-				force[index] += viscosity * _v / density_n * laplacianWviscosity * (H - r);
+				forces[index] +=  _v * (viscosity / density_n * laplacianWviscosity * (H - r));
 			}
 		}
 	}
 
 	[BurstCompile]
-	struct VelocityChanges : IJobParallelFor
+	struct WaterVelocityChanges : IJobParallelFor
 	{
 		[ReadOnly] public NativeArray<float2> positions;
-		[ReadOnly] public NativeArray<float2> force;
+		[ReadOnly] public NativeArray<float2> forces;
 		public NativeArray<float2> velocities;
 
 		public void Execute(int index)
 		{
 			//float2 gravity = new float2(0, -9.81f);
 			float2 gravity = -9.81f * math.normalizesafe(positions[index]);
-			// acceleration = force / mass
-			velocities[index] += (force[index] + gravity) * DT;
+			velocities[index] += (forces[index] + gravity) * DT;
 		}
 	}
 
@@ -236,13 +238,12 @@ public class WaterSystem : MonoBehaviour {
 			jobHandle.Complete();
 
 			float2 v;
-			for(int i = 0; i < numParticlesAlive; i++)
+			for(int i = 0; i < numWaterParticlesAlive; i++)
 			{
-				v = scaledVelocities[i];
+				v = velocities[i];
 				particles[i].velocity = new Vector3(v.x, v.y, 0);
 			}
-			waterSystem.SetParticles(particles, numParticlesAlive);
-			numParticlesAlive = 0;
+			waterSystem.SetParticles(particles, numWaterParticlesAlive);
 		}
 
 		foreach (var position in particlesToEmit)
@@ -256,43 +257,61 @@ public class WaterSystem : MonoBehaviour {
 		waterSystem.Simulate(DT, true, false, false);
 
 		float multiplier = H / radius;
+		
+		numWaterParticlesAlive = waterSystem.GetParticles(particles);
+		Vector2 vec;
+		for(int i = 0; i < numWaterParticlesAlive; i++)
+		{
+			vec = particles[i].position;
+			positions[i] = vec;
+			vec = particles[i].velocity;
+			velocities[i] = vec;
+		}
+		WaterKinematicBody[] kinematicBodies = GameObject.FindObjectsOfType<WaterKinematicBody>();
+		int index = numWaterParticlesAlive;
+		int numKinematicParticles = 0;
+		foreach (var kinematicBody in kinematicBodies)
+		{
+			kinematicBody.UpdateParticles();
+			foreach (var particle in kinematicBody.particles)
+			{
+				if (numKinematicParticles < MaxKinematicParticles) {
+					positions[index] = particle.position;
+					velocities[index] = particle.velocity;
+					index++;
+					numKinematicParticles++;
+				} else { break; }
+			}
+			if (numKinematicParticles >= MaxKinematicParticles) {
+				Debug.LogWarning("Too many kinematic particles");
+				break;
+			}
+		}
 
-		numParticlesAlive = waterSystem.GetParticles(particles);
+		numParticlesAlive = numWaterParticlesAlive + numKinematicParticles;
+
 		if (numParticlesAlive == 0) {
 			return;
 		}
 
-		if(Input.GetMouseButton(0)) {
-			Debug.Log ("count " + numParticlesAlive);
-		}
-
 		hashMap.Clear();
-
-		Vector2 vec;
-		for(int i = 0; i < numParticlesAlive; i++)
-		{
-			vec = particles[i].position;
-			scaledPositions[i] = new float2(vec.x, vec.y);
-			vec = particles[i].velocity;
-			scaledVelocities[i] = new float2(vec.x, vec.y);
-		}
 
 		var applyMultiplier = new ApplyMultiplier()
 		{
 			multiplier = multiplier,
-			positions = scaledPositions,
-			velocities = scaledVelocities
+			positions = positions,
+			velocities = velocities
 		};
 		var hashPositions = new HashPositions()
 		{
-			positions = scaledPositions,
+			positions = positions,
 			hashMap = hashMap.ToConcurrent()
 		};
 		var calculatePressure = new CalculatePressure()
 		{
 			restDensity = restDensity,
 			pressureConstant = pressureConstant,
-			positions = scaledPositions,
+			positions = positions,
 			hashMap = hashMap,
 			densities = densities,
 			pressures = pressures
@@ -300,32 +319,34 @@ public class WaterSystem : MonoBehaviour {
 		var calculateForce = new CalculateForce()
 		{
 			viscosity = viscosity,
-			positions = scaledPositions,
-			velocities = scaledVelocities,
+			positions = positions,
+			velocities = velocities,
 			densities = densities,
 			pressures = pressures,
 			hashMap = hashMap,
-			force = forces
+			forces = forces
 		};
-		var velocityChanges = new VelocityChanges()
+		var velocityChanges = new WaterVelocityChanges()
 		{
-			positions = scaledPositions,
-			force = forces,
-			velocities = scaledVelocities
+			positions = positions,
+			forces = forces,
+			velocities = velocities
 		};
 		var deapplyMultiplier = new DeapplyMultiplier()
 		{
 			multiplier = multiplier,
-			positions = scaledPositions,
-			velocities = scaledVelocities
+			positions = positions,
+			velocities = velocities
 		};
 
 		var applyMultiplierHandle = applyMultiplier.Schedule(numParticlesAlive, 64);
 		var hashMapHandle = hashPositions.Schedule(numParticlesAlive, 64, applyMultiplierHandle);
 		var calculatePressureHandle = calculatePressure.Schedule(numParticlesAlive, 64, hashMapHandle);
 		var calculateForceHandle = calculateForce.Schedule(numParticlesAlive, 64, calculatePressureHandle);
-		var velocityChangesHandle = velocityChanges.Schedule(numParticlesAlive, 64, calculateForceHandle);
-		jobHandle = deapplyMultiplier.Schedule(numParticlesAlive, 64, velocityChangesHandle);
+
+		var waterVelocityChangesHandle = velocityChanges.Schedule(numWaterParticlesAlive, 64, calculateForceHandle);
+		jobHandle = deapplyMultiplier.Schedule(numWaterParticlesAlive, 64, waterVelocityChangesHandle);
+
 		JobHandle.ScheduleBatchedJobs();
 	}
 
@@ -333,8 +354,8 @@ public class WaterSystem : MonoBehaviour {
 		if(numParticlesAlive > 0) {
 			jobHandle.Complete();
 		}
-		scaledPositions.Dispose();
-		scaledVelocities.Dispose();
+		positions.Dispose();
+		velocities.Dispose();
 		hashMap.Dispose();
 		densities.Dispose();
 		pressures.Dispose();
