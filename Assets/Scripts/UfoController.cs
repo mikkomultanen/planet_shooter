@@ -22,12 +22,10 @@ public class UfoController : ShipController
     private string yAxis;
 
     private Rigidbody2D rb;
-    private float gravityForceMagnitude;
 
     protected override void Awake() {
         base.Awake();
         rb = gameObject.GetComponent<Rigidbody2D>();
-        gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
     }
 
     void Start()
@@ -92,12 +90,11 @@ public class UfoController : ShipController
             thursterForceMagnitude = athmosphereCoefficient * (afterBurnerOn ? afterBurnerThrustPower : maxThrustPower);
         }
 
-        Vector2 gravity = positionNormalized * gravityForceMagnitude;
         Vector2 thrusters = direction * thursterForceMagnitude;
 
         rb.AddForce(-rb.velocity * rb.velocity.magnitude * airDrag);
 
-        rb.AddForce(thrusters + gravity);
+        rb.AddForce(thrusters);
 
         var angle = Vector2.SignedAngle(transform.up, rb.position) - x * 15f;
         rb.angularVelocity = Mathf.Clamp(angle / 15f, -1, 1) * 180f;
