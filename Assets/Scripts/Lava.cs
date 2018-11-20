@@ -20,12 +20,9 @@ public class Lava : MonoBehaviour
     private float textureScaleV = 1;
     private Color outerColor = Color.white;
     private Color innerColor = Color.white;
-    private float waterSurfaceMagnitude;
 
     private void Awake()
     {
-        var water = GetComponent<CircleCollider2D>();
-        waterSurfaceMagnitude = water.radius;
         GenerateMesh();
     }
 

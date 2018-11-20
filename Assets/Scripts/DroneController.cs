@@ -38,13 +38,11 @@ public class DroneController : Explosive
     }
 
     private Rigidbody2D rb;
-    private float originalDrag;
     private float gravityForceMagnitude;
 
     private void Awake()
     {
         rb = gameObject.GetComponent<Rigidbody2D>();
-        originalDrag = rb.drag;
         gravityForceMagnitude = rb.gravityScale * rb.mass * (-9.81f);
     }
 
