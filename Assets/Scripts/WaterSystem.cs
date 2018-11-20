@@ -39,7 +39,7 @@ public class WaterSystem : MonoBehaviour {
 	private NativeMultiHashMap<int, int> hashMap;
 	private NativeArray<float> densities;
 	private NativeArray<float> pressures;
-	private NativeArray<float2> deltas;
+	private NativeArray<float2> forces;
 	private JobHandle jobHandle;
 	void Start () {
 		Debug.Log("Wpoly6 " + Wpoly6);
@@ -54,7 +54,7 @@ public class WaterSystem : MonoBehaviour {
 		hashMap = new NativeMultiHashMap<int, int>(waterSystem.main.maxParticles, Allocator.Persistent);
 		densities = new NativeArray<float>(waterSystem.main.maxParticles, Allocator.Persistent);
 		pressures = new NativeArray<float>(waterSystem.main.maxParticles, Allocator.Persistent);
-		deltas = new NativeArray<float2>(waterSystem.main.maxParticles, Allocator.Persistent);
+		forces = new NativeArray<float2>(waterSystem.main.maxParticles, Allocator.Persistent);
 	}
 	
 	[BurstCompile]
@@ -142,7 +142,7 @@ public class WaterSystem : MonoBehaviour {
 			float2 r = positions[otherIndex] - position;
 			float r2 = math.lengthsq(r);
 			if (r2 < H2) {
-				// add mass * W_poly6(r, h) to density of particle
+				// add mass-n * W_poly6(r, h) to density of particle
 				// mass = 1
 				densities[index] += Wpoly6 * math.pow(H2 - r2, 3);
 			}
@@ -158,11 +158,11 @@ public class WaterSystem : MonoBehaviour {
 		[ReadOnly] public NativeArray<float> densities;
 		[ReadOnly] public NativeArray<float> pressures;
 		[ReadOnly] public NativeMultiHashMap<int, int> hashMap;
-		public NativeArray<float2> delta;
+		public NativeArray<float2> force;
 
 		public void Execute(int index)
 		{
-			delta[index] = float2.zero;
+			force[index] = float2.zero;
 
 			float2 position = positions[index];
 			int otherIndex;
@@ -182,7 +182,7 @@ public class WaterSystem : MonoBehaviour {
 					}
 				}
 			}
-			delta[index] = delta[index] / densities[index];
+			force[index] = force[index] / densities[index];
 		}
 
 		private void Calculate(int index, int otherIndex, float2 position, float pressure_p)
@@ -196,15 +196,15 @@ public class WaterSystem : MonoBehaviour {
 				float density_n = densities[otherIndex];
 				float pressure_n = pressures[otherIndex];
 
-				//add mass * (pressure-p + pressure-n) / (2 * density-n) * gradient-W-spiky(r, h) to pressure-force of particle
+				//add mass-n * (pressure-p + pressure-n) / (2 * density-n) * gradient-W-spiky(r, h) to pressure-force of particle
 				// mass = 1
-				delta[index] += (_r / r) * ((pressure_p + pressure_n) / (2 * density_n) * gradientWspiky * math.pow(H - r, 2));
+				force[index] += (_r / r) * ((pressure_p + pressure_n) / (2 * density_n) * gradientWspiky * math.pow(H - r, 2));
 
 				float2 _v = velocities[otherIndex] - velocities[index];
 
-				//add eta * mass * (velocity of neighbour – velocity of particle) / density-n * laplacian-W-viscosity(r, h) to viscosity-force of particle
+				//add viscosity * mass-n * (velocity of neighbour – velocity of particle) / density-n * laplacian-W-viscosity(r, h) to viscosity-force of particle
 				// mass = 1
-				delta[index] += viscosity * _v / density_n * laplacianWviscosity * (H - r);
+				force[index] += viscosity * _v / density_n * laplacianWviscosity * (H - r);
 			}
 		}
 	}
@@ -213,14 +213,15 @@ public class WaterSystem : MonoBehaviour {
 	struct VelocityChanges : IJobParallelFor
 	{
 		[ReadOnly] public NativeArray<float2> positions;
-		[ReadOnly] public NativeArray<float2> delta;
+		[ReadOnly] public NativeArray<float2> force;
 		public NativeArray<float2> velocities;
 
 		public void Execute(int index)
 		{
 			//float2 gravity = new float2(0, -9.81f);
 			float2 gravity = -9.81f * math.normalizesafe(positions[index]);
-			velocities[index] += (delta[index] + gravity) * DT;
+			// acceleration = force / mass
+			velocities[index] += (force[index] + gravity) * DT;
 		}
 	}
 
@@ -304,12 +305,12 @@ public class WaterSystem : MonoBehaviour {
 			densities = densities,
 			pressures = pressures,
 			hashMap = hashMap,
-			delta = deltas
+			force = forces
 		};
 		var velocityChanges = new VelocityChanges()
 		{
 			positions = scaledPositions,
-			delta = deltas,
+			force = forces,
 			velocities = scaledVelocities
 		};
 		var deapplyMultiplier = new DeapplyMultiplier()
@@ -337,7 +338,7 @@ public class WaterSystem : MonoBehaviour {
 		hashMap.Dispose();
 		densities.Dispose();
 		pressures.Dispose();
-		deltas.Dispose();
+		forces.Dispose();
 	}
 
 	public void Emit(Vector3 position)
