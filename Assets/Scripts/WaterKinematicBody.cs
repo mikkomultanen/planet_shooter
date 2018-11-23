@@ -2,41 +2,48 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public struct KinematicParticle
-{
-	public float mass;
-	public Vector2 relativePosition;
-	// dynamic properties
-	public Vector2 position;
-	public Vector2 velocity;
-}
-
 [RequireComponent(typeof(Rigidbody2D))]
 public class WaterKinematicBody : MonoBehaviour {
 
-	public List<Vector2> points;
+	public float buoyanceA;
+	public Vector2[] points;
 	public KinematicParticle[] particles;
 	private Rigidbody2D rb;
+	private float buoyanceForce;
 
 	void Start () {
 		rb = GetComponent<Rigidbody2D>();
-		particles = new KinematicParticle[points.Count];
-		int count = points.Count;
-		float particleMass = rb.mass / count;
+		particles = new KinematicParticle[points.Length];
+		int count = points.Length;
 		for (int i = 0; i < count; i++)
 		{
 			particles[i] = new KinematicParticle();
-			particles[i].mass = particleMass;
-			particles[i].relativePosition = points[i];
 		}
+		buoyanceForce = buoyanceA * rb.mass / count;
 	}
 
 	public void UpdateParticles() {
 		int count = particles.Length;
 		for (int i = 0; i < count; i++)
 		{
-			particles[i].position = rb.position + particles[i].relativePosition;
+			var point = points[i];
+			particles[i].position = transform.TransformPoint(point.x, point.y, 0);
 			particles[i].velocity = rb.velocity;
+		}
+	}
+
+	private void FixedUpdate() {
+		int count = particles.Length;
+		Vector2 positionNormalized = rb.position.normalized;
+		Vector2 point;
+		Vector2 particlePosition;
+		Vector2 force;
+		for (int i = 0; i < count; i++)
+		{
+			point = points[i];
+			particlePosition = transform.TransformPoint(point.x, point.y, 0);
+			force = buoyanceForce * particles[i].buoyance * positionNormalized;
+			rb.AddForceAtPosition(force, particlePosition);
 		}
 	}
 
@@ -47,7 +54,10 @@ public class WaterKinematicBody : MonoBehaviour {
         {
 			Gizmos.matrix = transform.localToWorldMatrix;
             Gizmos.color = Color.red;
-			points.ForEach(p => Gizmos.DrawSphere(new Vector3(p.x, p.y, 0), 0.1f));
+			foreach (var p in points)
+			{
+				Gizmos.DrawSphere(new Vector3(p.x, p.y, 0), 0.1f);
+			}
         }
     }
 #endif

@@ -14599,6 +14599,7 @@ GameObject:
   - component: {fileID: 150540758}
   - component: {fileID: 150540753}
   - component: {fileID: 150540752}
+  - component: {fileID: 150540759}
   m_Layer: 0
   m_Name: Wooden crate
   m_TagString: Untagged
@@ -14644,7 +14645,7 @@ Rigidbody2D:
   m_UseAutoMass: 0
   m_Mass: 1
   m_LinearDrag: 1
-  m_AngularDrag: 0.05
+  m_AngularDrag: 5
   m_GravityScale: 1
   m_Material: {fileID: 0}
   m_Interpolate: 0
@@ -14732,6 +14733,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e4069acfa8a56734fae6f69199e2766e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &150540759
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 150540751}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbd3bf21fea75ff47ab3c2d6594e7208, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buoyanceA: 20
+  points:
+  - {x: 0, y: -0.3}
+  - {x: -0.3, y: 0.3}
+  - {x: 0.3, y: 0.3}
 --- !u!1 &170224792
 GameObject:
   m_ObjectHideFlags: 0
@@ -34051,6 +34068,7 @@ MonoBehaviour:
   restDensity: 3
   pressureConstant: 250
   viscosity: 1
+  kinematicViscosity: 5
   radius: 0.5
   skippingFrames: 0
 --- !u!199 &530541884
@@ -68673,12 +68691,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cbd3bf21fea75ff47ab3c2d6594e7208, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  buoyanceA: 10
   points:
-  - {x: -0.5, y: -0.3}
+  - {x: -0.6, y: -0.3}
   - {x: 0, y: -0.3}
-  - {x: 0.5, y: -0.3}
-  - {x: 1, y: -0.3}
-  - {x: -1, y: -0.3}
+  - {x: 0.6, y: -0.3}
 --- !u!1 &1149015801
 GameObject:
   m_ObjectHideFlags: 0
@@ -83572,12 +83589,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cbd3bf21fea75ff47ab3c2d6594e7208, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  buoyanceA: 20
   points:
   - {x: 0, y: 0.8}
-  - {x: 0, y: 0.3}
-  - {x: 0, y: -0.2}
-  - {x: 0.45, y: -0.7}
-  - {x: -0.45, y: -0.7}
+  - {x: 0, y: 0.2}
+  - {x: 0, y: -0.4}
 --- !u!1 &1434754573
 GameObject:
   m_ObjectHideFlags: 0
