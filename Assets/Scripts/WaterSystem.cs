@@ -36,6 +36,7 @@ public class WaterSystem : MonoBehaviour {
 
 	private int numParticlesAlive;
 	private int numWaterParticlesAlive;
+	private NativeArray<float> masses;
 	private NativeArray<float2> positions;
 	private NativeArray<float2> velocities;
 	private NativeMultiHashMap<int, int> hashMap;
@@ -52,6 +53,7 @@ public class WaterSystem : MonoBehaviour {
 		numParticlesAlive = 0;
 
 		int maxParticles = waterSystem.main.maxParticles + MaxKinematicParticles;
+		masses = new NativeArray<float>(maxParticles, Allocator.Persistent);
 		positions = new NativeArray<float2>(maxParticles, Allocator.Persistent);
 		velocities = new NativeArray<float2>(maxParticles, Allocator.Persistent);
 		hashMap = new NativeMultiHashMap<int, int>(maxParticles, Allocator.Persistent);
@@ -106,6 +108,7 @@ public class WaterSystem : MonoBehaviour {
 	{
 		[ReadOnly] public float restDensity;
 		[ReadOnly] public float pressureConstant;
+		[ReadOnly] public NativeArray<float> masses;
 		[ReadOnly] public NativeArray<float2> positions;
 		[ReadOnly] public NativeMultiHashMap<int, int> hashMap;
 		public NativeArray<float> densities;
@@ -136,7 +139,8 @@ public class WaterSystem : MonoBehaviour {
 			densities[index] = math.max(restDensity, densities[index]);
 			//  k * (density-p – rest-density)
 			//pressures[index] = pressureConstant * (densities[index] - restDensity);
-			float p = densities[index] / restDensity;
+			float p = masses[index] * densities[index] / restDensity; // adapted density
+			//float p = densities[index] / restDensity;
 			pressures[index] = pressureConstant * (p * p - 1);
 		}
 
@@ -199,6 +203,8 @@ public class WaterSystem : MonoBehaviour {
 				float density_n = densities[otherIndex];
 				float pressure_n = pressures[otherIndex];
 
+				// TODO skip pressure forces with kinematic particles and calculate only viscosity
+				
 				//add mass-n * (pressure-p + pressure-n) / (2 * density-n) * gradient-W-spiky(r, h) to pressure-force of particle
 				// mass = 1
 				forces[index] += (_r / r) * ((pressure_p + pressure_n) / (2 * density_n) * gradientWspiky * math.pow(H - r, 2));
@@ -262,6 +268,7 @@ public class WaterSystem : MonoBehaviour {
 		Vector2 vec;
 		for(int i = 0; i < numWaterParticlesAlive; i++)
 		{
+			masses[i] = 1;
 			vec = particles[i].position;
 			positions[i] = vec;
 			vec = particles[i].velocity;
@@ -276,6 +283,7 @@ public class WaterSystem : MonoBehaviour {
 			foreach (var particle in kinematicBody.particles)
 			{
 				if (numKinematicParticles < MaxKinematicParticles) {
+					masses[index] = particle.mass;
 					positions[index] = particle.position;
 					velocities[index] = particle.velocity;
 					index++;
@@ -311,6 +319,7 @@ public class WaterSystem : MonoBehaviour {
 		{
 			restDensity = restDensity,
 			pressureConstant = pressureConstant,
+			masses = masses,
 			positions = positions,
 			hashMap = hashMap,
 			densities = densities,
@@ -354,6 +363,7 @@ public class WaterSystem : MonoBehaviour {
 		if(numParticlesAlive > 0) {
 			jobHandle.Complete();
 		}
+		masses.Dispose();
 		positions.Dispose();
 		velocities.Dispose();
 		hashMap.Dispose();
