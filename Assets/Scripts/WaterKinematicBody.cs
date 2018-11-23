@@ -35,14 +35,17 @@ public class WaterKinematicBody : MonoBehaviour {
 	private void FixedUpdate() {
 		int count = particles.Length;
 		Vector2 positionNormalized = rb.position.normalized;
+		KinematicParticle particle;
 		Vector2 point;
 		Vector2 particlePosition;
 		Vector2 force;
 		for (int i = 0; i < count; i++)
 		{
+			particle = particles[i];
 			point = points[i];
 			particlePosition = transform.TransformPoint(point.x, point.y, 0);
-			force = buoyanceForce * particles[i].buoyance * positionNormalized;
+			force = buoyanceForce * particle.buoyance * positionNormalized;
+			force += particle.force;
 			rb.AddForceAtPosition(force, particlePosition);
 		}
 	}
