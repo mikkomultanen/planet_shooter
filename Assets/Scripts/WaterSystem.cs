@@ -303,16 +303,15 @@ public class WaterSystem : MonoBehaviour {
 		[ReadOnly] public NativeMultiHashMap<int, int> hashMap;
 		[ReadOnly] public NativeArray<float2> kinematicPositions;
 		[ReadOnly] public NativeArray<float2> kinematicVelocities;
-		public NativeArray<float> kinematicBuoyances;
-		public NativeArray<float2> kinematicForces;
+		[WriteOnly] public NativeArray<float> kinematicBuoyances;
+		[WriteOnly] public NativeArray<float2> kinematicForces;
 
 		public void Execute(int index)
 		{
-			kinematicBuoyances[index] = 0;
-			kinematicForces[index] = 0;
-
 			float2 position = kinematicPositions[index];
 			float2 velocity = kinematicVelocities[index];
+			float density = 0;
+			float2 force = float2.zero;
 			int otherIndex;
             var iterator = new NativeMultiHashMapIterator<int>();
 			int hash;
@@ -321,25 +320,26 @@ public class WaterSystem : MonoBehaviour {
 					hash = Hash(position + new float2(i * H, j * H), H);
 					if (hashMap.TryGetFirstValue(hash, out otherIndex, out iterator)) {
 						do {
-							Calculate(index, otherIndex, position, velocity);
+							Calculate(otherIndex, position, velocity, ref density, ref force);
 						} while (hashMap.TryGetNextValue(out otherIndex, ref iterator));
 					}
 				}
 			}
-			kinematicBuoyances[index] = math.max(math.sign(kinematicBuoyances[index] - restDensity), 0);
+			kinematicBuoyances[index] = math.step(restDensity, density);
+			kinematicForces[index] = force;
 		}
 
-		private void Calculate(int index, int otherIndex, float2 position, float2 velocity)
+		private void Calculate(int otherIndex, float2 position, float2 velocity, ref float density, ref float2 force)
 		{
 			float2 _r = positions[otherIndex] - position;
 			float r2 = math.lengthsq(_r);
 			if (r2 < H2) {
-				kinematicBuoyances[index] += Wpoly6 * math.pow(H2 - r2, 3);
+				density += Wpoly6 * math.pow(H2 - r2, 3);
 
 				float r = math.sqrt(r2);
 				float2 _v = velocities[otherIndex] - velocity;
 				float p = densities[otherIndex];
-				kinematicForces[index] +=  _v * (kinematicViscosity / (p * p) * laplacianWviscosity * (H - r));
+				force +=  _v * (kinematicViscosity / (p * p) * laplacianWviscosity * (H - r));
 			}
 		}
 	}
