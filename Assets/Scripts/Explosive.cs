@@ -23,7 +23,6 @@ public class Explosive : MonoBehaviour, Damageable
         float wearoff;
         Damageable damageable;
         TerrainPiece terrainPiece;
-        Water water;
         foreach (Collider2D coll in colliders)
         {
             damageable = coll.GetComponent<Damageable>();
@@ -37,11 +36,6 @@ public class Explosive : MonoBehaviour, Damageable
             if (terrainPiece != null)
             {
                 terrainPiece.destroyTerrain(transform.position, explosionRadius * 0.6f);
-            }
-            water = coll.GetComponent<Water>();
-            if (water != null)
-            {
-                water.explosionSplash(transform.position, explosionRadius);
             }
         }
 
