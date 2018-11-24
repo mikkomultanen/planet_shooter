@@ -9,12 +9,14 @@ public class Mover : MonoBehaviour
     public float damage = 1f;
 
     private Rigidbody2D rb;
+    private float minSpeed;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         Vector2 initialVelocity = transform.up * speed;
         rb.velocity += initialVelocity;
+        minSpeed = 0.2f * speed;
     }
 
     void OnTriggerEnter2D(Collider2D other)
@@ -29,6 +31,11 @@ public class Mover : MonoBehaviour
 
     void LateUpdate()
     {
-        transform.up = rb.velocity.normalized;
+        float currentSpeed = rb.velocity.magnitude;
+        if (currentSpeed < minSpeed) {
+            Destroy(gameObject);
+        } else {
+            transform.up = rb.velocity / currentSpeed;
+        }
     }
 }

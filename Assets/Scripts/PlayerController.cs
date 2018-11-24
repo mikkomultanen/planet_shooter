@@ -191,7 +191,7 @@ public interface IDevice
 
 public class MachineGunDevice : IDevice
 {
-    private float fireRate = 0.05f;
+    private float fireRate = 0.2f;
     private float nextFire = 0.0f;
 
     public void Update(string button, PlayerController player, ShipController ship)

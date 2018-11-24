@@ -25,6 +25,7 @@ GameObject:
   - component: {fileID: 58176543120932174}
   - component: {fileID: 114616364279241644}
   - component: {fileID: 114756100723176122}
+  - component: {fileID: 114846142714139714}
   m_Layer: 0
   m_Name: Bullet
   m_TagString: Bullet
@@ -40,7 +41,7 @@ Transform:
   m_GameObject: {fileID: 1211334698357148}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.1, y: 0.1, z: 1}
+  m_LocalScale: {x: 0.1, y: 0.2, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -98,10 +99,10 @@ Rigidbody2D:
   m_Simulated: 1
   m_UseFullKinematicContacts: 0
   m_UseAutoMass: 0
-  m_Mass: 0.1
+  m_Mass: 1
   m_LinearDrag: 0
   m_AngularDrag: 0.05
-  m_GravityScale: 0.1
+  m_GravityScale: 1
   m_Material: {fileID: 0}
   m_Interpolate: 0
   m_SleepingMode: 1
@@ -133,8 +134,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f9ca6db7a6654d5ba1a36e6e966c1ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 10
-  damage: 1
+  speed: 20
+  damage: 5
 --- !u!114 &114756100723176122
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -146,3 +147,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b96853d681124804a5348ca9181b6a4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &114846142714139714
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1211334698357148}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cbd3bf21fea75ff47ab3c2d6594e7208, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  buoyanceA: 0
+  points:
+  - {x: 0, y: 0}
