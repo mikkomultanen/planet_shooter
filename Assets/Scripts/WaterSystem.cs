@@ -16,6 +16,13 @@ public sealed class KinematicParticle
 
 [RequireComponent (typeof(ParticleSystem))]
 public class WaterSystem : MonoBehaviour {
+	struct Explosion
+	{
+		public float2 position;
+		public float force;
+		public float lifeTime;
+	}
+
 	[Range(1f, 10f)]
 	public float restDensity = 3f;
 
@@ -42,6 +49,8 @@ public class WaterSystem : MonoBehaviour {
 	public const float laplacianWviscosity = 45 / (Mathf.PI * H6);
 	public const float DT = 0.016f;
 	public const int MaxKinematicParticles = 1000;
+	public const int MaxExplosions = 100;
+	public const float ExplosionRadius2 = 25;
 
 	private List<Vector3> particlesToEmit = new List<Vector3>();
 	private int skippedFrames = 0;
@@ -65,6 +74,10 @@ public class WaterSystem : MonoBehaviour {
 	private NativeArray<float> kinematicBuoyances;
 	private NativeArray<float2> kinematicForces;
 
+	private List<Explosion> explosionsList;
+	private int numExplosionsAlive;
+	private NativeArray<float2> explosionPositions;
+	private NativeArray<float> explosionForces;
 	private JobHandle jobHandle;
 	void Start () {
 		Debug.Log("Wpoly6 " + Wpoly6);
@@ -89,6 +102,11 @@ public class WaterSystem : MonoBehaviour {
 		kinematicHashMap = new NativeMultiHashMap<int, int>(MaxKinematicParticles, Allocator.Persistent);
 		kinematicBuoyances = new NativeArray<float>(MaxKinematicParticles, Allocator.Persistent);
 		kinematicForces = new NativeArray<float2>(MaxKinematicParticles, Allocator.Persistent);
+
+		explosionsList = new List<Explosion>();
+		numExplosionsAlive = 0;
+		explosionPositions = new NativeArray<float2>(MaxExplosions, Allocator.Persistent);
+		explosionForces = new NativeArray<float>(MaxExplosions, Allocator.Persistent);
 	}
 	
 	[BurstCompile]
@@ -232,9 +250,6 @@ public class WaterSystem : MonoBehaviour {
 		}
 		private void CalculateKinematic(int index, int otherIndex, float2 position, float2 velocity, float density_p)
 		{
-			if (index == otherIndex) {
-				return;
-			}
 			float2 _r = kinematicPositions[otherIndex] - position;
 			float r = math.length(_r);
 			if (r < H) {
@@ -249,13 +264,31 @@ public class WaterSystem : MonoBehaviour {
 	{
 		[ReadOnly] public NativeArray<float2> positions;
 		[ReadOnly] public NativeArray<float2> forces;
+		[ReadOnly] public int numExplosions;
+		[ReadOnly] public NativeArray<float2> explosionPositions;
+		[ReadOnly] public NativeArray<float> explosionForces;
 		public NativeArray<float2> velocities;
 
 		public void Execute(int index)
 		{
+			float2 position = positions[index];
+			float2 explosionForce = float2.zero;
+			for (int i = 0; i < numExplosions; ++i) {
+				CalculateExplosion(i, position, ref explosionForce);
+			}
 			//float2 gravity = new float2(0, -9.81f);
-			float2 gravity = -9.81f * math.normalizesafe(positions[index]);
-			velocities[index] += (forces[index] + gravity) * DT;
+			float2 gravity = -9.81f * math.normalizesafe(position);
+			velocities[index] += (forces[index] + gravity + explosionForce) * DT;
+		}
+
+		private void CalculateExplosion(int otherIndex, float2 position, ref float2 force)
+		{
+			float2 _r = position - explosionPositions[otherIndex];
+			float r2 = math.lengthsq(_r);
+			if (r2 < ExplosionRadius2) {
+				float q = r2 / ExplosionRadius2;
+				force += math.normalizesafe(_r) * (explosionForces[otherIndex] * (1 - q));
+			}
 		}
 	}
 
@@ -333,6 +366,7 @@ public class WaterSystem : MonoBehaviour {
 		
 		SetupWaterParticles();
 		SetupKinematicParticles();
+		SetupExplosions();
 
 		numParticlesAlive = numWaterParticlesAlive + numKinematicParticlesAlive;
 
@@ -370,6 +404,9 @@ public class WaterSystem : MonoBehaviour {
 		{
 			positions = positions,
 			forces = forces,
+			numExplosions = numExplosionsAlive,
+			explosionPositions = explosionPositions,
+			explosionForces = explosionForces,
 			velocities = velocities
 		};
 		var calculateKinematicForce = new CalculateKinematicForce()
@@ -399,10 +436,12 @@ public class WaterSystem : MonoBehaviour {
 			);
 		var kinematicHashPositionsHandle = NewHashPositions(kinematicPositions, kinematicHashMap, numKinematicParticlesAlive, kinematicApplyMultiplierHandle);
 
+		var explosionApplyMultiplierHandle = NewApplyMultiplier(multiplier, explosionPositions, numExplosionsAlive);
+
 		var calculateForceHandle = calculateForce.Schedule(numWaterParticlesAlive, 64, JobHandle.CombineDependencies(calculatePressureHandle, kinematicHashPositionsHandle));
 		var calculateKinematicForceHandle = calculateKinematicForce.Schedule(numKinematicParticlesAlive, 64, JobHandle.CombineDependencies(calculatePressureHandle, kinematicApplyMultiplierHandle));
 
-		var waterVelocityChangesHandle = velocityChanges.Schedule(numWaterParticlesAlive, 64, JobHandle.CombineDependencies(calculateForceHandle, calculateKinematicForceHandle));
+		var waterVelocityChangesHandle = velocityChanges.Schedule(numWaterParticlesAlive, 64, JobHandle.CombineDependencies(calculateForceHandle, calculateKinematicForceHandle, explosionApplyMultiplierHandle));
 
 		float demultiplier = 1f / multiplier;
 		jobHandle = JobHandle.CombineDependencies(
@@ -451,6 +490,9 @@ public class WaterSystem : MonoBehaviour {
 		kinematicHashMap.Dispose();
 		kinematicBuoyances.Dispose();
 		kinematicForces.Dispose();
+
+		explosionPositions.Dispose();
+		explosionForces.Dispose();
 	}
 
 	private void SetupWaterParticles() {
@@ -518,9 +560,39 @@ public class WaterSystem : MonoBehaviour {
 		}
 	}
 
+	private void SetupExplosions() {
+		int count = explosionsList.Count;
+		var newExplosionsList = new List<Explosion>();
+		Explosion e;
+		for (int i = 0; i < count; i++)
+		{
+			e = explosionsList[i];
+			explosionPositions[i] = e.position;
+			explosionForces[i] = e.force;
+			e.lifeTime -= DT;
+			if (e.lifeTime > 0) {
+				newExplosionsList.Add(e);
+			}
+		}
+		numExplosionsAlive = count;
+		explosionsList = newExplosionsList;
+	}
+
 	public void Emit(Vector3 position)
 	{
 		particlesToEmit.Add(position);
+	}
+
+	public void EmitExplosion(Vector2 position, float force, float lifeTime)
+	{
+		if (explosionsList.Count < MaxExplosions) {
+			explosionsList.Add(new Explosion()
+			{
+				position = position,
+				force = force,
+				lifeTime = lifeTime
+			});
+		}
 	}
 
 	public static int Hash(float2 v, float cellSize)

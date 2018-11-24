@@ -5,11 +5,13 @@ using System.Collections.Generic;
 
 public class ExplosionForce : MonoBehaviour
 {
+	public WaterSystem waterSystem;
     private int layerMask = ~(1 << 1);
 
 	public void doExplosion (Vector3 position, float force, float radius)
 	{
 		StartCoroutine (waitAndExplode (position, force, radius));
+		waterSystem.EmitExplosion(position, force / 100f, 0.2f);
 	}
 
 	private IEnumerator waitAndExplode (Vector3 position, float force, float radius)

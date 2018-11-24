@@ -33673,15 +33673,15 @@ GameObject:
 --- !u!114 &367371434
 MonoBehaviour:
   m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 114811650442097404, guid: d767725300a2d4bceaa0c57965e5b70d,
-    type: 2}
-  m_PrefabInternal: {fileID: 1849399851}
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 367371433}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b57070c18171a2448bd93ce4df9e8ff5, type: 3}
+  m_Script: {fileID: 11500000, guid: 60c8b2bea3494c2448fdc8b48d6339ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  waterSystem: {fileID: 530541883}
 --- !u!4 &367371435
 Transform:
   m_ObjectHideFlags: 0
@@ -33690,7 +33690,7 @@ Transform:
   m_PrefabInternal: {fileID: 1849399851}
   m_GameObject: {fileID: 367371433}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 13.158119, y: -38.857723, z: 3.258155}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -93396,6 +93396,8 @@ MonoBehaviour:
   waterSystem: {fileID: 530541883}
   count: 5
   radius: 1
+  explosionForce: 200
+  explosionLifeTime: 0.2
 --- !u!114 &1590116409
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -98872,15 +98874,15 @@ Prefab:
     m_Modifications:
     - target: {fileID: 4712051141387624, guid: d767725300a2d4bceaa0c57965e5b70d, type: 2}
       propertyPath: m_LocalPosition.x
-      value: 13.158119
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4712051141387624, guid: d767725300a2d4bceaa0c57965e5b70d, type: 2}
       propertyPath: m_LocalPosition.y
-      value: -38.857723
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4712051141387624, guid: d767725300a2d4bceaa0c57965e5b70d, type: 2}
       propertyPath: m_LocalPosition.z
-      value: 3.258155
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4712051141387624, guid: d767725300a2d4bceaa0c57965e5b70d, type: 2}
       propertyPath: m_LocalRotation.x
@@ -98902,7 +98904,8 @@ Prefab:
       propertyPath: m_RootOrder
       value: 10
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 0}
   m_SourcePrefab: {fileID: 100100000, guid: d767725300a2d4bceaa0c57965e5b70d, type: 2}
   m_IsPrefabAsset: 0
 --- !u!1 &1858786579
