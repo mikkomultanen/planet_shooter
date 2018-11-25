@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Collections;
@@ -14,15 +15,137 @@ public sealed class KinematicParticle
 	public Vector2 force;
 }
 
-[RequireComponent (typeof(ParticleSystem))]
-public class WaterSystem : MonoBehaviour {
-	struct Explosion
+public sealed class FluidContainers : IDisposable
+{
+	private ParticleSystem particleSystem;
+	public List<Vector2> particlesToEmit = new List<Vector2>();
+	public ParticleSystem.Particle[] particles;
+	public int numAlive = 0;
+	public NativeArray<float2> positions;
+	public NativeArray<float2> velocities;
+	public NativeMultiHashMap<int, int> hashMap;
+	public NativeArray<float> densities;
+	public NativeArray<float> pressures;
+	public NativeArray<float2> forces;
+
+	public FluidContainers(ParticleSystem ps)
+	{
+		particleSystem = ps;
+		particles = new ParticleSystem.Particle[ps.main.maxParticles];
+		positions = new NativeArray<float2>(ps.main.maxParticles, Allocator.Persistent);
+		velocities = new NativeArray<float2>(ps.main.maxParticles, Allocator.Persistent);
+		hashMap = new NativeMultiHashMap<int, int>(ps.main.maxParticles, Allocator.Persistent);
+		densities = new NativeArray<float>(ps.main.maxParticles, Allocator.Persistent);
+		pressures = new NativeArray<float>(ps.main.maxParticles, Allocator.Persistent);
+		forces = new NativeArray<float2>(ps.main.maxParticles, Allocator.Persistent);
+	}
+
+	public void SetupFluidParticles() {
+		numAlive = particleSystem.GetParticles(particles);
+		Vector2 vec;
+		ParticleSystem.Particle particle;
+		for(int i = 0; i < numAlive; i++)
+		{
+			particle = particles[i];
+			vec = particle.position;
+			positions[i] = vec;
+			vec = particle.velocity;
+			velocities[i] = vec;
+		}
+	}
+
+	public void UpdateFluidParticles() {
+		float2 v;
+		for(int i = 0; i < numAlive; i++)
+		{
+			v = velocities[i];
+			particles[i].velocity = new Vector3(v.x, v.y, 0);
+		}
+		particleSystem.SetParticles(particles, numAlive);
+	}
+
+	public void EmitParticles() {
+		Vector3 position;
+		float z = particleSystem.transform.position.z;
+		foreach (var p in particlesToEmit)
+		{
+			var emitParams = new ParticleSystem.EmitParams();
+			position = p;
+			position.z = z;
+			emitParams.position = position;
+			particleSystem.Emit(emitParams, 1);
+		}
+		particlesToEmit.Clear();
+	}
+
+	public void Dispose()
+	{
+		positions.Dispose();
+		velocities.Dispose();
+		hashMap.Dispose();
+		densities.Dispose();
+		pressures.Dispose();
+		forces.Dispose();
+	}
+}
+
+public sealed class KinematicContainers : IDisposable
+{
+	public KinematicParticle[] particles;
+	public int numAlive = 0;
+	public NativeArray<float2> positions;
+	public NativeArray<float2> velocities;
+	public NativeMultiHashMap<int, int> hashMap;
+	public NativeArray<float> buoyances;
+	public NativeArray<float2> forces;
+
+	public KinematicContainers(int maxParticles)
+	{
+		particles = new KinematicParticle[maxParticles];
+		positions = new NativeArray<float2>(maxParticles, Allocator.Persistent);
+		velocities = new NativeArray<float2>(maxParticles, Allocator.Persistent);
+		hashMap = new NativeMultiHashMap<int, int>(maxParticles, Allocator.Persistent);
+		buoyances = new NativeArray<float>(maxParticles, Allocator.Persistent);
+		forces = new NativeArray<float2>(maxParticles, Allocator.Persistent);
+	}
+
+	public void Dispose()
+	{
+		positions.Dispose();
+		velocities.Dispose();
+		hashMap.Dispose();
+		buoyances.Dispose();
+		forces.Dispose();
+	}
+}
+
+public sealed class ExplosionContainers : IDisposable
+{
+	public struct Explosion
 	{
 		public float2 position;
 		public float force;
 		public float lifeTime;
 	}
+	public List<Explosion> explosionsList = new List<Explosion>();
+	public int numAlive = 0;
+	public NativeArray<float2> positions;
+	public NativeArray<float> forces;
+	public ExplosionContainers(int maxParticles)
+	{
+		positions = new NativeArray<float2>(maxParticles, Allocator.Persistent);
+		forces = new NativeArray<float>(maxParticles, Allocator.Persistent);
+	}
 
+	public void Dispose()
+	{
+		positions.Dispose();
+		forces.Dispose();
+	}
+}
+
+[RequireComponent (typeof(ParticleSystem))]
+public class WaterSystem : MonoBehaviour {
 	[Range(1f, 10f)]
 	public float restDensity = 3f;
 
@@ -37,6 +160,14 @@ public class WaterSystem : MonoBehaviour {
 
 	[Range(0.05f, 1f)]
 	public float radius = 1f;
+	public ParticleSystem steamSystem;
+	[Range(1f, 10f)]
+	public float steamRestDensity = 1f;
+
+	[Range(0f, 500f)]
+	public float steamPressureConstant = 100f;
+	[Range(0f, 10f)]
+	public float steamViscosity = 0.1f;
 
 	public float skippingFrames = 0f;
 	public const float H = 1f;
@@ -52,32 +183,15 @@ public class WaterSystem : MonoBehaviour {
 	public const int MaxExplosions = 100;
 	public const float ExplosionRadius2 = 25;
 
-	private List<Vector3> particlesToEmit = new List<Vector3>();
 	private int skippedFrames = 0;
 	private int numParticlesAlive;
 
 	private ParticleSystem waterSystem;
-	private ParticleSystem.Particle[] particles;
-	private int numWaterParticlesAlive;
-	private NativeArray<float2> positions;
-	private NativeArray<float2> velocities;
-	private NativeMultiHashMap<int, int> hashMap;
-	private NativeArray<float> densities;
-	private NativeArray<float> pressures;
-	private NativeArray<float2> forces;
+	private FluidContainers waterContainers;
+	private FluidContainers steamContainers;
+	private KinematicContainers kinematicContainers;
+	private ExplosionContainers explosionContainers;
 
-	private KinematicParticle[] kinematicParticles;
-	private int numKinematicParticlesAlive;
-	private NativeArray<float2> kinematicPositions;
-	private NativeArray<float2> kinematicVelocities;
-	private NativeMultiHashMap<int, int> kinematicHashMap;
-	private NativeArray<float> kinematicBuoyances;
-	private NativeArray<float2> kinematicForces;
-
-	private List<Explosion> explosionsList;
-	private int numExplosionsAlive;
-	private NativeArray<float2> explosionPositions;
-	private NativeArray<float> explosionForces;
 	private JobHandle jobHandle;
 	void Start () {
 		Debug.Log("Wpoly6 " + Wpoly6);
@@ -86,27 +200,11 @@ public class WaterSystem : MonoBehaviour {
 		numParticlesAlive = 0;
 
 		waterSystem = GetComponent<ParticleSystem>();
-        particles = new ParticleSystem.Particle[waterSystem.main.maxParticles];
-		numWaterParticlesAlive = 0;
-		positions = new NativeArray<float2>(waterSystem.main.maxParticles, Allocator.Persistent);
-		velocities = new NativeArray<float2>(waterSystem.main.maxParticles, Allocator.Persistent);
-		hashMap = new NativeMultiHashMap<int, int>(waterSystem.main.maxParticles, Allocator.Persistent);
-		densities = new NativeArray<float>(waterSystem.main.maxParticles, Allocator.Persistent);
-		pressures = new NativeArray<float>(waterSystem.main.maxParticles, Allocator.Persistent);
-		forces = new NativeArray<float2>(waterSystem.main.maxParticles, Allocator.Persistent);
-
-		kinematicParticles = new KinematicParticle[MaxKinematicParticles];
-		numKinematicParticlesAlive = 0;
-		kinematicPositions = new NativeArray<float2>(MaxKinematicParticles, Allocator.Persistent);
-		kinematicVelocities = new NativeArray<float2>(MaxKinematicParticles, Allocator.Persistent);
-		kinematicHashMap = new NativeMultiHashMap<int, int>(MaxKinematicParticles, Allocator.Persistent);
-		kinematicBuoyances = new NativeArray<float>(MaxKinematicParticles, Allocator.Persistent);
-		kinematicForces = new NativeArray<float2>(MaxKinematicParticles, Allocator.Persistent);
-
-		explosionsList = new List<Explosion>();
-		numExplosionsAlive = 0;
-		explosionPositions = new NativeArray<float2>(MaxExplosions, Allocator.Persistent);
-		explosionForces = new NativeArray<float>(MaxExplosions, Allocator.Persistent);
+		
+		waterContainers = new FluidContainers(waterSystem);
+		steamContainers = new FluidContainers(steamSystem);
+		kinematicContainers = new KinematicContainers(MaxKinematicParticles);
+		explosionContainers = new ExplosionContainers(MaxExplosions);
 	}
 	
 	[BurstCompile]
@@ -260,8 +358,9 @@ public class WaterSystem : MonoBehaviour {
 	}
 
 	[BurstCompile]
-	struct WaterVelocityChanges : IJobParallelFor
+	struct FluidVelocityChanges : IJobParallelFor
 	{
+		[ReadOnly] public float gravityA;
 		[ReadOnly] public NativeArray<float2> positions;
 		[ReadOnly] public NativeArray<float2> forces;
 		[ReadOnly] public int numExplosions;
@@ -277,7 +376,7 @@ public class WaterSystem : MonoBehaviour {
 				CalculateExplosion(i, position, ref explosionForce);
 			}
 			//float2 gravity = new float2(0, -9.81f);
-			float2 gravity = -9.81f * math.normalizesafe(position);
+			float2 gravity = gravityA * math.normalizesafe(position);
 			velocities[index] += (forces[index] + gravity + explosionForce) * DT;
 		}
 
@@ -354,105 +453,96 @@ public class WaterSystem : MonoBehaviour {
 			skippedFrames = 0;
 			jobHandle.Complete();
 
-			UpdateWaterParticles();
+			waterContainers.UpdateFluidParticles();
+			steamContainers.UpdateFluidParticles();
 			UpdateKinematicParticles();
 		}
 
-		EmitWaterParticles();
+		waterContainers.EmitParticles();
+		steamContainers.EmitParticles();
 
 		waterSystem.Simulate(DT, true, false, false);
+		steamSystem.Simulate(DT, true, false, false);
 
 		float multiplier = H / radius;
+		float demultiplier = radius / H;
 		
-		SetupWaterParticles();
+		waterContainers.SetupFluidParticles();
+		steamContainers.SetupFluidParticles();
 		SetupKinematicParticles();
 		SetupExplosions();
 
-		numParticlesAlive = numWaterParticlesAlive + numKinematicParticlesAlive;
+		numParticlesAlive = waterContainers.numAlive + steamContainers.numAlive + kinematicContainers.numAlive;
 
 		if (numParticlesAlive == 0) {
 			return;
 		}
 
-		hashMap.Clear();
-		kinematicHashMap.Clear();
+		steamContainers.hashMap.Clear();
 
-		var calculatePressure = new CalculatePressure()
-		{
-			restDensity = restDensity,
-			pressureConstant = pressureConstant,
-			positions = positions,
-			hashMap = hashMap,
-			densities = densities,
-			pressures = pressures
-		};
-		var calculateForce = new CalculateForce()
-		{
-			viscosity = viscosity,
-			positions = positions,
-			velocities = velocities,
-			densities = densities,
-			pressures = pressures,
-			hashMap = hashMap,
-			kinematicViscosity = kinematicViscosity,
-			kinematicPositions = kinematicPositions,
-			kinematicVelocities = kinematicVelocities,
-			kinematicHashMap = kinematicHashMap,
-			forces = forces
-		};
-		var velocityChanges = new WaterVelocityChanges()
-		{
-			positions = positions,
-			forces = forces,
-			numExplosions = numExplosionsAlive,
-			explosionPositions = explosionPositions,
-			explosionForces = explosionForces,
-			velocities = velocities
-		};
-		var calculateKinematicForce = new CalculateKinematicForce()
-		{
-			restDensity = restDensity,
-			kinematicViscosity = kinematicViscosity,
-			positions = positions,
-			velocities = velocities,
-			densities = densities,
-			hashMap = hashMap,
-			kinematicPositions = kinematicPositions,
-			kinematicVelocities = kinematicVelocities,
-			kinematicBuoyances = kinematicBuoyances,
-			kinematicForces = kinematicForces
-		};
-		
-		var applyMultiplierHandle = JobHandle.CombineDependencies(
-			NewApplyMultiplier(multiplier, positions, numWaterParticlesAlive),
-			NewApplyMultiplier(multiplier, velocities, numWaterParticlesAlive)
-			);
-		var hashMapHandle = NewHashPositions(positions, hashMap, numWaterParticlesAlive, applyMultiplierHandle);
-		var calculatePressureHandle = calculatePressure.Schedule(numWaterParticlesAlive, 64, hashMapHandle);
+		// Initialize data
+		var setupWaterHandle = NewFluidSetup(multiplier, restDensity, pressureConstant, waterContainers);
+		var setupSteamHandle = NewFluidSetup(multiplier, steamRestDensity, steamPressureConstant, steamContainers);
+		var setupKinematicHandle = NewKinematicSetup(multiplier, kinematicContainers);
+		var setupExplosionHandle = NewApplyMultiplier(multiplier, explosionContainers.positions, explosionContainers.numAlive);
 
-		var kinematicApplyMultiplierHandle = JobHandle.CombineDependencies(
-			NewApplyMultiplier(multiplier, kinematicPositions, numKinematicParticlesAlive),
-			NewApplyMultiplier(multiplier, kinematicVelocities, numKinematicParticlesAlive)
-			);
-		var kinematicHashPositionsHandle = NewHashPositions(kinematicPositions, kinematicHashMap, numKinematicParticlesAlive, kinematicApplyMultiplierHandle);
+		// Calculate forces
+		var waterForceHandle = NewCalculateForce(viscosity, waterContainers, kinematicViscosity, kinematicContainers, JobHandle.CombineDependencies(setupWaterHandle, setupKinematicHandle));
+		var steamForceHandle = NewCalculateForce(steamViscosity, steamContainers, kinematicViscosity, kinematicContainers, JobHandle.CombineDependencies(setupSteamHandle, setupKinematicHandle));
+		var kinematicForceHandle = NewCalculateKinematicForce(restDensity, waterContainers, kinematicViscosity, kinematicContainers, JobHandle.CombineDependencies(setupWaterHandle, setupKinematicHandle));
 
-		var explosionApplyMultiplierHandle = NewApplyMultiplier(multiplier, explosionPositions, numExplosionsAlive);
+		// Apply velocity changes
+		var waterVelocityChangesHandle = NewVelocityChanges(-9.81f, waterContainers, explosionContainers, JobHandle.CombineDependencies(waterForceHandle, kinematicForceHandle, setupExplosionHandle));
+		var steamVelocityChangesHandle = NewVelocityChanges(5f, steamContainers, explosionContainers, JobHandle.CombineDependencies(steamForceHandle, kinematicForceHandle, setupExplosionHandle));
 
-		var calculateForceHandle = calculateForce.Schedule(numWaterParticlesAlive, 64, JobHandle.CombineDependencies(calculatePressureHandle, kinematicHashPositionsHandle));
-		var calculateKinematicForceHandle = calculateKinematicForce.Schedule(numKinematicParticlesAlive, 64, JobHandle.CombineDependencies(calculatePressureHandle, kinematicApplyMultiplierHandle));
+		// Collect results
+		var waterResultsHandle = NewApplyDemultiplier(demultiplier, waterContainers, waterVelocityChangesHandle);
+		var steamResultsHandle = NewApplyDemultiplier(demultiplier, steamContainers, steamVelocityChangesHandle);
+		var kinematicResultsHandle = NewApplyDemultiplier(demultiplier, kinematicContainers, kinematicForceHandle);
 
-		var waterVelocityChangesHandle = velocityChanges.Schedule(numWaterParticlesAlive, 64, JobHandle.CombineDependencies(calculateForceHandle, calculateKinematicForceHandle, explosionApplyMultiplierHandle));
-
-		float demultiplier = 1f / multiplier;
-		jobHandle = JobHandle.CombineDependencies(
-			NewApplyMultiplier(demultiplier, positions, numWaterParticlesAlive, waterVelocityChangesHandle),
-			NewApplyMultiplier(demultiplier, velocities, numWaterParticlesAlive, waterVelocityChangesHandle),
-			NewApplyMultiplier(demultiplier, kinematicForces, numKinematicParticlesAlive, calculateKinematicForceHandle)
-			);
+		jobHandle = JobHandle.CombineDependencies(waterResultsHandle, steamResultsHandle, kinematicResultsHandle);
 
 		JobHandle.ScheduleBatchedJobs();
 	}
 
+	private static JobHandle NewKinematicSetup(float multiplier, KinematicContainers kc)
+	{
+		kc.hashMap.Clear();
+		var kinematicApplyMultiplierHandle = NewApplyMultiplier(multiplier, kc);
+		var kinematicHashPositionsHandle = NewHashPositions(kc, kinematicApplyMultiplierHandle);
+		return kinematicHashPositionsHandle;
+	}
+	private static JobHandle NewFluidSetup(float multiplier, float restDensity, float pressureConstant, FluidContainers fc)
+	{
+		fc.hashMap.Clear();
+		var applyMultiplierHandle = NewApplyMultiplier(multiplier, fc);
+		var hashMapHandle = NewHashPositions(fc, applyMultiplierHandle);
+		var calculatePressureHandle = NewCalculatePressure(restDensity, pressureConstant, fc, hashMapHandle);
+		return calculatePressureHandle;
+	}
+	private static JobHandle NewApplyMultiplier(float multiplier, FluidContainers fc)
+	{
+		return JobHandle.CombineDependencies(
+			NewApplyMultiplier(multiplier, fc.positions, fc.numAlive),
+			NewApplyMultiplier(multiplier, fc.velocities, fc.numAlive)
+			);
+	}
+
+	private static JobHandle NewApplyMultiplier(float multiplier, KinematicContainers kc)
+	{
+		return JobHandle.CombineDependencies(
+			NewApplyMultiplier(multiplier, kc.positions, kc.numAlive),
+			NewApplyMultiplier(multiplier, kc.velocities, kc.numAlive)
+			);
+	}
+	private static JobHandle NewApplyDemultiplier(float demultiplier, FluidContainers fc, JobHandle dependsOn)
+	{
+		return NewApplyMultiplier(demultiplier, fc.velocities, fc.numAlive, dependsOn);
+	}
+	private static JobHandle NewApplyDemultiplier(float demultiplier, KinematicContainers kc, JobHandle dependsOn)
+	{
+		return NewApplyMultiplier(demultiplier, kc.forces, kc.numAlive, dependsOn);
+	}
 	private static JobHandle NewApplyMultiplier(float multiplier, NativeArray<float2> array, int count, JobHandle dependsOn = default(JobHandle))
 	{
 		var multiply = new ApplyMultiplier()
@@ -461,6 +551,15 @@ public class WaterSystem : MonoBehaviour {
 			array = array
 		};
 		return multiply.Schedule(count, 64, dependsOn);
+	}
+
+	private static JobHandle NewHashPositions(FluidContainers fc, JobHandle dependsOn)
+	{
+		return NewHashPositions(fc.positions, fc.hashMap, fc.numAlive, dependsOn);
+	}
+	private static JobHandle NewHashPositions(KinematicContainers kc, JobHandle dependsOn)
+	{
+		return NewHashPositions(kc.positions, kc.hashMap, kc.numAlive, dependsOn);
 	}
 
 	private static JobHandle NewHashPositions(NativeArray<float2> positions, NativeMultiHashMap<int, int> hashMap, int count, JobHandle dependsOn)
@@ -473,58 +572,92 @@ public class WaterSystem : MonoBehaviour {
 		return hashPositions.Schedule(count, 64, dependsOn);
 	}
 
+	private static JobHandle NewCalculatePressure(float restDensity, float pressureConstant, FluidContainers fc, JobHandle dependsOn)
+	{
+		var calculatePressure = new CalculatePressure()
+		{
+			restDensity = restDensity,
+			pressureConstant = pressureConstant,
+			positions = fc.positions,
+			hashMap = fc.hashMap,
+			densities = fc.densities,
+			pressures = fc.pressures
+		};
+		return calculatePressure.Schedule(fc.numAlive, 64, dependsOn);
+	}
+
+	private static JobHandle NewCalculateForce(float viscosity, FluidContainers fc, float kinematicViscosity, KinematicContainers kc, JobHandle dependsOn)
+	{
+		var calculateForce = new CalculateForce()
+		{
+			viscosity = viscosity,
+			positions = fc.positions,
+			velocities = fc.velocities,
+			densities = fc.densities,
+			pressures = fc.pressures,
+			hashMap = fc.hashMap,
+			kinematicViscosity = kinematicViscosity,
+			kinematicPositions = kc.positions,
+			kinematicVelocities = kc.velocities,
+			kinematicHashMap = kc.hashMap,
+			forces = fc.forces
+		};
+		return calculateForce.Schedule(fc.numAlive, 64, dependsOn);
+	}
+
+	private static JobHandle NewVelocityChanges(float gravity, FluidContainers fc, ExplosionContainers ec, JobHandle dependsOn)
+	{
+		var velocityChanges = new FluidVelocityChanges()
+		{
+			gravityA = gravity,
+			positions = fc.positions,
+			forces = fc.forces,
+			numExplosions = ec.numAlive,
+			explosionPositions = ec.positions,
+			explosionForces = ec.forces,
+			velocities = fc.velocities
+		};
+		return velocityChanges.Schedule(fc.numAlive, 64, dependsOn);
+	}
+
+	private static JobHandle NewCalculateKinematicForce(float restDensity, FluidContainers fc, float kinematicViscosity, KinematicContainers kc, JobHandle dependsOn)
+	{
+		var calculateKinematicForce = new CalculateKinematicForce()
+		{
+			restDensity = restDensity,
+			kinematicViscosity = kinematicViscosity,
+			positions = fc.positions,
+			velocities = fc.velocities,
+			densities = fc.densities,
+			hashMap = fc.hashMap,
+			kinematicPositions = kc.positions,
+			kinematicVelocities = kc.velocities,
+			kinematicBuoyances = kc.buoyances,
+			kinematicForces = kc.forces
+		};
+		return calculateKinematicForce.Schedule(kc.numAlive, 64, dependsOn);
+	}
+
 	private void OnDestroy() {
 		if(numParticlesAlive > 0) {
 			jobHandle.Complete();
 		}
 
-		positions.Dispose();
-		velocities.Dispose();
-		hashMap.Dispose();
-		densities.Dispose();
-		pressures.Dispose();
-		forces.Dispose();
-
-		kinematicPositions.Dispose();
-		kinematicVelocities.Dispose();
-		kinematicHashMap.Dispose();
-		kinematicBuoyances.Dispose();
-		kinematicForces.Dispose();
-
-		explosionPositions.Dispose();
-		explosionForces.Dispose();
+		waterContainers.Dispose();
+		steamContainers.Dispose();
+		kinematicContainers.Dispose();
+		explosionContainers.Dispose();
 	}
 
-	private void SetupWaterParticles() {
-		numWaterParticlesAlive = waterSystem.GetParticles(particles);
-		Vector2 vec;
-		for(int i = 0; i < numWaterParticlesAlive; i++)
-		{
-			vec = particles[i].position;
-			positions[i] = vec;
-			vec = particles[i].velocity;
-			velocities[i] = vec;
+	private void OnParticleTrigger() {
+		List<ParticleSystem.Particle> enter = new List<ParticleSystem.Particle>();
+        int numEnter = waterSystem.GetTriggerParticles(ParticleSystemTriggerEventType.Enter, enter);
+		if (numEnter > 0) {
+			foreach (var particle in enter)
+			{
+				EmitSteam(particle.position);
+			}
 		}
-	}
-
-	private void UpdateWaterParticles() {
-		float2 v;
-		for(int i = 0; i < numWaterParticlesAlive; i++)
-		{
-			v = velocities[i];
-			particles[i].velocity = new Vector3(v.x, v.y, 0);
-		}
-		waterSystem.SetParticles(particles, numWaterParticlesAlive);
-	}
-
-	private void EmitWaterParticles() {
-		foreach (var position in particlesToEmit)
-		{
-			var emitParams = new ParticleSystem.EmitParams();
-			emitParams.position = position;
-			waterSystem.Emit(emitParams, 1);
-		}
-		particlesToEmit.Clear();
 	}
 
 	private void SetupKinematicParticles() {
@@ -536,9 +669,9 @@ public class WaterSystem : MonoBehaviour {
 			foreach (var particle in kinematicBody.particles)
 			{
 				if (index < MaxKinematicParticles) {
-					kinematicParticles[index] = particle;
-					kinematicPositions[index] = particle.position;
-					kinematicVelocities[index] = particle.velocity;
+					kinematicContainers.particles[index] = particle;
+					kinematicContainers.positions[index] = particle.position;
+					kinematicContainers.velocities[index] = particle.velocity;
 					index++;
 				} else { break; }
 			}
@@ -547,46 +680,51 @@ public class WaterSystem : MonoBehaviour {
 				break;
 			}
 		}
-		numKinematicParticlesAlive = index;
+		kinematicContainers.numAlive = index;
 	}
 
 	private void UpdateKinematicParticles() {
 		KinematicParticle particle;
-		for(int i = 0; i < numKinematicParticlesAlive; i++)
+		for(int i = 0; i < kinematicContainers.numAlive; i++)
 		{
-			particle = kinematicParticles[i];
-			particle.buoyance = kinematicBuoyances[i];
-			particle.force = kinematicForces[i];
+			particle = kinematicContainers.particles[i];
+			particle.buoyance = kinematicContainers.buoyances[i];
+			particle.force = kinematicContainers.forces[i];
 		}
 	}
 
 	private void SetupExplosions() {
-		int count = explosionsList.Count;
-		var newExplosionsList = new List<Explosion>();
-		Explosion e;
+		int count = explosionContainers.explosionsList.Count;
+		var newExplosionsList = new List<ExplosionContainers.Explosion>();
+		ExplosionContainers.Explosion e;
 		for (int i = 0; i < count; i++)
 		{
-			e = explosionsList[i];
-			explosionPositions[i] = e.position;
-			explosionForces[i] = e.force;
+			e = explosionContainers.explosionsList[i];
+			explosionContainers.positions[i] = e.position;
+			explosionContainers.forces[i] = e.force;
 			e.lifeTime -= DT;
 			if (e.lifeTime > 0) {
 				newExplosionsList.Add(e);
 			}
 		}
-		numExplosionsAlive = count;
-		explosionsList = newExplosionsList;
+		explosionContainers.numAlive = count;
+		explosionContainers.explosionsList = newExplosionsList;
 	}
 
-	public void Emit(Vector3 position)
+	public void EmitWater(Vector2 position)
 	{
-		particlesToEmit.Add(position);
+		waterContainers.particlesToEmit.Add(position);
+	}
+
+	public void EmitSteam(Vector2 position)
+	{
+		steamContainers.particlesToEmit.Add(position);
 	}
 
 	public void EmitExplosion(Vector2 position, float force, float lifeTime)
 	{
-		if (explosionsList.Count < MaxExplosions) {
-			explosionsList.Add(new Explosion()
+		if (explosionContainers.explosionsList.Count < MaxExplosions) {
+			explosionContainers.explosionsList.Add(new ExplosionContainers.Explosion()
 			{
 				position = position,
 				force = force,
