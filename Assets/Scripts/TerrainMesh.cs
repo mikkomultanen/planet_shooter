@@ -72,12 +72,6 @@ public class Cave : System.Object
         this.thickness = new Noise(tMin, tMax, 11, 17, 5);
     }
 
-    public Vector2 center(Vector2 direction)
-    {
-        var angle = Mathf.Atan2(direction.x, direction.y);
-        return direction.normalized * centerMagnitude(angle);
-    }
-
     public float ceilingMagnitude(float angle)
     {
         return waveValue(angle) + thicknessValue(angle) / 2;
@@ -166,9 +160,11 @@ public class TerrainMesh : MonoBehaviour
         return new Vector2(x, y);
     }
 
-    public Vector2 randomCaveCenter()
+    public Vector2 randomUpperCaveCenter()
     {
-        return caves[Random.Range(0, caves.Count)].center(RandomPointOnUnitCircle());
+        var direction = RandomPointOnUnitCircle();
+        return upperCaveCenterMagnitude(direction) * direction;
+    }
 
     public Vector2 randomUpperCaveCeiling()
     {
