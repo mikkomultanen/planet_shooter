@@ -140,6 +140,9 @@ public class TerrainMesh : MonoBehaviour
     public List<GameObject> fragments = new List<GameObject>();
 
     public List<Cave> caves = new List<Cave>();
+    private List<PSEdge> caveCeilingEdges = new List<PSEdge>();
+    private bool _ready = false;
+    public bool Ready { get { return _ready; }}
 #if UNITY_EDITOR
     private List<PSPolygon> editorPolygons = new List<PSPolygon>();
     private List<PSEdge> editorEdges = new List<PSEdge>();
@@ -166,6 +169,20 @@ public class TerrainMesh : MonoBehaviour
     public Vector2 randomCaveCenter()
     {
         return caves[Random.Range(0, caves.Count)].center(RandomPointOnUnitCircle());
+
+    public Vector2 randomUpperCaveCeiling()
+    {
+        var direction = RandomPointOnUnitCircle();
+        var angle = Mathf.Atan2(direction.x, direction.y);
+        return caves.Select(c => c.ceilingMagnitude(angle)).Max() * direction;
+    }
+
+    public PSEdge randomCaveCeiling()
+    {
+        if(caveCeilingEdges.Count > 0) {
+            return caveCeilingEdges[Random.Range(0, caveCeilingEdges.Count)];
+        }
+        return null;
     }
 
     public Vector2[] startPositions(int playerCount)
@@ -287,6 +304,7 @@ public class TerrainMesh : MonoBehaviour
         pointSets.Add(points.Where(p => p.x <= 0 && p.y <= 0).ToList());
 
         var polygons = pointSets.SelectMany(s => GenerateMeshAndPolygons(s)).ToList();
+        caveCeilingEdges = polygons.SelectMany(p => getCeilingEdges(p, innerRadius)).ToList();
 
 #if UNITY_EDITOR
         //editorPoints = points;
@@ -297,6 +315,7 @@ public class TerrainMesh : MonoBehaviour
         GenerateFragments(polygons);
         UpdateBackground();
         UpdateCaveBackground(polygons);
+        _ready = true;
     }
 
     private Vector2 findBorder(Vector2 v0, float f0, Vector2 v1, float f1)
@@ -572,9 +591,33 @@ public class TerrainMesh : MonoBehaviour
         return floorEdges;
     }
 
+    private static List<PSEdge> getCeilingEdges(PSPolygon polygon, float innerRadius)
+    {
+        var ceilingEdges = new List<PSEdge>();
+        Vector2 previous = polygon.points.Last();
+        bool previousIsCeiling = isCeilingPoint(previous, polygon, innerRadius);
+        bool currentIsCeiling;
+        foreach (var p in polygon.points)
+        {
+            currentIsCeiling = isCeilingPoint(p, polygon, innerRadius);
+            if ((currentIsCeiling || previousIsCeiling) && Vector3.Cross(previous, p).sqrMagnitude > 0)
+            {
+                ceilingEdges.Add(new PSEdge(previous, p));
+            }
+            previous = p;
+            previousIsCeiling = currentIsCeiling;
+        }
+        return ceilingEdges;
+    }
+
     private static bool isFloorPoint(Vector2 point, PSPolygon polygon)
     {
         return polygon.PointInPolygon(point + (point.normalized * -0.005f));
+    }
+
+    private static bool isCeilingPoint(Vector2 point, PSPolygon polygon, float innerRadius)
+    {
+        return point.magnitude > innerRadius + 0.005f && polygon.PointInPolygon(point + (point.normalized * 0.005f));
     }
 
     private float tangent(Vector2 point)
@@ -674,6 +717,7 @@ public class TerrainMesh : MonoBehaviour
 #endif
     private void DeleteTerrain()
     {
+        _ready = false;
         foreach (GameObject frag in fragments)
         {
 #if UNITY_EDITOR
@@ -683,6 +727,7 @@ public class TerrainMesh : MonoBehaviour
 #endif
         }
         fragments.Clear();
+        caveCeilingEdges.Clear();
         UpdateBackground();
         UpdateCaveBackground(new PSPolygon[0]);
 #if UNITY_EDITOR
@@ -885,8 +930,11 @@ public class TerrainMesh : MonoBehaviour
             Gizmos.color = Color.yellow;
             editorPolygons.ForEach(p => DrawPolygon(p, offset));
 
-            Gizmos.color = Color.cyan;
-            editorEdges.ForEach(e => DrawEdge(e, offset));
+            //Gizmos.color = Color.cyan;
+            //editorEdges.ForEach(e => DrawEdge(e, offset));
+
+            Gizmos.color = Color.blue;
+            caveCeilingEdges.ForEach(e => DrawEdge(e, offset));
 
             Gizmos.color = Color.red;
             DrawDiamonds(editorPoints, offset);

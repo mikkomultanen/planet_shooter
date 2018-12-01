@@ -20,7 +20,7 @@ public class WaterTest : MonoBehaviour {
 				for (int i = 0; i < count; i++) {
 					Vector3 position = wordPos + UnityEngine.Random.insideUnitSphere * radius;
 					position.z = 0f;
-					waterSystem.EmitWater(position);
+					waterSystem.EmitWater(position, Vector2.zero);
 				}
 			}
 		}

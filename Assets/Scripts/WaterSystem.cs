@@ -18,7 +18,7 @@ public sealed class KinematicParticle
 public sealed class FluidContainers : IDisposable
 {
 	private ParticleSystem particleSystem;
-	public List<Vector2> particlesToEmit = new List<Vector2>();
+	public List<ParticleSystem.EmitParams> particlesToEmit = new List<ParticleSystem.EmitParams>();
 	public ParticleSystem.Particle[] particles;
 	public int numAlive = 0;
 	public NativeArray<float2> positions;
@@ -69,8 +69,8 @@ public sealed class FluidContainers : IDisposable
 		float z = particleSystem.transform.position.z;
 		foreach (var p in particlesToEmit)
 		{
-			var emitParams = new ParticleSystem.EmitParams();
-			position = p;
+			var emitParams = p;
+			position = p.position;
 			position.z = z;
 			emitParams.position = position;
 			particleSystem.Emit(emitParams, 1);
@@ -711,14 +711,19 @@ public class WaterSystem : MonoBehaviour {
 		explosionContainers.explosionsList = newExplosionsList;
 	}
 
-	public void EmitWater(Vector2 position)
+	public void EmitWater(Vector2 position, Vector2 velocity)
 	{
-		waterContainers.particlesToEmit.Add(position);
+		var p = new ParticleSystem.EmitParams();
+		p.position = position;
+		p.velocity = velocity;
+		waterContainers.particlesToEmit.Add(p);
 	}
 
 	public void EmitSteam(Vector2 position)
 	{
-		steamContainers.particlesToEmit.Add(position);
+		var p = new ParticleSystem.EmitParams();
+		p.position = position;
+		steamContainers.particlesToEmit.Add(p);
 	}
 
 	public void EmitExplosion(Vector2 position, float force, float lifeTime)
