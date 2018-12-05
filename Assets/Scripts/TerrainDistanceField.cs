@@ -13,6 +13,7 @@ public class TerrainDistanceField : MonoBehaviour {
 	public RenderTexture terrainDistanceField;
 	private Camera cam;
 	private Material material;
+	private Material voronoiMaterial;
     private void Awake()
     {
         GenerateMesh();
@@ -65,7 +66,7 @@ public class TerrainDistanceField : MonoBehaviour {
     }
 	
 	private void OnEnable() {
-		terrainDistanceField = new RenderTexture(2048, 2048, 0, RenderTextureFormat.R8);
+		terrainDistanceField = new RenderTexture(2048, 2048, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
 		terrainDistanceField.isPowerOfTwo = true;
 		terrainDistanceField.filterMode = FilterMode.Trilinear;
 		terrainDistanceField.hideFlags = HideFlags.DontSave;
@@ -86,15 +87,32 @@ public class TerrainDistanceField : MonoBehaviour {
 		material.SetTexture("_MainTex", terrainDistanceField);
 		MeshRenderer renderer = GetComponent<MeshRenderer>();
 		renderer.material = material;
+		voronoiMaterial = new Material(Shader.Find("Hidden/PlanetShooter/Voronoi"));
 	}
 
 	private void LateUpdate() {
 		cam.Render();
+		RenderTexture voronoi1 = RenderTexture.GetTemporary(terrainDistanceField.width, terrainDistanceField.height, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear);
+		Graphics.Blit(terrainDistanceField, voronoi1, voronoiMaterial, 0);
+		RenderTexture voronoi2 = RenderTexture.GetTemporary(terrainDistanceField.width, terrainDistanceField.height, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear);
+		voronoiMaterial.SetInt("_Offset", 4);
+		Graphics.Blit(voronoi1, voronoi2, voronoiMaterial, 1);
+		voronoiMaterial.SetInt("_Offset", 2);
+		Graphics.Blit(voronoi2, voronoi1, voronoiMaterial, 1);
+		voronoiMaterial.SetInt("_Offset", 1);
+		Graphics.Blit(voronoi1, voronoi2, voronoiMaterial, 1);
+
+		voronoiMaterial.SetFloat("_DistanceScale", size);
+		Graphics.Blit(voronoi2, terrainDistanceField, voronoiMaterial, 2);
+
+		RenderTexture.ReleaseTemporary(voronoi1);
+		RenderTexture.ReleaseTemporary(voronoi2);
 	}
 
 	private void OnDisable() {
 		DestroyImmediate(cam);
 		DestroyImmediate(terrainDistanceField);
 		DestroyImmediate(material);
+		DestroyImmediate(voronoiMaterial);
 	}
 }

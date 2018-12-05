@@ -31,8 +31,8 @@ Shader "PlanetShooter/DistanceFieldDebug" {
             //Fragment Shader
             float4 frag (v2f_img i) : COLOR {
                 float value = tex2D (_MainTex, i.uv);
-                return float4(0, 1, 0, value * 0.2);
-                //return value.rrrr * 0.01;
+                
+                return float4(0, 1, 0, step(0.5, value) * 0.2);
             }
             ENDCG
         }
