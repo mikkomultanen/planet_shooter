@@ -4,9 +4,27 @@ Shader "Hidden/PlanetShooter/Voronoi" {
     Properties 
     {
 		_MainTex ("Detail", 2D) = "white" {}
-        _Offset ("Offset", Int) = 0
-        _DistanceScale ("Distance Scale", Float) = 1.0
     }
+
+    CGINCLUDE
+    #include "UnityCG.cginc"
+
+    sampler2D _MainTex;
+    float4 _MainTex_TexelSize;
+
+    half4 Sample (float2 uv) {
+        return tex2D(_MainTex, uv);
+    }
+
+    half4 SampleBox (float2 uv, float delta) {
+        float4 o = _MainTex_TexelSize.xyxy * float2(-delta, delta).xxyy;
+        half4 s =
+            Sample(uv + o.xy) + Sample(uv + o.zy) +
+            Sample(uv + o.xw) + Sample(uv + o.zw);
+        return s * 0.25f;
+    }
+
+    ENDCG
 
     SubShader {
         Tags { "RenderType"="Opaque" }
@@ -15,13 +33,10 @@ Shader "Hidden/PlanetShooter/Voronoi" {
         ZWrite Off
         ZTest Always
 
-        Pass {
+        Pass { // 0 init position
             CGPROGRAM
             #pragma vertex vert_img
             #pragma fragment frag
-            #include "UnityCG.cginc"
-
-			sampler2D _MainTex;
 
             //Fragment Shader
             half2 frag (v2f_img i) : COLOR {
@@ -35,14 +50,11 @@ Shader "Hidden/PlanetShooter/Voronoi" {
             ENDCG
         }
 
-        Pass {
+        Pass { // 1 JFA step
             CGPROGRAM
             #pragma vertex vert_img
             #pragma fragment frag
-            #include "UnityCG.cginc"
 
-			sampler2D _MainTex;
-            uniform float4 _MainTex_TexelSize;
             int _Offset;
 
             //Fragment Shader
@@ -74,13 +86,11 @@ Shader "Hidden/PlanetShooter/Voronoi" {
             ENDCG
         }
 
-        Pass {
+        Pass { // 2 calculate distance
             CGPROGRAM
             #pragma vertex vert_img
             #pragma fragment frag
-            #include "UnityCG.cginc"
 
-			sampler2D _MainTex;
             float _DistanceScale;
 
             //Fragment Shader
@@ -91,6 +101,20 @@ Shader "Hidden/PlanetShooter/Voronoi" {
                 } else {
                     return 1;
                 }
+            }
+            ENDCG
+        }
+
+        Pass { // 3 box filter
+            CGPROGRAM
+            #pragma vertex vert_img
+            #pragma fragment frag
+
+            float _BoxOffset;
+
+            //Fragment Shader
+            half4 frag (v2f_img i) : COLOR {
+                return SampleBox(i.uv, _BoxOffset);
             }
             ENDCG
         }

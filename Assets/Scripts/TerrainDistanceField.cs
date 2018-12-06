@@ -66,7 +66,8 @@ public class TerrainDistanceField : MonoBehaviour {
     }
 	
 	private void OnEnable() {
-		terrainDistanceField = new RenderTexture(2048, 2048, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		terrainDistanceField = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		terrainDistanceField.antiAliasing = 1;
 		terrainDistanceField.isPowerOfTwo = true;
 		terrainDistanceField.filterMode = FilterMode.Trilinear;
 		terrainDistanceField.hideFlags = HideFlags.DontSave;
@@ -81,7 +82,6 @@ public class TerrainDistanceField : MonoBehaviour {
 		cam.clearFlags = CameraClearFlags.SolidColor;
 		cam.projectionMatrix = Matrix4x4.Ortho(-halfSize, halfSize, -halfSize, halfSize, nearClip, farClip);
 		cam.enabled = false;
-		cam.targetTexture = terrainDistanceField;
 		cam.SetReplacementShader(Shader.Find("Hidden/PlanetShooter/DistanceField"),"");
 		material = new Material(Shader.Find("PlanetShooter/DistanceFieldDebug"));
 		material.SetTexture("_MainTex", terrainDistanceField);
@@ -91,10 +91,23 @@ public class TerrainDistanceField : MonoBehaviour {
 	}
 
 	private void LateUpdate() {
+		int textureSize = 2048;
+		RenderTexture shapes = RenderTexture.GetTemporary(textureSize, textureSize, 0, RenderTextureFormat.R8, RenderTextureReadWrite.Linear, 1);
+		shapes.filterMode = FilterMode.Point;
+		cam.targetTexture = shapes;
 		cam.Render();
-		RenderTexture voronoi1 = RenderTexture.GetTemporary(terrainDistanceField.width, terrainDistanceField.height, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear);
-		Graphics.Blit(terrainDistanceField, voronoi1, voronoiMaterial, 0);
-		RenderTexture voronoi2 = RenderTexture.GetTemporary(terrainDistanceField.width, terrainDistanceField.height, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear);
+		cam.targetTexture = null;
+
+		RenderTexture voronoi1 = RenderTexture.GetTemporary(textureSize, textureSize, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear, 1);
+		voronoi1.filterMode = FilterMode.Point;
+
+		Graphics.Blit(shapes, voronoi1, voronoiMaterial, 0);
+
+		RenderTexture.ReleaseTemporary(shapes);
+
+		RenderTexture voronoi2 = RenderTexture.GetTemporary(textureSize, textureSize, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear, 1);
+		voronoi2.filterMode = FilterMode.Point;
+
 		voronoiMaterial.SetInt("_Offset", 4);
 		Graphics.Blit(voronoi1, voronoi2, voronoiMaterial, 1);
 		voronoiMaterial.SetInt("_Offset", 2);
@@ -103,10 +116,18 @@ public class TerrainDistanceField : MonoBehaviour {
 		Graphics.Blit(voronoi1, voronoi2, voronoiMaterial, 1);
 
 		voronoiMaterial.SetFloat("_DistanceScale", size);
-		Graphics.Blit(voronoi2, terrainDistanceField, voronoiMaterial, 2);
+
+		RenderTexture distanceField = RenderTexture.GetTemporary(textureSize, textureSize, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear, 1);
+		distanceField.filterMode = FilterMode.Bilinear;
+		Graphics.Blit(voronoi2, distanceField, voronoiMaterial, 2);
 
 		RenderTexture.ReleaseTemporary(voronoi1);
 		RenderTexture.ReleaseTemporary(voronoi2);
+
+		voronoiMaterial.SetFloat("_BoxOffset", 1);
+		Graphics.Blit(distanceField, terrainDistanceField, voronoiMaterial, 3);
+
+		RenderTexture.ReleaseTemporary(distanceField);
 	}
 
 	private void OnDisable() {
