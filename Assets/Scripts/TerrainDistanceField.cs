@@ -66,7 +66,7 @@ public class TerrainDistanceField : MonoBehaviour {
     }
 	
 	private void OnEnable() {
-		terrainDistanceField = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
+		terrainDistanceField = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB2101010, RenderTextureReadWrite.Linear);
 		terrainDistanceField.antiAliasing = 1;
 		terrainDistanceField.isPowerOfTwo = true;
 		terrainDistanceField.filterMode = FilterMode.Trilinear;

@@ -105,12 +105,23 @@ Shader "Hidden/PlanetShooter/Voronoi" {
             float _DistanceScale;
 
             //Fragment Shader
-            fixed frag (v2f_img i) : COLOR {
+            float3 frag (v2f_img i) : COLOR {
                 float4 data = tex2D (_MainTex, i.uv);
+                
                 float2 bestCoord = data.xy;
+                float2 v = i.uv - bestCoord;
+                float d = length(v);
+                float2 normal = lerp(float2(0, 0), v / max(0.0001, d), all(bestCoord));
+
                 float2 bestInnerCoord = data.zw;
-                return 0.5 * lerp(1, saturate(length(bestCoord - i.uv) * _DistanceScale), all(bestCoord)) +
-                    0.5 * lerp(0, 1 - saturate(length(bestInnerCoord - i.uv) * _DistanceScale), all(bestInnerCoord));
+                float2 innerV = bestInnerCoord - i.uv;
+                float2 innerD = length(innerV);
+                float2 innerNormal = lerp(float2(0, 0), innerV / max(0.0001, innerD), all(bestInnerCoord));;
+
+                float distance = 0.5 * lerp(1, saturate(d * _DistanceScale), all(bestCoord)) +
+                    0.5 * lerp(0, 1 - saturate(innerD * _DistanceScale), all(bestInnerCoord));
+                
+                return float3(distance, 0.5 * (normal + innerNormal) + 0.5);
             }
             ENDCG
         }
