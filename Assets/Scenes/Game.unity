@@ -58218,7 +58218,7 @@ MeshRenderer:
   m_ReflectionProbeUsage: 0
   m_RenderingLayerMask: 4294967295
   m_Materials:
-  - {fileID: 1884160746}
+  - {fileID: 1281917171}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -78609,6 +78609,30 @@ MeshFilter:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1265431779}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!21 &1281917171
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_Name: PlanetShooter/DistanceFieldDebug
+  m_Shader: {fileID: 4800000, guid: 0a66bd5c5aa6f2a4e836994ce4d1ff52, type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats: []
+    m_Colors: []
 --- !u!1 &1287947990
 GameObject:
   m_ObjectHideFlags: 0
@@ -103162,9 +103186,9 @@ MonoBehaviour:
   health: 20
   ship: {fileID: 0}
   maxHorizontalSpeed: 10
-  maxHorizontalThrustPower: 10
+  maxHorizontalThrustPower: 50
   maxVerticalSpeed: 10
-  maxVerticalThrustPower: 30
+  maxVerticalThrustPower: 150
   minDistance: 4
   targetRadius: 10
   targetLayerMask:
@@ -103990,30 +104014,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 8, y: 8}
   m_Pivot: {x: 0.5, y: 1}
---- !u!21 &1884160746
-Material:
-  serializedVersion: 6
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_Name: PlanetShooter/DistanceFieldDebug
-  m_Shader: {fileID: 4800000, guid: 0a66bd5c5aa6f2a4e836994ce4d1ff52, type: 3}
-  m_ShaderKeywords: 
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Floats: []
-    m_Colors: []
 --- !u!1 &1899899753
 GameObject:
   m_ObjectHideFlags: 0
