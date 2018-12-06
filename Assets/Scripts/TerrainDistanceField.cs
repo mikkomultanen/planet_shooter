@@ -98,14 +98,14 @@ public class TerrainDistanceField : MonoBehaviour {
 		cam.Render();
 		cam.targetTexture = null;
 
-		RenderTexture voronoi1 = RenderTexture.GetTemporary(textureSize, textureSize, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear, 1);
+		RenderTexture voronoi1 = RenderTexture.GetTemporary(textureSize, textureSize, 0, RenderTextureFormat.ARGB64, RenderTextureReadWrite.Linear, 1);
 		voronoi1.filterMode = FilterMode.Point;
 
 		Graphics.Blit(shapes, voronoi1, voronoiMaterial, 0);
 
 		RenderTexture.ReleaseTemporary(shapes);
 
-		RenderTexture voronoi2 = RenderTexture.GetTemporary(textureSize, textureSize, 0, RenderTextureFormat.RGHalf, RenderTextureReadWrite.Linear, 1);
+		RenderTexture voronoi2 = RenderTexture.GetTemporary(textureSize, textureSize, 0, RenderTextureFormat.ARGB64, RenderTextureReadWrite.Linear, 1);
 		voronoi2.filterMode = FilterMode.Point;
 
 		voronoiMaterial.SetInt("_Offset", 4);

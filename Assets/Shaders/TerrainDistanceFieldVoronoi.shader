@@ -39,12 +39,12 @@ Shader "Hidden/PlanetShooter/Voronoi" {
             #pragma fragment frag
 
             //Fragment Shader
-            half2 frag (v2f_img i) : COLOR {
+            half4 frag (v2f_img i) : COLOR {
                 fixed value = tex2D (_MainTex, i.uv);
                 if (value == 0) {
-                    return half2(0,0);
+                    return half4(0,0, i.uv);
                 } else {
-                    return i.uv;
+                    return half4(i.uv, 0, 0);
                 }
             }
             ENDCG
@@ -58,30 +58,41 @@ Shader "Hidden/PlanetShooter/Voronoi" {
             int _Offset;
 
             //Fragment Shader
-            half2 frag (v2f_img i) : COLOR {
+            half4 frag (v2f_img i) : COLOR {
                 float stepwidth = _MainTex_TexelSize.xy * _Offset;
     
                 float bestDistance = 9999.0;
                 half2 bestCoord = half2(0, 0);
                 
+                float bestInnerDistance = 9999.0;
+                half2 bestInnerCoord = half2(0, 0);
+
+                half2 seedCoord;
+                float2 v;
+                float distsq;
                 for (int y = -1; y <= 1; ++y) {
                     for (int x = -1; x <= 1; ++x) {
                         float2 sampleCoord = i.uv + float2(x,y) * stepwidth;
                         
-                        half2 seedCoord = tex2D (_MainTex, sampleCoord);
-                        if (seedCoord.x > 0 && seedCoord.y > 0)
-                        {
-                            float2 v = seedCoord - i.uv;
-                            float distsq = dot(v, v);
-                            if (distsq < bestDistance) {
-                                bestDistance = distsq;
-                                bestCoord = seedCoord;
-                            }
+                        half4 data = tex2D (_MainTex, sampleCoord);
+                        seedCoord = data.xy;
+                        v = seedCoord - i.uv;
+                        distsq = dot(v, v);
+                        if (all(seedCoord) && distsq < bestDistance) {
+                            bestDistance = distsq;
+                            bestCoord = seedCoord;
+                        }
+                        seedCoord = data.zw;
+                        v = seedCoord - i.uv;
+                        distsq = dot(v, v);
+                        if (all(seedCoord) && distsq < bestInnerDistance) {
+                            bestInnerDistance = distsq;
+                            bestInnerCoord = seedCoord;
                         }
                     }
                 }
 
-                return bestCoord;
+                return half4(bestCoord, bestInnerCoord);
             }
             ENDCG
         }
@@ -95,12 +106,11 @@ Shader "Hidden/PlanetShooter/Voronoi" {
 
             //Fragment Shader
             fixed frag (v2f_img i) : COLOR {
-                float2 bestCoord = tex2D (_MainTex, i.uv);
-                if (bestCoord.x > 0 && bestCoord.y > 0) {
-                    return length(bestCoord - i.uv) * _DistanceScale;
-                } else {
-                    return 1;
-                }
+                float4 data = tex2D (_MainTex, i.uv);
+                float2 bestCoord = data.xy;
+                float2 bestInnerCoord = data.zw;
+                return 0.5 * lerp(1, saturate(length(bestCoord - i.uv) * _DistanceScale), all(bestCoord)) +
+                    0.5 * lerp(0, 1 - saturate(length(bestInnerCoord - i.uv) * _DistanceScale), all(bestInnerCoord));
             }
             ENDCG
         }
