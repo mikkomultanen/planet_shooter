@@ -18,7 +18,7 @@ float _MinH;
 float _MaxH;
 float _DT;
 
-int _EmitCount;
+uint _EmitCount;
 float _LifeTime;
 
 [numthreads(16,1,1)]
