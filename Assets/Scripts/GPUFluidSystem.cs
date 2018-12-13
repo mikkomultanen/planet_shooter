@@ -25,25 +25,31 @@ public class GPUFluidSystem : MonoBehaviour {
 	private int initKernel;
 	private int updateKernel;
 	private int emitKernel;
+	private int threadCount;
+	private int groupCount;
 	private int bufferSize;
 	private ComputeBuffer particles;
 	private ComputeBuffer args;
 	private ComputeBuffer pool;
 	private ComputeBuffer alive;
 	private ComputeBuffer uploads;
+	private ComputeBuffer counter;
+	private int[] counterArray;
+    public int poolCount = 0;
 	private Mesh mesh;
 	private Bounds bounds;
-	private uint x;
 	private List<Vector4> emitList = new List<Vector4>();
 	private void OnEnable() {
 		initKernel = computeShader.FindKernel("Init");
 		updateKernel = computeShader.FindKernel("Update");
 		emitKernel = computeShader.FindKernel("Emit");
 
-		uint y, z;
+		uint x, y, z;
 		computeShader.GetKernelThreadGroupSizes(initKernel, out x, out y, out z);
 		
-		bufferSize = (int)((maxParticles / x) * x);
+		threadCount = (int)x;
+		groupCount = maxParticles / threadCount;
+		bufferSize = groupCount * threadCount;
 
 		particles = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(Particle)), ComputeBufferType.Default);
 		args = new ComputeBuffer(5, Marshal.SizeOf(typeof(uint)), ComputeBufferType.IndirectArguments);
@@ -51,7 +57,9 @@ public class GPUFluidSystem : MonoBehaviour {
 		pool.SetCounterValue(0);
 		alive = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Append);
 		alive.SetCounterValue(0);
-		uploads = new ComputeBuffer(256, Marshal.SizeOf(typeof(Vector4)));
+		uploads = new ComputeBuffer(Mathf.Max((256 / threadCount) * threadCount, threadCount), Marshal.SizeOf(typeof(Vector4)));
+		counter = new ComputeBuffer(4, sizeof(int), ComputeBufferType.IndirectArguments);
+		counterArray = new int[] { 0, 1, 0, 0 };
 
 		GameObject o = GameObject.CreatePrimitive(PrimitiveType.Quad);
 		mesh = o.GetComponent<MeshFilter>().sharedMesh;
@@ -63,7 +71,7 @@ public class GPUFluidSystem : MonoBehaviour {
 
 		computeShader.SetBuffer(initKernel, propParticles, particles);
 		computeShader.SetBuffer(initKernel, propDead, pool);
-		computeShader.Dispatch(initKernel, bufferSize / (int)x, 1, 1);
+		computeShader.Dispatch(initKernel, groupCount, 1, 1);
 	}
 	private void OnDisable() {
 		particles.Dispose();
@@ -71,6 +79,7 @@ public class GPUFluidSystem : MonoBehaviour {
 		pool.Dispose();
 		alive.Dispose();
 		uploads.Dispose();
+		counter.Dispose();
 
 		mesh = null;
 	}
@@ -83,7 +92,7 @@ public class GPUFluidSystem : MonoBehaviour {
 			computeShader.SetBuffer(emitKernel, propUploads, uploads);
 			computeShader.SetBuffer(emitKernel, propPool, pool);
 			computeShader.SetBuffer(emitKernel, propParticles, particles);
-			computeShader.Dispatch(emitKernel, uploads.count / (int)x, 1, 1);
+			computeShader.Dispatch(emitKernel, uploads.count / threadCount, 1, 1);
 			emitList.Clear();
 		}
 
@@ -96,7 +105,11 @@ public class GPUFluidSystem : MonoBehaviour {
 		computeShader.SetBuffer(updateKernel, propParticles, particles);
 		computeShader.SetBuffer(updateKernel, propDead, pool);
 		computeShader.SetBuffer(updateKernel, propAlive, alive);
-		computeShader.Dispatch(updateKernel, bufferSize / (int)x, 1, 1);
+		computeShader.Dispatch(updateKernel, groupCount, 1, 1);
+		counter.SetData(counterArray);
+        ComputeBuffer.CopyCount(pool, counter, 0);
+		counter.GetData(counterArray);
+		poolCount = counterArray[0];
 
 		ComputeBuffer.CopyCount(alive, args, Marshal.SizeOf(typeof(uint)));
 		material.SetBuffer(propParticles, particles);
@@ -105,7 +118,7 @@ public class GPUFluidSystem : MonoBehaviour {
 	}
 
 	public void Emit(Vector2 position, Vector2 velocity) {
-		if (emitList.Count < uploads.count) {
+		if (emitList.Count < uploads.count && emitList.Count < poolCount) {
 			emitList.Add(new Vector4(position.x, position.y, velocity.x, velocity.y));
 		}
 	}
