@@ -58218,7 +58218,7 @@ MeshRenderer:
   m_ReflectionProbeUsage: 0
   m_RenderingLayerMask: 4294967295
   m_Materials:
-  - {fileID: 1069548106}
+  - {fileID: 2054252840}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -68170,30 +68170,6 @@ Prefab:
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6fe0a73b2bef74843966379c220d1558, type: 2}
   m_IsPrefabAsset: 0
---- !u!21 &1069548106
-Material:
-  serializedVersion: 6
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 0}
-  m_Name: PlanetShooter/DistanceFieldDebug
-  m_Shader: {fileID: 4800000, guid: 0a66bd5c5aa6f2a4e836994ce4d1ff52, type: 3}
-  m_ShaderKeywords: 
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Floats: []
-    m_Colors: []
 --- !u!1 &1085178990
 GameObject:
   m_ObjectHideFlags: 0
@@ -78559,8 +78535,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   computeShader: {fileID: 7200000, guid: 26c3bb5b3b4f7a7438a99d6941000fa5, type: 3}
-  maxParticles: 100000
+  maxParticles: 1000000
   material: {fileID: 2100000, guid: 9e76b00490383084ab9b7a14091bf2b1, type: 2}
+  terrainDistanceField: {fileID: 910546228}
 --- !u!4 &1236142345
 Transform:
   m_ObjectHideFlags: 0
@@ -98319,7 +98296,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   waterSystem: {fileID: 530541883}
   gpuFluidSystem: {fileID: 1236142344}
-  count: 5
+  count: 100
   radius: 1
   explosionForce: 200
   explosionLifeTime: 0.2
@@ -104579,6 +104556,30 @@ CanvasRenderer:
   m_PrefabInternal: {fileID: 1131711244}
   m_GameObject: {fileID: 2031109243}
   m_CullTransparentMesh: 0
+--- !u!21 &2054252840
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_Name: PlanetShooter/DistanceFieldDebug
+  m_Shader: {fileID: 4800000, guid: 0a66bd5c5aa6f2a4e836994ce4d1ff52, type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats: []
+    m_Colors: []
 --- !u!1 &2079696217
 GameObject:
   m_ObjectHideFlags: 0

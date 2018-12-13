@@ -11,6 +11,7 @@ public class TerrainDistanceField : MonoBehaviour {
     public float farClip = 500;	
 	public LayerMask layerMask;
 	public RenderTexture terrainDistanceField;
+	public Vector4 terrainDistanceFieldScale { get; private set; }
 	private Camera cam;
 	private Material material;
 	private Material voronoiMaterial;
@@ -67,6 +68,7 @@ public class TerrainDistanceField : MonoBehaviour {
 	
 	private void OnEnable() {
 		terrainDistanceField = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB2101010, RenderTextureReadWrite.Linear);
+		terrainDistanceFieldScale = new Vector4(1f / size, 1f / size, size, size);
 		terrainDistanceField.antiAliasing = 1;
 		terrainDistanceField.isPowerOfTwo = true;
 		terrainDistanceField.filterMode = FilterMode.Trilinear;

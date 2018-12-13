@@ -15,11 +15,13 @@ public class GPUFluidSystem : MonoBehaviour {
 	public ComputeShader computeShader;
 	public int maxParticles = 100000;
 	public Material material;
+	public TerrainDistanceField terrainDistanceField;
 	private const string propParticles = "_Particles";
 	private const string propDead = "_Dead";
 	private const string propPool = "_Pool";
 	private const string propAlive = "_Alive";
 	private const string propUploads = "_Uploads";
+	private const string propTerrainDistanceField = "_TerrainDistanceField";
 	private int initKernel;
 	private int updateKernel;
 	private int emitKernel;
@@ -77,7 +79,7 @@ public class GPUFluidSystem : MonoBehaviour {
 		if (emitList.Count > 0) {
 			uploads.SetData(emitList);
 			computeShader.SetInt("_EmitCount", emitList.Count);
-			computeShader.SetFloat("_LifeTime", 60);
+			computeShader.SetFloat("_LifeTime", 3600);
 			computeShader.SetBuffer(emitKernel, propUploads, uploads);
 			computeShader.SetBuffer(emitKernel, propPool, pool);
 			computeShader.SetBuffer(emitKernel, propParticles, particles);
@@ -89,6 +91,8 @@ public class GPUFluidSystem : MonoBehaviour {
 		computeShader.SetFloat("_MinH", 42f);
 		computeShader.SetFloat("_MaxH", 128f);
 		computeShader.SetFloat("_DT", Time.deltaTime);
+		computeShader.SetVector("_TerrainDistanceFieldScale", terrainDistanceField.terrainDistanceFieldScale);
+		computeShader.SetTexture(updateKernel, propTerrainDistanceField, terrainDistanceField.terrainDistanceField);
 		computeShader.SetBuffer(updateKernel, propParticles, particles);
 		computeShader.SetBuffer(updateKernel, propDead, pool);
 		computeShader.SetBuffer(updateKernel, propAlive, alive);

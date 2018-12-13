@@ -12,6 +12,10 @@ AppendStructuredBuffer<uint> _Alive;
 
 StructuredBuffer<float4> _Uploads;
 
+Texture2D<float3> _TerrainDistanceField;
+SamplerState sampler_TerrainDistanceField;
+float4 _TerrainDistanceFieldScale; // x = 1 / width, y = 1 / height, z = width, w = height
+
 static const float G = -9.81;
 
 float _MinH;
@@ -38,8 +42,18 @@ void Update (uint3 id : SV_DispatchThreadID)
 		float h = length(p.position);
 		p.life.x += _DT;
 		if (p.life.x < p.life.y && h > _MinH && h < _MaxH) {
+			float2 uv = p.position * _TerrainDistanceFieldScale.xy + 0.5;
+			float3 td = _TerrainDistanceField.SampleLevel(sampler_TerrainDistanceField, uv, 0);
 			float2 up = p.position / h;
 			p.velocity += G * up * _DT;
+			if (td.x < 0.5) {
+				//p.velocity = reflect(p.velocity, td.yz);
+				float2 n = 2 * td.yz - 1;
+				float vn = max(0, -dot(p.velocity, n));
+				p.velocity += 2 * vn * n;
+				p.velocity *= 0.9;
+				//p.velocity = float2(0, 0);
+			}
 			p.position += p.velocity * _DT;
 			_Alive.Append(idx);
 		} else {
