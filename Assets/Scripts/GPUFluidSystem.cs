@@ -77,7 +77,7 @@ public class GPUFluidSystem : MonoBehaviour {
 		if (emitList.Count > 0) {
 			uploads.SetData(emitList);
 			computeShader.SetInt("_EmitCount", emitList.Count);
-			computeShader.SetFloat("_LifeTime", 1);
+			computeShader.SetFloat("_LifeTime", 60);
 			computeShader.SetBuffer(emitKernel, propUploads, uploads);
 			computeShader.SetBuffer(emitKernel, propPool, pool);
 			computeShader.SetBuffer(emitKernel, propParticles, particles);
@@ -86,6 +86,8 @@ public class GPUFluidSystem : MonoBehaviour {
 		}
 
 		alive.SetCounterValue(0);
+		computeShader.SetFloat("_MinH", 42f);
+		computeShader.SetFloat("_MaxH", 128f);
 		computeShader.SetFloat("_DT", Time.deltaTime);
 		computeShader.SetBuffer(updateKernel, propParticles, particles);
 		computeShader.SetBuffer(updateKernel, propDead, pool);

@@ -12,6 +12,10 @@ AppendStructuredBuffer<uint> _Alive;
 
 StructuredBuffer<float4> _Uploads;
 
+static const float G = -9.81;
+
+float _MinH;
+float _MaxH;
 float _DT;
 
 int _EmitCount;
@@ -31,12 +35,16 @@ void Update (uint3 id : SV_DispatchThreadID)
 	uint idx = id.x;
 	Particle p = _Particles[idx];
 	if (p.alive) {
+		float h = length(p.position);
 		p.life.x += _DT;
-		if (p.life.x > p.life.y){
+		if (p.life.x < p.life.y && h > _MinH && h < _MaxH) {
+			float2 up = p.position / h;
+			p.velocity += G * up * _DT;
+			p.position += p.velocity * _DT;
+			_Alive.Append(idx);
+		} else {
 			p.alive = false;
 			_Dead.Append(idx);
-		} else {
-			_Alive.Append(idx);
 		}
 		_Particles[idx] = p;
 	}
