@@ -11,7 +11,22 @@ public class GPUFluidSystem : MonoBehaviour {
 		public Vector2 position;
 		public Vector2 velocity;
 		public Vector2 life; //x = age, y = lifetime
+		public float density;
 	}
+	[Range(1f, 10f)]
+	public float restDensity = 3f;
+
+	[Range(0f, 500f)]
+	public float pressureConstant = 250f;
+
+	[Range(0f, 10f)]
+	public float viscosity = 1f;
+
+	[Range(0f, 10f)]
+	public float kinematicViscosity = 5f;
+
+	[Range(0.05f, 1f)]
+	public float radius = 1f;
 	public ComputeShader computeShader;
 	public int maxParticles = 100000;
 	public Material material;
@@ -23,6 +38,7 @@ public class GPUFluidSystem : MonoBehaviour {
 	private const string propUploads = "_Uploads";
 	private const string propTerrainDistanceField = "_TerrainDistanceField";
 	private int initKernel;
+	private int calculateDensityKernel;
 	private int updateKernel;
 	private int emitKernel;
 	private int threadCount;
@@ -41,6 +57,7 @@ public class GPUFluidSystem : MonoBehaviour {
 	private List<Vector4> emitList = new List<Vector4>();
 	private void OnEnable() {
 		initKernel = computeShader.FindKernel("Init");
+		calculateDensityKernel = computeShader.FindKernel("CalculateDensity");
 		updateKernel = computeShader.FindKernel("Update");
 		emitKernel = computeShader.FindKernel("Emit");
 
@@ -96,9 +113,15 @@ public class GPUFluidSystem : MonoBehaviour {
 			emitList.Clear();
 		}
 
+		computeShader.SetFloat("_RestDensity", restDensity);
+		computeShader.SetFloat("_Demultiplier", radius);
+		computeShader.SetTexture(calculateDensityKernel, propTerrainDistanceField, terrainDistanceField.terrainDistanceField);
+		computeShader.SetBuffer(calculateDensityKernel, propParticles, particles);
+		computeShader.Dispatch(calculateDensityKernel, groupCount, 1, 1);
+
 		alive.SetCounterValue(0);
-		computeShader.SetFloat("_MinH", 42f);
-		computeShader.SetFloat("_MaxH", 128f);
+		computeShader.SetFloat("_MinH", 42f / radius);
+		computeShader.SetFloat("_MaxH", 128f / radius);
 		computeShader.SetFloat("_DT", Time.deltaTime);
 		computeShader.SetVector("_TerrainDistanceFieldScale", terrainDistanceField.terrainDistanceFieldScale);
 		computeShader.SetTexture(updateKernel, propTerrainDistanceField, terrainDistanceField.terrainDistanceField);
@@ -114,12 +137,13 @@ public class GPUFluidSystem : MonoBehaviour {
 		ComputeBuffer.CopyCount(alive, args, Marshal.SizeOf(typeof(uint)));
 		material.SetBuffer(propParticles, particles);
 		material.SetBuffer(propAlive, alive);
+		material.SetFloat("_Demultiplier", radius);
 		Graphics.DrawMeshInstancedIndirect(mesh, 0, material, bounds, args, 0);
 	}
 
 	public void Emit(Vector2 position, Vector2 velocity) {
 		if (emitList.Count < uploads.count && emitList.Count < poolCount) {
-			emitList.Add(new Vector4(position.x, position.y, velocity.x, velocity.y));
+			emitList.Add(new Vector4(position.x, position.y, velocity.x, velocity.y) / radius);
 		}
 	}
 }

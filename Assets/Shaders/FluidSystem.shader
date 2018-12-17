@@ -37,13 +37,14 @@ Shader "Unlit/InstancedParticleVisualize"
 			
 			StructuredBuffer<Particle> _Particles;
 			StructuredBuffer<uint> _Alive;
+			float _Demultiplier;
 			
 			v2f vert (appdata v, uint instanceID : SV_InstanceID)
 			{
 				uint idx = _Alive[instanceID];
 				Particle p = _Particles[idx];
 				
-				v.vertex.xy += p.position;
+				v.vertex.xy += _Demultiplier * p.position;
 
 				v2f o;
 				o.pos = UnityObjectToClipPos(v.vertex);
