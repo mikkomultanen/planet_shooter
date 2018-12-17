@@ -12,6 +12,7 @@ public class GPUFluidSystem : MonoBehaviour {
 		public Vector2 velocity;
 		public Vector2 life; //x = age, y = lifetime
 		public float density;
+		public Vector2 force;
 	}
 	[Range(1f, 10f)]
 	public float restDensity = 3f;
@@ -39,6 +40,7 @@ public class GPUFluidSystem : MonoBehaviour {
 	private const string propTerrainDistanceField = "_TerrainDistanceField";
 	private int initKernel;
 	private int calculateDensityKernel;
+	private int calculateForceKernel;
 	private int updateKernel;
 	private int emitKernel;
 	private int threadCount;
@@ -58,6 +60,7 @@ public class GPUFluidSystem : MonoBehaviour {
 	private void OnEnable() {
 		initKernel = computeShader.FindKernel("Init");
 		calculateDensityKernel = computeShader.FindKernel("CalculateDensity");
+		calculateForceKernel = computeShader.FindKernel("CalculateForce");
 		updateKernel = computeShader.FindKernel("Update");
 		emitKernel = computeShader.FindKernel("Emit");
 
@@ -114,21 +117,27 @@ public class GPUFluidSystem : MonoBehaviour {
 		}
 
 		computeShader.SetFloat("_RestDensity", restDensity);
+		computeShader.SetFloat("_PressureConstant", pressureConstant);
+		computeShader.SetFloat("_Viscosity", viscosity);
 		computeShader.SetFloat("_Demultiplier", radius);
-		computeShader.SetTexture(calculateDensityKernel, propTerrainDistanceField, terrainDistanceField.terrainDistanceField);
+		computeShader.SetFloat("_MinH", 42f / radius);
+		computeShader.SetFloat("_MaxH", 128f / radius);
+		computeShader.SetFloat("_DT", 0.016f);
+		computeShader.SetVector("_TerrainDistanceFieldScale", terrainDistanceField.terrainDistanceFieldScale);
+
 		computeShader.SetBuffer(calculateDensityKernel, propParticles, particles);
 		computeShader.Dispatch(calculateDensityKernel, groupCount, 1, 1);
 
+		computeShader.SetBuffer(calculateForceKernel, propParticles, particles);
+		computeShader.Dispatch(calculateForceKernel, groupCount, 1, 1);
+
 		alive.SetCounterValue(0);
-		computeShader.SetFloat("_MinH", 42f / radius);
-		computeShader.SetFloat("_MaxH", 128f / radius);
-		computeShader.SetFloat("_DT", Time.deltaTime);
-		computeShader.SetVector("_TerrainDistanceFieldScale", terrainDistanceField.terrainDistanceFieldScale);
 		computeShader.SetTexture(updateKernel, propTerrainDistanceField, terrainDistanceField.terrainDistanceField);
 		computeShader.SetBuffer(updateKernel, propParticles, particles);
 		computeShader.SetBuffer(updateKernel, propDead, pool);
 		computeShader.SetBuffer(updateKernel, propAlive, alive);
 		computeShader.Dispatch(updateKernel, groupCount, 1, 1);
+
 		counter.SetData(counterArray);
         ComputeBuffer.CopyCount(pool, counter, 0);
 		counter.GetData(counterArray);

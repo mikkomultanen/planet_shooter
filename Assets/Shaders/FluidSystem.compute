@@ -1,5 +1,6 @@
 ﻿#pragma kernel Init
 #pragma kernel CalculateDensity
+#pragma kernel CalculateForce
 #pragma kernel Update
 #pragma kernel Emit
 
@@ -19,8 +20,12 @@ float4 _TerrainDistanceFieldScale; // x = 1 / width, y = 1 / height, z = width, 
 
 static const float G = -9.81;
 static const float Wpoly6 = 1.56668147106;
+static const float GradientWspiky = -14.3239448783;
+static const float LaplacianWviscosity = 14.3239448783;
 
 float _RestDensity;
+float _PressureConstant;
+float _Viscosity;
 
 float _MinH;
 float _MaxH;
@@ -59,17 +64,48 @@ void CalculateDensity (uint3 id : SV_DispatchThreadID)
 				}
 			}
 		}
-		float2 uv = _Demultiplier * p.position * _TerrainDistanceFieldScale.xy + 0.5;
-		float3 td = 2 * _TerrainDistanceField.SampleLevel(sampler_TerrainDistanceField, uv, 0) - 1;
-		if (td.x < _Demultiplier) {
-			float r = max(0, td.x) / _Demultiplier;
-			float r2 = r * r;
-			float q = 1 - r2;
-			density += q * q * q;
+
+		p.density = max(_RestDensity, Wpoly6 * density);
+		_Particles[idx] = p;
+	}
+}
+
+[numthreads(256,1,1)]
+void CalculateForce (uint3 id : SV_DispatchThreadID)
+{
+	uint idx = id.x;
+	Particle p = _Particles[idx];
+	if (p.alive) {
+		float2 pForce = float2(0, 0);
+		float2 vForce = float2(0, 0);
+
+		float pressure_p = p.density / _RestDensity;
+		pressure_p = _PressureConstant * (pressure_p * pressure_p - 1);
+
+		uint count, stride;
+		_Particles.GetDimensions(count, stride);
+		for (uint i = 0; i < count; ++i) {
+			if (i != idx) {
+				Particle o = _Particles[i];
+				if (o.alive) {
+					float2 _r = o.position - p.position;
+					float r = max(0.001f, length(_r));
+					if (r < 1) {
+						float pressure_n = o.density / _RestDensity;
+						pressure_n = _PressureConstant * (pressure_n * pressure_n - 1);
+						float q = 1 - r;
+						pForce += _r / r * ((pressure_p + pressure_n) / (2 * o.density) * q * q);
+
+						float2 _v = o.velocity - p.velocity;
+						vForce += _v * (1 / o.density * q);
+					}
+				}
+			}
 		}
 
-		density = max(_RestDensity, Wpoly6 * density);
-		p.density = density;
+		pForce *= GradientWspiky;
+		vForce *= _Viscosity * LaplacianWviscosity;
+		p.force = (pForce + vForce) / p.density;
 		_Particles[idx] = p;
 	}
 }
@@ -85,15 +121,21 @@ void Update (uint3 id : SV_DispatchThreadID)
 		if (p.life.x < p.life.y && h > _MinH && h < _MaxH) {
 			float2 uv = _Demultiplier * p.position * _TerrainDistanceFieldScale.xy + 0.5;
 			float3 td = 2 * _TerrainDistanceField.SampleLevel(sampler_TerrainDistanceField, uv, 0) - 1;
+			float2 tForce = float2(0, 0);
+			if (td.x < _Demultiplier) {
+				float r = max(0, td.x) / _Demultiplier;
+				float q = 1 - r;
+				float2 _v = -p.velocity;
+				tForce = _v * (_Viscosity * LaplacianWviscosity / (p.density * p.density) * q);
+			}
+
 			float2 up = p.position / h;
-			p.velocity += G * up * _DT;
+			p.velocity += (p.force + tForce + (G / _Demultiplier) * up) * _DT;
 			if (td.x < 0) {
-				//p.velocity = reflect(p.velocity, td.yz);
 				float2 n = td.yz;
 				float vn = max(0, -dot(p.velocity, n));
-				p.velocity += 2 * vn * n;
-				p.velocity *= 0.9;
-				//p.velocity = float2(0, 0);
+				p.velocity += 1.1 * vn * n;
+				//p.velocity *= 0.9;
 			}
 			p.position += p.velocity * _DT;
 			_Alive.Append(idx);
