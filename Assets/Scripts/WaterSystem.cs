@@ -254,13 +254,13 @@ public class WaterSystem : MonoBehaviour {
 					hash = Hash(position + new float2(i * H, j * H), H);
 					if (hashMap.TryGetFirstValue(hash, out otherIndex, out iterator)) {
 						do {
-							Calculate(index, otherIndex, position, ref density);
+							Calculate(otherIndex, position, ref density);
 						} while (hashMap.TryGetNextValue(out otherIndex, ref iterator));
 					}
 				}
 			}
 
-			density = math.max(restDensity, density);
+			density = math.max(restDensity, Wpoly6 * density);
 			densities[index] = density;
 			//  k * (density-p – rest-density)
 			//pressures[index] = pressureConstant * (density - restDensity);
@@ -268,14 +268,14 @@ public class WaterSystem : MonoBehaviour {
 			pressures[index] = pressureConstant * (p * p - 1);
 		}
 
-		private void Calculate(int index, int otherIndex, float2 position, ref float density)
+		private void Calculate(int otherIndex, float2 position, ref float density)
 		{
 			float2 r = positions[otherIndex] - position;
 			float r2 = math.lengthsq(r);
 			if (r2 < H2) {
 				// add mass-n * W_poly6(r, h) to density of particle
 				// mass = 1
-				density += Wpoly6 * math.pow(H2 - r2, 3);
+				density += math.pow(H2 - r2, 3);
 			}
 		}
 	}
@@ -297,7 +297,9 @@ public class WaterSystem : MonoBehaviour {
 
 		public void Execute(int index)
 		{
-			forces[index] = float2.zero;
+			float2 pForce = float2.zero;
+			float2 vForce = float2.zero;
+			float2 kForce = float2.zero;
 
 			float2 position = positions[index];
 			float2 velocity = velocities[index];
@@ -311,24 +313,26 @@ public class WaterSystem : MonoBehaviour {
 					hash = Hash(position + new float2(i * H, j * H), H);
 					if (hashMap.TryGetFirstValue(hash, out otherIndex, out iterator)) {
 						do {
-							Calculate(index, otherIndex, position, velocity, pressure_p);
+							if (index != otherIndex) {
+								Calculate(otherIndex, position, velocity, pressure_p, ref pForce, ref vForce);
+							}
 						} while (hashMap.TryGetNextValue(out otherIndex, ref iterator));
 					}
 					if (kinematicHashMap.TryGetFirstValue(hash, out otherIndex, out iterator)) {
 						do {
-							CalculateKinematic(index, otherIndex, position, velocity, density_p);
+							CalculateKinematic(otherIndex, position, velocity, ref kForce);
 						} while (kinematicHashMap.TryGetNextValue(out otherIndex, ref iterator));
 					}
 				}
 			}
-			forces[index] = forces[index] / density_p;
+			pForce = gradientWspiky * pForce;
+			vForce = viscosity * laplacianWviscosity * vForce;
+			kForce = kinematicViscosity / density_p * laplacianWviscosity * kForce;
+			forces[index] = (pForce + vForce + kForce) / density_p;
 		}
 
-		private void Calculate(int index, int otherIndex, float2 position, float2 velocity, float pressure_p)
+		private void Calculate(int otherIndex, float2 position, float2 velocity, float pressure_p, ref float2 pForce, ref float2 vForce)
 		{
-			if (index == otherIndex) {
-				return;
-			}
 			float2 _r = positions[otherIndex] - position;
 			float r = math.max(0.001f, math.length(_r));
 			if (r < H) {
@@ -337,22 +341,22 @@ public class WaterSystem : MonoBehaviour {
 
 				//add mass-n * (pressure-p + pressure-n) / (2 * density-n) * gradient-W-spiky(r, h) to pressure-force of particle
 				// mass = 1
-				forces[index] += (_r / r) * ((pressure_p + pressure_n) / (2 * density_n) * gradientWspiky * math.pow(H - r, 2));
+				pForce += (_r / r) * ((pressure_p + pressure_n) / (2 * density_n) * math.pow(H - r, 2));
 
 				float2 _v = velocities[otherIndex] - velocity;
 
 				//add viscosity * mass-n * (velocity of neighbour – velocity of particle) / density-n * laplacian-W-viscosity(r, h) to viscosity-force of particle
 				// mass = 1
-				forces[index] +=  _v * (viscosity / density_n * laplacianWviscosity * (H - r));
+				vForce +=  _v * (1f / density_n * (H - r));
 			}
 		}
-		private void CalculateKinematic(int index, int otherIndex, float2 position, float2 velocity, float density_p)
+		private void CalculateKinematic(int otherIndex, float2 position, float2 velocity, ref float2 force)
 		{
 			float2 _r = kinematicPositions[otherIndex] - position;
 			float r = math.length(_r);
 			if (r < H) {
 				float2 _v = kinematicVelocities[otherIndex] - velocity;
-				forces[index] +=  _v * (kinematicViscosity / density_p * laplacianWviscosity * (H - r));
+				force +=  _v * (H - r);
 			}
 		}
 	}
