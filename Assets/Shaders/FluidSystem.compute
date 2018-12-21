@@ -1,4 +1,7 @@
 ﻿#pragma kernel Init
+#pragma kernel BitonicSortParticles
+#pragma kernel ResetCellOffsets
+#pragma kernel CalculateCellOffsets
 #pragma kernel CalculateDensity
 #pragma kernel CalculateForce
 #pragma kernel Update
@@ -7,6 +10,7 @@
 #include "./ParticleCommon.cginc"
 
 RWStructuredBuffer<Particle> _Particles;
+RWStructuredBuffer<uint> _CellOffsets;
 
 AppendStructuredBuffer<uint> _Dead;
 ConsumeStructuredBuffer<uint> _Pool;
@@ -22,6 +26,10 @@ static const float G = -9.81;
 static const float Wpoly6 = 1.56668147106;
 static const float GradientWspiky = -14.3239448783;
 static const float LaplacianWviscosity = 14.3239448783;
+
+int _SortBlock;
+int _SortDim;
+uint _SortCount;
 
 float _RestDensity;
 float _PressureConstant;
@@ -43,6 +51,57 @@ void Init (uint3 id : SV_DispatchThreadID)
 	_Dead.Append(idx);
 }
 
+static const uint INVALID_OFFSET = 0xffffffff;
+static const uint GRID_PARTITION_BUCKET_COUNT = 1024 * 1024;
+inline uint GridHash(int2 cellIndex) {
+	const uint p1 = 73856093;   // some large primes 
+	const uint p2 = 19349663;
+	int n = p1 * cellIndex.x ^ p2 * cellIndex.y;
+	n %= GRID_PARTITION_BUCKET_COUNT;
+	return n;
+}
+
+inline uint GridHash(Particle p) {
+	if (!p.alive) return GRID_PARTITION_BUCKET_COUNT;
+	int2 cellIndex = floor(p.position);
+	return GridHash(cellIndex);
+}
+
+
+[numthreads(256,1,1)]
+void BitonicSortParticles (uint3 id : SV_DispatchThreadID) {
+	uint i = id.x;
+	uint j = i^_SortBlock;
+	
+	if (j < i || i >= _SortCount) 
+		return;
+	
+	Particle p_i = _Particles[i];
+	Particle p_j = _Particles[j];
+	uint value_i = GridHash(p_i);
+	uint value_j = GridHash(p_j);
+	
+	int diff = (value_i - value_j) * ((i&_SortDim) == 0 ? 1 : -1);
+	if (diff > 0) {
+		_Particles[i] = p_j;
+		_Particles[j] = p_i;
+	}
+}
+
+[numthreads(256,1,1)]
+void ResetCellOffsets (uint3 id : SV_DispatchThreadID) {
+	_CellOffsets[id.x] = INVALID_OFFSET;
+}
+
+[numthreads(256,1,1)]
+void CalculateCellOffsets (uint3 id : SV_DispatchThreadID) {
+	uint idx = id.x;
+	Particle p = _Particles[idx];
+	if (p.alive) {
+		uint gridHash = GridHash(p);
+		InterlockedMin(_CellOffsets[gridHash], idx);
+	}
+}
 
 [numthreads(256,1,1)]
 void CalculateDensity (uint3 id : SV_DispatchThreadID)
@@ -53,14 +112,22 @@ void CalculateDensity (uint3 id : SV_DispatchThreadID)
 		float density = 0;
 		uint count, stride;
 		_Particles.GetDimensions(count, stride);
-		for (uint i = 0; i < count; ++i) {
-			Particle o = _Particles[i];
-			if (o.alive) {
-				float2 r = o.position - p.position;
-				float r2 = dot(r, r);
-				if (r2 < 1) {
-					float q = 1 - r2;
-					density += q * q * q;
+		for (int x = -1; x < 2; ++x) {
+			for (int y = -1; y < 2; ++y) {
+				const uint gridHash = GridHash(floor(p.position) + float2(x, y));
+				uint i = _CellOffsets[gridHash];
+				while (i != INVALID_OFFSET && i < count) {
+					Particle o = _Particles[i];
+					if (gridHash != GridHash(o)) {
+						break;
+					}
+					float2 r = o.position - p.position;
+					float r2 = dot(r, r);
+					if (r2 < 1) {
+						float q = 1 - r2;
+						density += q * q * q;
+					}
+					i++;
 				}
 			}
 		}
@@ -84,21 +151,29 @@ void CalculateForce (uint3 id : SV_DispatchThreadID)
 
 		uint count, stride;
 		_Particles.GetDimensions(count, stride);
-		for (uint i = 0; i < count; ++i) {
-			if (i != idx) {
-				Particle o = _Particles[i];
-				if (o.alive) {
-					float2 _r = o.position - p.position;
-					float r = max(0.001f, length(_r));
-					if (r < 1) {
-						float pressure_n = o.density / _RestDensity;
-						pressure_n = _PressureConstant * (pressure_n * pressure_n - 1);
-						float q = 1 - r;
-						pForce += _r / r * ((pressure_p + pressure_n) / (2 * o.density) * q * q);
+		for (int x = -1; x < 2; ++x) {
+			for (int y = -1; y < 2; ++y) {
+				const uint gridHash = GridHash(floor(p.position) + float2(x, y));
+				uint i = _CellOffsets[gridHash];
+				while (i != INVALID_OFFSET && i < count) {
+					if (i != idx) {
+						Particle o = _Particles[i];
+						if (gridHash != GridHash(o)) {
+							break;
+						}
+						float2 _r = o.position - p.position;
+						float r = max(0.001f, length(_r));
+						if (r < 1) {
+							float pressure_n = o.density / _RestDensity;
+							pressure_n = _PressureConstant * (pressure_n * pressure_n - 1);
+							float q = 1 - r;
+							pForce += _r / r * ((pressure_p + pressure_n) / (2 * o.density) * q * q);
 
-						float2 _v = o.velocity - p.velocity;
-						vForce += _v * (1 / o.density * q);
+							float2 _v = o.velocity - p.velocity;
+							vForce += _v * (1 / o.density * q);
+						}
 					}
+					i++;
 				}
 			}
 		}

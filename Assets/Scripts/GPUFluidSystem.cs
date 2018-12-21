@@ -33,20 +33,25 @@ public class GPUFluidSystem : MonoBehaviour {
 	public Material material;
 	public TerrainDistanceField terrainDistanceField;
 	private const string propParticles = "_Particles";
+	private const string propCellOffsets = "_CellOffsets";
 	private const string propDead = "_Dead";
 	private const string propPool = "_Pool";
 	private const string propAlive = "_Alive";
 	private const string propUploads = "_Uploads";
 	private const string propTerrainDistanceField = "_TerrainDistanceField";
 	private int initKernel;
+	private int emitKernel;
+	private int sortKernel;
+	private int resetCellOffsetsKernel;
+	private int calculateCellOffsetsKernel;
 	private int calculateDensityKernel;
 	private int calculateForceKernel;
 	private int updateKernel;
-	private int emitKernel;
 	private int threadCount;
 	private int groupCount;
 	private int bufferSize;
 	private ComputeBuffer particles;
+	private ComputeBuffer cellOffsets;
 	private ComputeBuffer args;
 	private ComputeBuffer pool;
 	private ComputeBuffer alive;
@@ -59,10 +64,13 @@ public class GPUFluidSystem : MonoBehaviour {
 	private List<Vector4> emitList = new List<Vector4>();
 	private void OnEnable() {
 		initKernel = computeShader.FindKernel("Init");
+		emitKernel = computeShader.FindKernel("Emit");
+		sortKernel = computeShader.FindKernel("BitonicSortParticles");
+		resetCellOffsetsKernel = computeShader.FindKernel("ResetCellOffsets");
+		calculateCellOffsetsKernel = computeShader.FindKernel("CalculateCellOffsets");
 		calculateDensityKernel = computeShader.FindKernel("CalculateDensity");
 		calculateForceKernel = computeShader.FindKernel("CalculateForce");
 		updateKernel = computeShader.FindKernel("Update");
-		emitKernel = computeShader.FindKernel("Emit");
 
 		uint x, y, z;
 		computeShader.GetKernelThreadGroupSizes(initKernel, out x, out y, out z);
@@ -72,6 +80,7 @@ public class GPUFluidSystem : MonoBehaviour {
 		bufferSize = groupCount * threadCount;
 
 		particles = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(Particle)), ComputeBufferType.Default);
+		cellOffsets = new ComputeBuffer(1024 * 1024, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Default);
 		args = new ComputeBuffer(5, Marshal.SizeOf(typeof(uint)), ComputeBufferType.IndirectArguments);
 		pool = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Append);
 		pool.SetCounterValue(0);
@@ -95,6 +104,7 @@ public class GPUFluidSystem : MonoBehaviour {
 	}
 	private void OnDisable() {
 		particles.Dispose();
+		cellOffsets.Dispose();
 		args.Dispose();
 		pool.Dispose();
 		alive.Dispose();
@@ -105,38 +115,14 @@ public class GPUFluidSystem : MonoBehaviour {
 	}
 
 	private void Update() {
-		if (emitList.Count > 0) {
-			uploads.SetData(emitList);
-			computeShader.SetInt("_EmitCount", emitList.Count);
-			computeShader.SetFloat("_LifeTime", 3600);
-			computeShader.SetBuffer(emitKernel, propUploads, uploads);
-			computeShader.SetBuffer(emitKernel, propPool, pool);
-			computeShader.SetBuffer(emitKernel, propParticles, particles);
-			computeShader.Dispatch(emitKernel, uploads.count / threadCount, 1, 1);
-			emitList.Clear();
-		}
+		DispatchEmit();
 
-		computeShader.SetFloat("_RestDensity", restDensity);
-		computeShader.SetFloat("_PressureConstant", pressureConstant);
-		computeShader.SetFloat("_Viscosity", viscosity);
-		computeShader.SetFloat("_Demultiplier", radius);
-		computeShader.SetFloat("_MinH", 42f / radius);
-		computeShader.SetFloat("_MaxH", 128f / radius);
-		computeShader.SetFloat("_DT", 0.016f);
-		computeShader.SetVector("_TerrainDistanceFieldScale", terrainDistanceField.terrainDistanceFieldScale);
-
-		computeShader.SetBuffer(calculateDensityKernel, propParticles, particles);
-		computeShader.Dispatch(calculateDensityKernel, groupCount, 1, 1);
-
-		computeShader.SetBuffer(calculateForceKernel, propParticles, particles);
-		computeShader.Dispatch(calculateForceKernel, groupCount, 1, 1);
-
-		alive.SetCounterValue(0);
-		computeShader.SetTexture(updateKernel, propTerrainDistanceField, terrainDistanceField.terrainDistanceField);
-		computeShader.SetBuffer(updateKernel, propParticles, particles);
-		computeShader.SetBuffer(updateKernel, propDead, pool);
-		computeShader.SetBuffer(updateKernel, propAlive, alive);
-		computeShader.Dispatch(updateKernel, groupCount, 1, 1);
+		DispatchSort();
+		DispatchResetCellOffsets();
+		DispatchCalculateCellOffsets();
+		DispatchCalculateDensity();
+		DispatchCalculateForce();
+		DispatchUpdate();
 
 		counter.SetData(counterArray);
         ComputeBuffer.CopyCount(pool, counter, 0);
@@ -154,5 +140,73 @@ public class GPUFluidSystem : MonoBehaviour {
 		if (emitList.Count < uploads.count && emitList.Count < poolCount) {
 			emitList.Add(new Vector4(position.x, position.y, velocity.x, velocity.y) / radius);
 		}
+	}
+
+	private void DispatchEmit() {
+		if (emitList.Count > 0) {
+			uploads.SetData(emitList);
+			computeShader.SetInt("_EmitCount", emitList.Count);
+			computeShader.SetFloat("_LifeTime", 3600);
+			computeShader.SetBuffer(emitKernel, propUploads, uploads);
+			computeShader.SetBuffer(emitKernel, propPool, pool);
+			computeShader.SetBuffer(emitKernel, propParticles, particles);
+			computeShader.Dispatch(emitKernel, uploads.count / threadCount, 1, 1);
+			emitList.Clear();
+		}
+	}
+
+	private void DispatchSort() {
+		var count = bufferSize;
+
+		computeShader.SetInt("_SortCount", count);
+		for (var dim = 2; dim <= count; dim <<= 1) {
+			computeShader.SetInt("_SortDim", dim);
+			for (var block = dim >> 1; block > 0; block >>= 1) {
+				computeShader.SetInt("_SortBlock", block);
+				computeShader.SetBuffer(sortKernel, propParticles, particles);
+				computeShader.Dispatch(sortKernel, groupCount, 1, 1);
+			}
+		}
+	}
+
+	private void DispatchResetCellOffsets() {
+		computeShader.SetBuffer(resetCellOffsetsKernel, propCellOffsets, cellOffsets);
+		computeShader.Dispatch(resetCellOffsetsKernel, cellOffsets.count / threadCount, 1, 1);
+	}
+
+	private void DispatchCalculateCellOffsets() {
+		computeShader.SetBuffer(calculateCellOffsetsKernel, propParticles, particles);
+		computeShader.SetBuffer(calculateCellOffsetsKernel, propCellOffsets, cellOffsets);
+		computeShader.Dispatch(calculateCellOffsetsKernel, groupCount, 1, 1);
+	}
+
+	private void DispatchCalculateDensity() {
+		computeShader.SetFloat("_RestDensity", restDensity);
+		computeShader.SetFloat("_PressureConstant", pressureConstant);
+		computeShader.SetFloat("_Viscosity", viscosity);
+		computeShader.SetFloat("_Demultiplier", radius);
+		computeShader.SetFloat("_MinH", 42f / radius);
+		computeShader.SetFloat("_MaxH", 128f / radius);
+		computeShader.SetFloat("_DT", 0.016f);
+		computeShader.SetVector("_TerrainDistanceFieldScale", terrainDistanceField.terrainDistanceFieldScale);
+
+		computeShader.SetBuffer(calculateDensityKernel, propParticles, particles);
+		computeShader.SetBuffer(calculateDensityKernel, propCellOffsets, cellOffsets);
+		computeShader.Dispatch(calculateDensityKernel, groupCount, 1, 1);
+	}
+
+	private void DispatchCalculateForce() {
+		computeShader.SetBuffer(calculateForceKernel, propParticles, particles);
+		computeShader.SetBuffer(calculateForceKernel, propCellOffsets, cellOffsets);
+		computeShader.Dispatch(calculateForceKernel, groupCount, 1, 1);
+	}
+
+	private void DispatchUpdate() {
+		alive.SetCounterValue(0);
+		computeShader.SetTexture(updateKernel, propTerrainDistanceField, terrainDistanceField.terrainDistanceField);
+		computeShader.SetBuffer(updateKernel, propParticles, particles);
+		computeShader.SetBuffer(updateKernel, propDead, pool);
+		computeShader.SetBuffer(updateKernel, propAlive, alive);
+		computeShader.Dispatch(updateKernel, groupCount, 1, 1);
 	}
 }
