@@ -145,7 +145,7 @@ public sealed class ExplosionContainers : IDisposable
 }
 
 [RequireComponent (typeof(ParticleSystem))]
-public class WaterSystem : MonoBehaviour {
+public class WaterSystem : FluidSystem {
 	[Range(1f, 10f)]
 	public float restDensity = 3f;
 
@@ -659,7 +659,7 @@ public class WaterSystem : MonoBehaviour {
 		if (numEnter > 0) {
 			foreach (var particle in enter)
 			{
-				EmitSteam(particle.position);
+				EmitSteam(particle.position, Vector2.zero);
 			}
 		}
 	}
@@ -715,7 +715,7 @@ public class WaterSystem : MonoBehaviour {
 		explosionContainers.explosionsList = newExplosionsList;
 	}
 
-	public void EmitWater(Vector2 position, Vector2 velocity)
+	public override void EmitWater(Vector2 position, Vector2 velocity)
 	{
 		var p = new ParticleSystem.EmitParams();
 		p.position = position;
@@ -723,14 +723,15 @@ public class WaterSystem : MonoBehaviour {
 		waterContainers.particlesToEmit.Add(p);
 	}
 
-	public void EmitSteam(Vector2 position)
+	public override void EmitSteam(Vector2 position, Vector2 velocity)
 	{
 		var p = new ParticleSystem.EmitParams();
 		p.position = position;
+		p.velocity = velocity;
 		steamContainers.particlesToEmit.Add(p);
 	}
 
-	public void EmitExplosion(Vector2 position, float force, float lifeTime)
+	public override void EmitExplosion(Vector2 position, float force, float lifeTime)
 	{
 		if (explosionContainers.explosionsList.Count < MaxExplosions) {
 			explosionContainers.explosionsList.Add(new ExplosionContainers.Explosion()

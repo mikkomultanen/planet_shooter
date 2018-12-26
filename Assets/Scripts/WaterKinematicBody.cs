@@ -11,7 +11,7 @@ public class WaterKinematicBody : MonoBehaviour {
 	private Rigidbody2D rb;
 	private float buoyanceForce;
 
-	void Start () {
+	private void Awake() {
 		rb = GetComponent<Rigidbody2D>();
 		particles = new KinematicParticle[points.Length];
 		int count = points.Length;

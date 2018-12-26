@@ -4,7 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-public class GPUFluidSystem : MonoBehaviour {
+public class GPUFluidSystem : FluidSystem {
 	private struct GPUParticle
 	{
 		public bool alive;
@@ -20,6 +20,15 @@ public class GPUFluidSystem : MonoBehaviour {
 		public Vector2 position;
 		public Vector2 velocity;
 	}
+
+	private struct GPUExplosion
+	{
+		public Vector2 position;
+		public float force;
+		public float lifeTime;
+	}
+
+	public const float DT = 0.016f;
 
 	[Range(1f, 10f)]
 	public float restDensity = 3f;
@@ -41,6 +50,7 @@ public class GPUFluidSystem : MonoBehaviour {
 	public Material material;
 	public TerrainDistanceField terrainDistanceField;
 	private const string propParticles = "_Particles";
+	private const string propExplosions = "_Explosions";
 	private const string propKinematicParticles = "_KinematicParticles";
 	private const string propKinematicForcesAndBuoyances = "_KinematicForcesAndBuoyances";
 	private const string propCellOffsets = "_CellOffsets";
@@ -68,6 +78,7 @@ public class GPUFluidSystem : MonoBehaviour {
 	private int kinematicBufferSize;
 	private ComputeBuffer particles;
 	private ComputeBuffer kinematicParticles;
+	private ComputeBuffer explosions;
 	private ComputeBuffer kinematicForcesAndBuoyances;
 	private ComputeBuffer cellOffsets;
 	private ComputeBuffer args;
@@ -80,11 +91,11 @@ public class GPUFluidSystem : MonoBehaviour {
 	private Mesh mesh;
 	private Bounds bounds;
 	private List<Vector4> emitList = new List<Vector4>();
+	private List<GPUExplosion> explosionsList = new List<GPUExplosion>();
 	private KinematicParticle[] kParticles;
 	private GPUKinematicParticle[] kGPUParticles;
 	private Vector3[] kForcesAndBuoyances;
 	public int kinematicNumAlive = 0;
-
 	private void OnEnable() {
 		initKernel = computeShader.FindKernel("Init");
 		emitKernel = computeShader.FindKernel("Emit");
@@ -110,6 +121,7 @@ public class GPUFluidSystem : MonoBehaviour {
 		kinematicBufferSize = kinematicGroupCount * threadCount;
 
 		particles = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(GPUParticle)), ComputeBufferType.Default);
+		explosions = new ComputeBuffer(128, Marshal.SizeOf(typeof(GPUExplosion)), ComputeBufferType.Default);
 		kinematicParticles = new ComputeBuffer(kinematicBufferSize, Marshal.SizeOf(typeof(GPUKinematicParticle)), ComputeBufferType.Default);
 		kinematicForcesAndBuoyances = new ComputeBuffer(kinematicBufferSize, Marshal.SizeOf(typeof(Vector3)), ComputeBufferType.Default);
 		cellOffsets = new ComputeBuffer(1024 * 1024, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Default);
@@ -140,6 +152,7 @@ public class GPUFluidSystem : MonoBehaviour {
 	}
 	private void OnDisable() {
 		particles.Dispose();
+		explosions.Dispose();
 		kinematicParticles.Dispose();
 		kinematicForcesAndBuoyances.Dispose();
 		cellOffsets.Dispose();
@@ -166,6 +179,7 @@ public class GPUFluidSystem : MonoBehaviour {
 		DispatchCalculateKinematicForce();
 		StartCoroutine(UpdateKinematicParticles()); // Should be called in PreFixedUpdate once after each dispatch
 
+		SetupExplosions();
 		DispatchResetCellOffsets();
 		DispatchSortKinematicParticles();
 		DispatchCalculateForce2();
@@ -184,9 +198,25 @@ public class GPUFluidSystem : MonoBehaviour {
 		Graphics.DrawMeshInstancedIndirect(mesh, 0, material, bounds, args, 0);
 	}
 
-	public void Emit(Vector2 position, Vector2 velocity) {
+	public override void EmitWater(Vector2 position, Vector2 velocity) {
 		if (emitList.Count < uploads.count && emitList.Count < poolCount) {
 			emitList.Add(new Vector4(position.x, position.y, velocity.x, velocity.y) / radius);
+		}
+	}
+
+	public override void EmitSteam(Vector2 position, Vector2 velocity) {
+		// TODO
+	}
+
+	public override void EmitExplosion(Vector2 position, float force, float lifeTime)
+	{
+		if (explosionsList.Count < explosions.count) {
+			explosionsList.Add(new GPUExplosion()
+			{
+				position = position,
+				force = force,
+				lifeTime = lifeTime
+			});
 		}
 	}
 
@@ -199,7 +229,7 @@ public class GPUFluidSystem : MonoBehaviour {
 		computeShader.SetFloat("_Demultiplier", radius);
 		computeShader.SetFloat("_MinH", 42f / radius);
 		computeShader.SetFloat("_MaxH", 128f / radius);
-		computeShader.SetFloat("_DT", 0.016f);
+		computeShader.SetFloat("_DT", DT);
 		computeShader.SetVector("_TerrainDistanceFieldScale", terrainDistanceField.terrainDistanceFieldScale);
 	}
 
@@ -278,6 +308,26 @@ public class GPUFluidSystem : MonoBehaviour {
 		computeShader.Dispatch(updateKernel, groupCount, 1, 1);
 	}
 
+	private void SetupExplosions() {
+		int count = explosionsList.Count;
+		explosions.SetData(explosionsList);
+		computeShader.SetInt("_ExplosionCount", count);
+		computeShader.SetFloat("_ExplosionRadiusSq", 25f);
+		if (explosionsList.Count > 0) {
+			var newExplosionsList = new List<GPUExplosion>(explosions.count);
+			GPUExplosion e;
+			for (int i = 0; i < count; i++)
+			{
+				e = explosionsList[i];
+				e.lifeTime -= DT;
+				if (e.lifeTime > 0) {
+					newExplosionsList.Add(e);
+				}
+			}
+			explosionsList = newExplosionsList;
+		}
+	}
+
 	private void SetupKinematicParticles() {
 		WaterKinematicBody[] kinematicBodies = GameObject.FindObjectsOfType<WaterKinematicBody>();
 		int index = 0;
@@ -315,6 +365,7 @@ public class GPUFluidSystem : MonoBehaviour {
 
 	private void DispatchCalculateForce2() {
 		computeShader.SetBuffer(calculateForce2Kernel, propParticles, particles);
+		computeShader.SetBuffer(calculateForce2Kernel, propExplosions, explosions);
 		computeShader.SetBuffer(calculateForce2Kernel, propKinematicParticles, kinematicParticles);
 		computeShader.SetBuffer(calculateForce2Kernel, propCellOffsets, cellOffsets);
 		computeShader.Dispatch(calculateForce2Kernel, groupCount, 1, 1);

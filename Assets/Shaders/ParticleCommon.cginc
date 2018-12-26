@@ -17,4 +17,11 @@ struct KinematicParticle
     float2 velocity;
 };
 
+struct Explosion
+{
+    float2 position;
+    float force;
+    float lifeTime;
+};
+
 #endif

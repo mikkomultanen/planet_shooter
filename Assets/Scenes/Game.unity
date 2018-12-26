@@ -33681,7 +33681,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 60c8b2bea3494c2448fdc8b48d6339ff, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  waterSystem: {fileID: 530541883}
+  fluidSystem: {fileID: 1236142344}
 --- !u!4 &367371435
 Transform:
   m_ObjectHideFlags: 0
@@ -38693,7 +38693,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &574163468
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -38707,7 +38707,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   interval: 0.05
   terrainMesh: {fileID: 1085178994}
-  waterSystem: {fileID: 530541883}
+  fluidSystem: {fileID: 1236142344}
 --- !u!4 &574163469
 Transform:
   m_ObjectHideFlags: 0
@@ -58218,7 +58218,7 @@ MeshRenderer:
   m_ReflectionProbeUsage: 0
   m_RenderingLayerMask: 4294967295
   m_Materials:
-  - {fileID: 2129390154}
+  - {fileID: 2141097602}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -98302,8 +98302,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 519d2ba36586b8b40889548acb8cf0e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  waterSystem: {fileID: 530541883}
-  gpuFluidSystem: {fileID: 1236142344}
+  fluidSystem: {fileID: 1236142344}
   count: 5
   radius: 1
   explosionForce: 200
@@ -109417,7 +109416,7 @@ Transform:
   m_Father: {fileID: 1133514701}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!21 &2129390154
+--- !u!21 &2141097602
 Material:
   serializedVersion: 6
   m_ObjectHideFlags: 0

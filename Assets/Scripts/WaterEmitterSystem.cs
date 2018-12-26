@@ -6,7 +6,7 @@ public class WaterEmitterSystem : MonoBehaviour {
 	[Range(0f, 1f)]
 	public float interval = 0.1f;
 	public TerrainMesh terrainMesh;
-	public WaterSystem waterSystem;
+	public FluidSystem fluidSystem;
 	private PSEdge[] emitters = new PSEdge[0];
 
 	private void Start() {
@@ -36,7 +36,7 @@ public class WaterEmitterSystem : MonoBehaviour {
 					direction *= -1;
 				}
 				var directionNormalized = direction.normalized;
-				waterSystem.EmitWater(position + 0.2f * directionNormalized, Random.Range(3f, 6f) * directionNormalized);
+				fluidSystem.EmitWater(position + 0.2f * directionNormalized, Random.Range(3f, 6f) * directionNormalized);
 			}
 		}
 	}

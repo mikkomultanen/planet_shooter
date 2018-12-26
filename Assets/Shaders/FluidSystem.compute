@@ -14,6 +14,7 @@
 #include "./ParticleCommon.cginc"
 
 RWStructuredBuffer<Particle> _Particles;
+StructuredBuffer<Explosion> _Explosions;
 RWStructuredBuffer<KinematicParticle> _KinematicParticles;
 RWStructuredBuffer<float3> _KinematicForcesAndBuoyances;
 RWStructuredBuffer<uint> _CellOffsets;
@@ -45,6 +46,8 @@ uint _KinematicCount;
 float _KinematicViscosity;
 float _Multiplier;
 
+uint _ExplosionCount;
+float _ExplosionRadiusSq;
 float _MinH;
 float _MaxH;
 float _Demultiplier;
@@ -206,7 +209,7 @@ void CalculateForce (uint3 id : SV_DispatchThreadID)
 							break;
 						}
 						const float2 _r = o.position - p.position;
-						const float r = max(0.001f, length(_r));
+						const float r = max(0.001, length(_r));
 						if (r < 1) {
 							float pressure_n = o.density / _RestDensity;
 							pressure_n = _PressureConstant * (pressure_n * pressure_n - 1);
@@ -304,7 +307,20 @@ void CalculateForce2 (uint3 id : SV_DispatchThreadID)
 
 		kForce *= _KinematicViscosity * LaplacianWviscosity;
 		kForce /= p.density * p.density;
-		p.force += kForce;
+
+		float2 eForce = float2(0, 0);
+
+		for (uint i = 0; i < _ExplosionCount; ++i) {
+			Explosion e = _Explosions[i];
+			float2 _r = p.position - e.position * _Multiplier;
+			float r2 = dot(_r, _r);
+			if (r2 < _ExplosionRadiusSq) {
+				const float q = 1 - r2 / _ExplosionRadiusSq;
+				eForce += _r * (e.force * q / max(0.001, sqrt(r2)));
+			}
+		}
+
+		p.force += kForce + eForce;
 		_Particles[idx] = p;
 	}
 }
