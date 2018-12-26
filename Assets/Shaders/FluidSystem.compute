@@ -270,7 +270,7 @@ void CalculateKinematicForce (uint3 id : SV_DispatchThreadID)
 			}
 		}
 
-		density = step(_RestDensity, density);
+		density = step(_RestDensity, Wpoly6 * density);
 		vForce *= _KinematicViscosity * LaplacianWviscosity;
 		_KinematicForcesAndBuoyances[idx] = float3(vForce, density);
 	}
