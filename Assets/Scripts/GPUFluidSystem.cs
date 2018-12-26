@@ -134,6 +134,8 @@ public class GPUFluidSystem : MonoBehaviour {
 	}
 	private void OnDisable() {
 		particles.Dispose();
+		kinematicParticles.Dispose();
+		kinematicForcesAndBuoyances.Dispose();
 		cellOffsets.Dispose();
 		args.Dispose();
 		pool.Dispose();
