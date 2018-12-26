@@ -11,4 +11,10 @@ struct Particle
     float2 force;
 };
 
+struct KinematicParticle
+{
+    float2 position;
+    float2 velocity;
+};
+
 #endif

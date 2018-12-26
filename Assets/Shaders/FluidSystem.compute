@@ -4,12 +4,15 @@
 #pragma kernel CalculateCellOffsets
 #pragma kernel CalculateDensity
 #pragma kernel CalculateForce
+#pragma kernel CalculateKinematicForce
 #pragma kernel Update
 #pragma kernel Emit
 
 #include "./ParticleCommon.cginc"
 
 RWStructuredBuffer<Particle> _Particles;
+StructuredBuffer<KinematicParticle> _KinematicParticles;
+RWStructuredBuffer<float3> _KinematicForcesAndBuoyances;
 RWStructuredBuffer<uint> _CellOffsets;
 
 AppendStructuredBuffer<uint> _Dead;
@@ -35,6 +38,10 @@ float _RestDensity;
 float _PressureConstant;
 float _Viscosity;
 
+uint _KinematicCount;
+float _KinematicViscosity;
+float _Multiplier;
+
 float _MinH;
 float _MaxH;
 float _Demultiplier;
@@ -46,7 +53,7 @@ float _LifeTime;
 [numthreads(256,1,1)]
 void Init (uint3 id : SV_DispatchThreadID)
 {
-	uint idx = id.x;
+	const uint idx = id.x;
 	_Particles[idx].alive = false;
 	_Dead.Append(idx);
 }
@@ -63,25 +70,25 @@ inline uint GridHash(int2 cellIndex) {
 
 inline uint GridHash(Particle p) {
 	if (!p.alive) return GRID_PARTITION_BUCKET_COUNT;
-	int2 cellIndex = floor(p.position);
+	const int2 cellIndex = floor(p.position);
 	return GridHash(cellIndex);
 }
 
 
 [numthreads(256,1,1)]
 void BitonicSortParticles (uint3 id : SV_DispatchThreadID) {
-	uint i = id.x;
-	uint j = i^_SortBlock;
+	const uint i = id.x;
+	const uint j = i^_SortBlock;
 	
 	if (j < i || i >= _SortCount) 
 		return;
 	
 	Particle p_i = _Particles[i];
 	Particle p_j = _Particles[j];
-	uint value_i = GridHash(p_i);
-	uint value_j = GridHash(p_j);
+	const uint value_i = GridHash(p_i);
+	const uint value_j = GridHash(p_j);
 	
-	int diff = (value_i - value_j) * ((i&_SortDim) == 0 ? 1 : -1);
+	const int diff = (value_i - value_j) * ((i&_SortDim) == 0 ? 1 : -1);
 	if (diff > 0) {
 		_Particles[i] = p_j;
 		_Particles[j] = p_i;
@@ -95,10 +102,10 @@ void ResetCellOffsets (uint3 id : SV_DispatchThreadID) {
 
 [numthreads(256,1,1)]
 void CalculateCellOffsets (uint3 id : SV_DispatchThreadID) {
-	uint idx = id.x;
+	const uint idx = id.x;
 	Particle p = _Particles[idx];
 	if (p.alive) {
-		uint gridHash = GridHash(p);
+		const uint gridHash = GridHash(p);
 		InterlockedMin(_CellOffsets[gridHash], idx);
 	}
 }
@@ -106,7 +113,7 @@ void CalculateCellOffsets (uint3 id : SV_DispatchThreadID) {
 [numthreads(256,1,1)]
 void CalculateDensity (uint3 id : SV_DispatchThreadID)
 {
-	uint idx = id.x;
+	const uint idx = id.x;
 	Particle p = _Particles[idx];
 	if (p.alive) {
 		float density = 0;
@@ -121,10 +128,10 @@ void CalculateDensity (uint3 id : SV_DispatchThreadID)
 					if (gridHash != GridHash(o)) {
 						break;
 					}
-					float2 r = o.position - p.position;
-					float r2 = dot(r, r);
+					const float2 r = o.position - p.position;
+					const float r2 = dot(r, r);
 					if (r2 < 1) {
-						float q = 1 - r2;
+						const float q = 1 - r2;
 						density += q * q * q;
 					}
 					i++;
@@ -140,7 +147,7 @@ void CalculateDensity (uint3 id : SV_DispatchThreadID)
 [numthreads(256,1,1)]
 void CalculateForce (uint3 id : SV_DispatchThreadID)
 {
-	uint idx = id.x;
+	const uint idx = id.x;
 	Particle p = _Particles[idx];
 	if (p.alive) {
 		float2 pForce = float2(0, 0);
@@ -161,15 +168,15 @@ void CalculateForce (uint3 id : SV_DispatchThreadID)
 						if (gridHash != GridHash(o)) {
 							break;
 						}
-						float2 _r = o.position - p.position;
-						float r = max(0.001f, length(_r));
+						const float2 _r = o.position - p.position;
+						const float r = max(0.001f, length(_r));
 						if (r < 1) {
 							float pressure_n = o.density / _RestDensity;
 							pressure_n = _PressureConstant * (pressure_n * pressure_n - 1);
-							float q = 1 - r;
+							const float q = 1 - r;
 							pForce += _r / r * ((pressure_p + pressure_n) / (2 * o.density) * q * q);
 
-							float2 _v = o.velocity - p.velocity;
+							const float2 _v = o.velocity - p.velocity;
 							vForce += _v * (1 / o.density * q);
 						}
 					}
@@ -182,6 +189,50 @@ void CalculateForce (uint3 id : SV_DispatchThreadID)
 		vForce *= _Viscosity * LaplacianWviscosity;
 		p.force = (pForce + vForce) / p.density;
 		_Particles[idx] = p;
+	}
+}
+
+[numthreads(256,1,1)]
+void CalculateKinematicForce (uint3 id : SV_DispatchThreadID)
+{
+	const uint idx = id.x;
+	if (idx < _KinematicCount) {
+		KinematicParticle p = _KinematicParticles[idx];
+		const float2 position = p.position * _Multiplier;
+		const float2 velocity = p.velocity * _Multiplier;
+		float density = 0;
+		float2 vForce = float2(0, 0);
+
+		uint count, stride;
+		_Particles.GetDimensions(count, stride);
+		for (int x = -1; x < 2; ++x) {
+			for (int y = -1; y < 2; ++y) {
+				const uint gridHash = GridHash(floor(position) + float2(x, y));
+				uint i = _CellOffsets[gridHash];
+				while (i != INVALID_OFFSET && i < count) {
+					Particle o = _Particles[i];
+					if (gridHash != GridHash(o)) {
+						break;
+					}
+					const float2 _r = o.position - position;
+					const float r2 = dot(_r, _r);
+					if (r2 < 1) {
+						const float q = 1 - r2;
+						density += q * q * q;
+
+						const float r = sqrt(r2);
+						const float2 _v = o.velocity - velocity;
+						const float d = o.density;
+						vForce += _v * ((1 - r) / (d * d));
+					}
+					i++;
+				}
+			}
+		}
+
+		density = step(_RestDensity, density);
+		vForce *= _KinematicViscosity * LaplacianWviscosity;
+		_KinematicForcesAndBuoyances[idx] = float3(vForce, density);
 	}
 }
 
