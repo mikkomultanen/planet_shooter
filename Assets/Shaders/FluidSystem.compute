@@ -1,17 +1,20 @@
 ﻿#pragma kernel Init
 #pragma kernel BitonicSortParticles
+#pragma kernel BitonicSortKinematicParticles
 #pragma kernel ResetCellOffsets
 #pragma kernel CalculateCellOffsets
+#pragma kernel CalculateKinematicCellOffsets
 #pragma kernel CalculateDensity
 #pragma kernel CalculateForce
 #pragma kernel CalculateKinematicForce
+#pragma kernel CalculateForce2
 #pragma kernel Update
 #pragma kernel Emit
 
 #include "./ParticleCommon.cginc"
 
 RWStructuredBuffer<Particle> _Particles;
-StructuredBuffer<KinematicParticle> _KinematicParticles;
+RWStructuredBuffer<KinematicParticle> _KinematicParticles;
 RWStructuredBuffer<float3> _KinematicForcesAndBuoyances;
 RWStructuredBuffer<uint> _CellOffsets;
 
@@ -74,6 +77,10 @@ inline uint GridHash(Particle p) {
 	return GridHash(cellIndex);
 }
 
+inline uint GridHash(KinematicParticle p) {
+	const int2 cellIndex = floor(p.position * _Multiplier);
+	return GridHash(cellIndex);
+}
 
 [numthreads(256,1,1)]
 void BitonicSortParticles (uint3 id : SV_DispatchThreadID) {
@@ -96,6 +103,26 @@ void BitonicSortParticles (uint3 id : SV_DispatchThreadID) {
 }
 
 [numthreads(256,1,1)]
+void BitonicSortKinematicParticles (uint3 id : SV_DispatchThreadID) {
+	const uint i = id.x;
+	const uint j = i^_SortBlock;
+	
+	if (j < i || i >= _SortCount) 
+		return;
+	
+	KinematicParticle p_i = _KinematicParticles[i];
+	KinematicParticle p_j = _KinematicParticles[j];
+	const uint value_i = GridHash(p_i);
+	const uint value_j = GridHash(p_j);
+	
+	const int diff = (value_i - value_j) * ((i&_SortDim) == 0 ? 1 : -1);
+	if (diff > 0) {
+		_KinematicParticles[i] = p_j;
+		_KinematicParticles[j] = p_i;
+	}
+}
+
+[numthreads(256,1,1)]
 void ResetCellOffsets (uint3 id : SV_DispatchThreadID) {
 	_CellOffsets[id.x] = INVALID_OFFSET;
 }
@@ -105,6 +132,16 @@ void CalculateCellOffsets (uint3 id : SV_DispatchThreadID) {
 	const uint idx = id.x;
 	Particle p = _Particles[idx];
 	if (p.alive) {
+		const uint gridHash = GridHash(p);
+		InterlockedMin(_CellOffsets[gridHash], idx);
+	}
+}
+
+[numthreads(256,1,1)]
+void CalculateKinematicCellOffsets (uint3 id : SV_DispatchThreadID) {
+	const uint idx = id.x;
+	if (idx < _KinematicCount) {
+		KinematicParticle p = _KinematicParticles[idx];
 		const uint gridHash = GridHash(p);
 		InterlockedMin(_CellOffsets[gridHash], idx);
 	}
@@ -233,6 +270,42 @@ void CalculateKinematicForce (uint3 id : SV_DispatchThreadID)
 		density = step(_RestDensity, density);
 		vForce *= _KinematicViscosity * LaplacianWviscosity;
 		_KinematicForcesAndBuoyances[idx] = float3(vForce, density);
+	}
+}
+
+[numthreads(256,1,1)]
+void CalculateForce2 (uint3 id : SV_DispatchThreadID)
+{
+	const uint idx = id.x;
+	Particle p = _Particles[idx];
+	if (p.alive) {
+		float2 kForce = float2(0, 0);
+
+		for (int x = -1; x < 2; ++x) {
+			for (int y = -1; y < 2; ++y) {
+				const uint gridHash = GridHash(floor(p.position) + float2(x, y));
+				uint i = _CellOffsets[gridHash];
+				while (i != INVALID_OFFSET && i < _KinematicCount) {
+					KinematicParticle o = _KinematicParticles[i];
+					if (gridHash != GridHash(o)) {
+						break;
+					}
+					const float2 _r = o.position * _Multiplier - p.position;
+					const float r = length(_r);
+					if (r < 1) {
+						const float q = 1 - r;
+						const float2 _v = o.velocity * _Multiplier - p.velocity;
+						kForce += _v * q;
+					}
+					i++;
+				}
+			}
+		}
+
+		kForce *= _KinematicViscosity * LaplacianWviscosity;
+		kForce /= p.density * p.density;
+		p.force += kForce;
+		_Particles[idx] = p;
 	}
 }
 

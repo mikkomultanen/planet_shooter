@@ -52,11 +52,14 @@ public class GPUFluidSystem : MonoBehaviour {
 	private int initKernel;
 	private int emitKernel;
 	private int sortKernel;
+	private int sortKinematicKernel;
 	private int resetCellOffsetsKernel;
 	private int calculateCellOffsetsKernel;
+	private int calculateKinematicCellOffsetsKernel;
 	private int calculateDensityKernel;
 	private int calculateForceKernel;
 	private int calculateKinematicForceKernel;
+	private int calculateForce2Kernel;
 	private int updateKernel;
 	private int threadCount;
 	private int groupCount;
@@ -86,11 +89,14 @@ public class GPUFluidSystem : MonoBehaviour {
 		initKernel = computeShader.FindKernel("Init");
 		emitKernel = computeShader.FindKernel("Emit");
 		sortKernel = computeShader.FindKernel("BitonicSortParticles");
+		sortKinematicKernel = computeShader.FindKernel("BitonicSortKinematicParticles");
 		resetCellOffsetsKernel = computeShader.FindKernel("ResetCellOffsets");
 		calculateCellOffsetsKernel = computeShader.FindKernel("CalculateCellOffsets");
+		calculateKinematicCellOffsetsKernel = computeShader.FindKernel("CalculateKinematicCellOffsets");
 		calculateDensityKernel = computeShader.FindKernel("CalculateDensity");
 		calculateForceKernel = computeShader.FindKernel("CalculateForce");
 		calculateKinematicForceKernel = computeShader.FindKernel("CalculateKinematicForce");
+		calculateForce2Kernel = computeShader.FindKernel("CalculateForce2");
 		updateKernel = computeShader.FindKernel("Update");
 
 		uint x, y, z;
@@ -151,14 +157,19 @@ public class GPUFluidSystem : MonoBehaviour {
 
 		DispatchEmit();
 
-		DispatchSort();
 		DispatchResetCellOffsets();
-		DispatchCalculateCellOffsets();
+		DispatchSortParticles();
 		DispatchCalculateDensity();
 		DispatchCalculateForce();
+
 		SetupKinematicParticles();
-		DispatchKinematicParticles();
+		DispatchCalculateKinematicForce();
 		StartCoroutine(UpdateKinematicParticles()); // Should be called in PreFixedUpdate once after each dispatch
+
+		DispatchResetCellOffsets();
+		DispatchSortKinematicParticles();
+		DispatchCalculateForce2();
+
 		DispatchUpdate();
 
 		counter.SetData(counterArray);
@@ -205,7 +216,7 @@ public class GPUFluidSystem : MonoBehaviour {
 		}
 	}
 
-	private void DispatchSort() {
+	private void DispatchSortParticles() {
 		var count = bufferSize;
 
 		computeShader.SetInt("_SortCount", count);
@@ -217,17 +228,33 @@ public class GPUFluidSystem : MonoBehaviour {
 				computeShader.Dispatch(sortKernel, groupCount, 1, 1);
 			}
 		}
+
+		computeShader.SetBuffer(calculateCellOffsetsKernel, propParticles, particles);
+		computeShader.SetBuffer(calculateCellOffsetsKernel, propCellOffsets, cellOffsets);
+		computeShader.Dispatch(calculateCellOffsetsKernel, groupCount, 1, 1);
+	}
+
+	private void DispatchSortKinematicParticles() {
+		var count = kinematicNumAlive;
+
+		computeShader.SetInt("_SortCount", count);
+		for (var dim = 2; dim <= count; dim <<= 1) {
+			computeShader.SetInt("_SortDim", dim);
+			for (var block = dim >> 1; block > 0; block >>= 1) {
+				computeShader.SetInt("_SortBlock", block);
+				computeShader.SetBuffer(sortKinematicKernel, propKinematicParticles, kinematicParticles);
+				computeShader.Dispatch(sortKinematicKernel, kinematicGroupCount, 1, 1);
+			}
+		}
+
+		computeShader.SetBuffer(calculateKinematicCellOffsetsKernel, propKinematicParticles, kinematicParticles);
+		computeShader.SetBuffer(calculateKinematicCellOffsetsKernel, propCellOffsets, cellOffsets);
+		computeShader.Dispatch(calculateKinematicCellOffsetsKernel, kinematicGroupCount, 1, 1);
 	}
 
 	private void DispatchResetCellOffsets() {
 		computeShader.SetBuffer(resetCellOffsetsKernel, propCellOffsets, cellOffsets);
 		computeShader.Dispatch(resetCellOffsetsKernel, cellOffsets.count / threadCount, 1, 1);
-	}
-
-	private void DispatchCalculateCellOffsets() {
-		computeShader.SetBuffer(calculateCellOffsetsKernel, propParticles, particles);
-		computeShader.SetBuffer(calculateCellOffsetsKernel, propCellOffsets, cellOffsets);
-		computeShader.Dispatch(calculateCellOffsetsKernel, groupCount, 1, 1);
 	}
 
 	private void DispatchCalculateDensity() {
@@ -275,17 +302,22 @@ public class GPUFluidSystem : MonoBehaviour {
 		}
 		kinematicNumAlive = index;
 		kinematicParticles.SetData(kGPUParticles);
+		computeShader.SetInt("_KinematicCount", kinematicNumAlive);
 	}
 
-	private void DispatchKinematicParticles() {
-		computeShader.SetInt("_KinematicCount", kinematicNumAlive);
+	private void DispatchCalculateKinematicForce() {
 		computeShader.SetBuffer(calculateKinematicForceKernel, propKinematicParticles, kinematicParticles);
 		computeShader.SetBuffer(calculateKinematicForceKernel, propKinematicForcesAndBuoyances, kinematicForcesAndBuoyances);
 		computeShader.SetBuffer(calculateKinematicForceKernel, propParticles, particles);
 		computeShader.SetBuffer(calculateKinematicForceKernel, propCellOffsets, cellOffsets);
 		computeShader.Dispatch(calculateKinematicForceKernel, kinematicGroupCount, 1, 1);
+	}
 
-		// TODO apply kinematic particles to particle forces
+	private void DispatchCalculateForce2() {
+		computeShader.SetBuffer(calculateForce2Kernel, propParticles, particles);
+		computeShader.SetBuffer(calculateForce2Kernel, propKinematicParticles, kinematicParticles);
+		computeShader.SetBuffer(calculateForce2Kernel, propCellOffsets, cellOffsets);
+		computeShader.Dispatch(calculateForce2Kernel, groupCount, 1, 1);
 	}
 
 	private IEnumerator UpdateKinematicParticles() {
