@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Burst;
@@ -187,6 +188,7 @@ public class WaterSystem : FluidSystem {
 	private int numParticlesAlive;
 
 	private ParticleSystem waterSystem;
+	private ParticleSystemRenderer waterSystemRenderer;
 	private FluidContainers waterContainers;
 	private FluidContainers steamContainers;
 	private KinematicContainers kinematicContainers;
@@ -200,6 +202,7 @@ public class WaterSystem : FluidSystem {
 		numParticlesAlive = 0;
 
 		waterSystem = GetComponent<ParticleSystem>();
+		waterSystemRenderer = GetComponent<ParticleSystemRenderer>();
 		
 		waterContainers = new FluidContainers(waterSystem);
 		steamContainers = new FluidContainers(steamSystem);
@@ -741,6 +744,10 @@ public class WaterSystem : FluidSystem {
 				lifeTime = lifeTime
 			});
 		}
+	}
+
+	public override void Render(CommandBuffer commandBuffer) {
+		commandBuffer.DrawRenderer(waterSystemRenderer, waterSystemRenderer.sharedMaterial);
 	}
 
 	public static int Hash(float2 v, float cellSize)

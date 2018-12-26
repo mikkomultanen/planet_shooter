@@ -6,7 +6,7 @@ using System.Collections.Generic;
 [RequireComponent(typeof(Camera))]
 public class WaterEffect : MonoBehaviour
 {
-	public Renderer waterRenderer;
+	public FluidSystem fluidSystem;
 	public RenderTexture renderTexture;
 
 	private void Start() {
@@ -20,7 +20,7 @@ public class WaterEffect : MonoBehaviour
 
 		commandBuffer.SetRenderTarget(rtID);
 		commandBuffer.ClearRenderTarget(false, true, Color.clear);
-		commandBuffer.DrawRenderer(waterRenderer, waterRenderer.sharedMaterial);
+		fluidSystem.Render(commandBuffer);
 		commandBuffer.SetGlobalTexture(Shader.PropertyToID("Watermap_RT"), renderTexture);
 
 		camera.AddCommandBuffer(CameraEvent.AfterForwardOpaque, commandBuffer);

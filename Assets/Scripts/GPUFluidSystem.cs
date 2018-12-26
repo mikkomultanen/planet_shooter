@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class GPUFluidSystem : FluidSystem {
 	private struct GPUParticle
@@ -89,7 +90,6 @@ public class GPUFluidSystem : FluidSystem {
 	private int[] counterArray;
     public int poolCount = 0;
 	private Mesh mesh;
-	private Bounds bounds;
 	private List<Vector4> emitList = new List<Vector4>();
 	private List<GPUExplosion> explosionsList = new List<GPUExplosion>();
 	private KinematicParticle[] kParticles;
@@ -144,8 +144,6 @@ public class GPUFluidSystem : FluidSystem {
 		uint[] argsData = new uint[] { mesh.GetIndexCount(0), 0, 0, 0, 0 };
 		args.SetData(argsData);
 
-		bounds = new Bounds(Vector3.zero, 256f * Vector3.one);
-
 		computeShader.SetBuffer(initKernel, propParticles, particles);
 		computeShader.SetBuffer(initKernel, propDead, pool);
 		computeShader.Dispatch(initKernel, groupCount, 1, 1);
@@ -195,7 +193,6 @@ public class GPUFluidSystem : FluidSystem {
 		material.SetBuffer(propParticles, particles);
 		material.SetBuffer(propAlive, alive);
 		material.SetFloat("_Demultiplier", radius);
-		Graphics.DrawMeshInstancedIndirect(mesh, 0, material, bounds, args, 0);
 	}
 
 	public override void EmitWater(Vector2 position, Vector2 velocity) {
@@ -218,6 +215,10 @@ public class GPUFluidSystem : FluidSystem {
 				lifeTime = lifeTime
 			});
 		}
+	}
+
+	public override void Render(CommandBuffer commandBuffer) {
+		commandBuffer.DrawMeshInstancedIndirect(mesh, 0, material, -1, args, 0);
 	}
 
 	private void UpdateConstants() {
