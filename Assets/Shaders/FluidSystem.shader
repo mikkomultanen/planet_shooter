@@ -2,6 +2,7 @@ Shader "Unlit/InstancedParticleVisualize"
 {
 	Properties {
 		_MainTex ("Particle Texture", 2D) = "white" {}
+		_Scale ("Particle Scale", Float) = 1.0
 	}
 
 	SubShader
@@ -37,6 +38,7 @@ Shader "Unlit/InstancedParticleVisualize"
 			
 			StructuredBuffer<Particle> _Particles;
 			StructuredBuffer<uint> _Alive;
+			float _Scale;
 			float _Demultiplier;
 			
 			v2f vert (appdata v, uint instanceID : SV_InstanceID)
@@ -44,7 +46,7 @@ Shader "Unlit/InstancedParticleVisualize"
 				uint idx = _Alive[instanceID];
 				Particle p = _Particles[idx];
 				
-				v.vertex.xy *= 1.5;
+				v.vertex.xy *= _Scale;
 				v.vertex.xy += _Demultiplier * p.position;
 
 				v2f o;

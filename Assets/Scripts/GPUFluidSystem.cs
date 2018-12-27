@@ -8,7 +8,7 @@ using UnityEngine.Rendering;
 public class GPUFluidSystem : FluidSystem {
 	private struct GPUParticle
 	{
-		public bool alive;
+		public uint flags;
 		public Vector2 position;
 		public Vector2 velocity;
 		public Vector2 life; //x = age, y = lifetime
@@ -43,15 +43,33 @@ public class GPUFluidSystem : FluidSystem {
 	[Range(0f, 10f)]
 	public float kinematicViscosity = 5f;
 
+	[Range(1f, 10f)]
+	public float steamRestDensity = 1f;
+
+	[Range(0f, 500f)]
+	public float steamPressureConstant = 100f;
+
+	[Range(0f, 10f)]
+	public float steamViscosity = 0.1f;
+
 	[Range(0.05f, 1f)]
 	public float radius = 1f;
+
 	[Range(0f, 1f)]
 	public float collisionRadius = 0.5f;
+
 	public ComputeShader computeShader;
+
 	public int maxParticles = 131072;
+
 	public int maxKinematicParticles = 1024;
+
 	public Material material;
+
+	public Material steamMaterial;
+
 	public TerrainDistanceField terrainDistanceField;
+
 	private const string propParticles = "_Particles";
 	private const string propExplosions = "_Explosions";
 	private const string propKinematicParticles = "_KinematicParticles";
@@ -60,10 +78,11 @@ public class GPUFluidSystem : FluidSystem {
 	private const string propDead = "_Dead";
 	private const string propPool = "_Pool";
 	private const string propAlive = "_Alive";
+	private const string propSteamAlive = "_SteamAlive";
 	private const string propUploads = "_Uploads";
 	private const string propTerrainDistanceField = "_TerrainDistanceField";
 	private int initKernel;
-	private int emitKernel;
+	private int emitWaterKernel;
 	private int sortKernel;
 	private int sortKinematicKernel;
 	private int resetCellOffsetsKernel;
@@ -85,14 +104,16 @@ public class GPUFluidSystem : FluidSystem {
 	private ComputeBuffer kinematicForcesAndBuoyances;
 	private ComputeBuffer cellOffsets;
 	private ComputeBuffer args;
+	private ComputeBuffer steamArgs;
 	private ComputeBuffer pool;
 	private ComputeBuffer alive;
+	private ComputeBuffer steamAlive;
 	private ComputeBuffer uploads;
 	private ComputeBuffer counter;
 	private int[] counterArray;
     public int poolCount = 0;
 	private Mesh mesh;
-	private List<Vector4> emitList = new List<Vector4>();
+	private List<Vector4> emitWaterList = new List<Vector4>();
 	private List<GPUExplosion> explosionsList = new List<GPUExplosion>();
 	private KinematicParticle[] kParticles;
 	private GPUKinematicParticle[] kGPUParticles;
@@ -100,7 +121,7 @@ public class GPUFluidSystem : FluidSystem {
 	public int kinematicNumAlive = 0;
 	private void OnEnable() {
 		initKernel = computeShader.FindKernel("Init");
-		emitKernel = computeShader.FindKernel("Emit");
+		emitWaterKernel = computeShader.FindKernel("EmitWater");
 		sortKernel = computeShader.FindKernel("BitonicSortParticles");
 		sortKinematicKernel = computeShader.FindKernel("BitonicSortKinematicParticles");
 		resetCellOffsetsKernel = computeShader.FindKernel("ResetCellOffsets");
@@ -128,10 +149,13 @@ public class GPUFluidSystem : FluidSystem {
 		kinematicForcesAndBuoyances = new ComputeBuffer(kinematicBufferSize, Marshal.SizeOf(typeof(Vector3)), ComputeBufferType.Default);
 		cellOffsets = new ComputeBuffer(1024 * 1024, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Default);
 		args = new ComputeBuffer(5, Marshal.SizeOf(typeof(uint)), ComputeBufferType.IndirectArguments);
+		steamArgs = new ComputeBuffer(5, Marshal.SizeOf(typeof(uint)), ComputeBufferType.IndirectArguments);
 		pool = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Append);
 		pool.SetCounterValue(0);
 		alive = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Append);
 		alive.SetCounterValue(0);
+		steamAlive = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Append);
+		steamAlive.SetCounterValue(0);
 		uploads = new ComputeBuffer(Mathf.Max((256 / threadCount) * threadCount, threadCount), Marshal.SizeOf(typeof(Vector4)));
 		counter = new ComputeBuffer(4, sizeof(int), ComputeBufferType.IndirectArguments);
 		counterArray = new int[] { 0, 1, 0, 0 };
@@ -145,6 +169,7 @@ public class GPUFluidSystem : FluidSystem {
 		GameObject.Destroy(o);
 		uint[] argsData = new uint[] { mesh.GetIndexCount(0), 0, 0, 0, 0 };
 		args.SetData(argsData);
+		steamArgs.SetData(argsData);
 
 		computeShader.SetBuffer(initKernel, propParticles, particles);
 		computeShader.SetBuffer(initKernel, propDead, pool);
@@ -157,8 +182,10 @@ public class GPUFluidSystem : FluidSystem {
 		kinematicForcesAndBuoyances.Dispose();
 		cellOffsets.Dispose();
 		args.Dispose();
+		steamArgs.Dispose();
 		pool.Dispose();
 		alive.Dispose();
+		steamAlive.Dispose();
 		uploads.Dispose();
 		counter.Dispose();
 
@@ -168,7 +195,7 @@ public class GPUFluidSystem : FluidSystem {
 	private void Update() {
 		UpdateConstants();
 
-		DispatchEmit();
+		DispatchEmitWater();
 
 		DispatchResetCellOffsets();
 		DispatchSortParticles();
@@ -195,11 +222,17 @@ public class GPUFluidSystem : FluidSystem {
 		material.SetBuffer(propParticles, particles);
 		material.SetBuffer(propAlive, alive);
 		material.SetFloat("_Demultiplier", radius);
+
+		ComputeBuffer.CopyCount(steamAlive, steamArgs, Marshal.SizeOf(typeof(uint)));
+		steamMaterial.SetBuffer(propParticles, particles);
+		steamMaterial.SetBuffer(propAlive, steamAlive);
+		steamMaterial.SetFloat("_Demultiplier", radius);
+		Graphics.DrawMeshInstancedIndirect(mesh, 0, steamMaterial, new Bounds(Vector2.zero, new Vector2(256f, 256f)), steamArgs, 0);
 	}
 
 	public override void EmitWater(Vector2 position, Vector2 velocity) {
-		if (emitList.Count < uploads.count && emitList.Count < poolCount) {
-			emitList.Add(new Vector4(position.x, position.y, velocity.x, velocity.y) / radius);
+		if (emitWaterList.Count < uploads.count && emitWaterList.Count < poolCount) {
+			emitWaterList.Add(new Vector4(position.x, position.y, velocity.x, velocity.y) / radius);
 		}
 	}
 
@@ -227,26 +260,35 @@ public class GPUFluidSystem : FluidSystem {
 		computeShader.SetFloat("_RestDensity", restDensity);
 		computeShader.SetFloat("_PressureConstant", pressureConstant);
 		computeShader.SetFloat("_Viscosity", viscosity);
+
 		computeShader.SetFloat("_KinematicViscosity", kinematicViscosity);
+
+		computeShader.SetFloat("_SteamRestDensity", steamRestDensity);
+		computeShader.SetFloat("_SteamPressureConstant", steamPressureConstant);
+		computeShader.SetFloat("_SteamViscosity", steamViscosity);
+		computeShader.SetFloat("_SteamLifeTime", 2);
+
 		computeShader.SetFloat("_Multiplier", 1f / radius);
 		computeShader.SetFloat("_Demultiplier", radius);
+
 		computeShader.SetFloat("_MinH", 42f / radius);
 		computeShader.SetFloat("_MaxH", 128f / radius);
 		computeShader.SetFloat("_CollisionRadius", collisionRadius);
 		computeShader.SetFloat("_DT", DT);
+
 		computeShader.SetVector("_TerrainDistanceFieldScale", terrainDistanceField.terrainDistanceFieldScale);
 	}
 
-	private void DispatchEmit() {
-		if (emitList.Count > 0) {
-			uploads.SetData(emitList);
-			computeShader.SetInt("_EmitCount", emitList.Count);
+	private void DispatchEmitWater() {
+		if (emitWaterList.Count > 0) {
+			uploads.SetData(emitWaterList);
+			computeShader.SetInt("_EmitCount", emitWaterList.Count);
 			computeShader.SetFloat("_LifeTime", 3600);
-			computeShader.SetBuffer(emitKernel, propUploads, uploads);
-			computeShader.SetBuffer(emitKernel, propPool, pool);
-			computeShader.SetBuffer(emitKernel, propParticles, particles);
-			computeShader.Dispatch(emitKernel, uploads.count / threadCount, 1, 1);
-			emitList.Clear();
+			computeShader.SetBuffer(emitWaterKernel, propUploads, uploads);
+			computeShader.SetBuffer(emitWaterKernel, propPool, pool);
+			computeShader.SetBuffer(emitWaterKernel, propParticles, particles);
+			computeShader.Dispatch(emitWaterKernel, uploads.count / threadCount, 1, 1);
+			emitWaterList.Clear();
 		}
 	}
 
@@ -305,10 +347,12 @@ public class GPUFluidSystem : FluidSystem {
 
 	private void DispatchUpdate() {
 		alive.SetCounterValue(0);
+		steamAlive.SetCounterValue(0);
 		computeShader.SetTexture(updateKernel, propTerrainDistanceField, terrainDistanceField.terrainDistanceField);
 		computeShader.SetBuffer(updateKernel, propParticles, particles);
 		computeShader.SetBuffer(updateKernel, propDead, pool);
 		computeShader.SetBuffer(updateKernel, propAlive, alive);
+		computeShader.SetBuffer(updateKernel, propSteamAlive, steamAlive);
 		computeShader.Dispatch(updateKernel, groupCount, 1, 1);
 	}
 
