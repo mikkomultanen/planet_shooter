@@ -39386,7 +39386,9 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
+  m_Children:
+  - {fileID: 1098964288}
+  - {fileID: 915377589}
   m_Father: {fileID: 0}
   m_RootOrder: 14
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -59297,7 +59299,7 @@ MeshRenderer:
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1177974563}
+  - {fileID: 1579976490}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -59356,7 +59358,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!199 &915377587
 ParticleSystemRenderer:
   serializedVersion: 6
@@ -64030,12 +64032,12 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 915377586}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 16
+  m_Father: {fileID: 530541886}
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &956011614
 GameObject:
@@ -69619,7 +69621,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1098964288
 Transform:
   m_ObjectHideFlags: 0
@@ -69631,8 +69633,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: -5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
-  m_Father: {fileID: 0}
-  m_RootOrder: 15
+  m_Father: {fileID: 530541886}
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!58 &1098964289
 CircleCollider2D:
@@ -74669,11 +74671,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   angle: 360
-  intensity: 1
-  size: 10
-  lightColor: {r: 1, g: 1, b: 1, a: 1}
+  intensity: 0.5
+  size: 40
+  lightColor: {r: 1, g: 0.916376, b: 0.495283, a: 1}
   blurAmount: 1
-  MapResolution: 6
+  MapResolution: 7
   needsUpdate: 1
   on: 1
   mvp:
@@ -79600,31 +79602,6 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
---- !u!21 &1177974563
-Material:
-  serializedVersion: 6
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: PlanetShooter/DistanceFieldDebug
-  m_Shader: {fileID: 4800000, guid: 0a66bd5c5aa6f2a4e836994ce4d1ff52, type: 3}
-  m_ShaderKeywords: 
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Floats: []
-    m_Colors: []
 --- !u!1 &1202247072
 GameObject:
   m_ObjectHideFlags: 0
@@ -79668,11 +79645,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5448c4f3cdeff5e4ba687cd0fa2a9db6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  angle: 35
+  angle: 15
   intensity: 1
   size: 60
-  lightColor: {r: 1, g: 1, b: 1, a: 1}
-  blurAmount: 1
+  lightColor: {r: 0, g: 1, b: 0, a: 1}
+  blurAmount: 0
   MapResolution: 8
   needsUpdate: 1
   on: 1
@@ -79938,7 +79915,7 @@ Transform:
   - {fileID: 574163469}
   - {fileID: 1116262843}
   m_Father: {fileID: 0}
-  m_RootOrder: 17
+  m_RootOrder: 15
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1265431779
 GameObject:
@@ -99803,6 +99780,31 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
+--- !u!21 &1579976490
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: PlanetShooter/DistanceFieldDebug
+  m_Shader: {fileID: 4800000, guid: 0a66bd5c5aa6f2a4e836994ce4d1ff52, type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats: []
+    m_Colors: []
 --- !u!1 &1582118921
 GameObject:
   m_ObjectHideFlags: 0
@@ -106147,7 +106149,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2014018012
 Transform:
   m_ObjectHideFlags: 0
