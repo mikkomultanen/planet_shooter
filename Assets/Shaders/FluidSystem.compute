@@ -44,12 +44,13 @@ float _Viscosity;
 
 uint _KinematicCount;
 float _KinematicViscosity;
-float _Multiplier;
 
 uint _ExplosionCount;
 float _ExplosionRadiusSq;
 float _MinH;
 float _MaxH;
+float _CollisionRadius;
+float _Multiplier;
 float _Demultiplier;
 float _DT;
 
@@ -334,26 +335,32 @@ void Update (uint3 id : SV_DispatchThreadID)
 		float h = length(p.position);
 		p.life.x += _DT;
 		if (p.life.x < p.life.y && h > _MinH && h < _MaxH) {
-			float2 uv = _Demultiplier * p.position * _TerrainDistanceFieldScale.xy + 0.5;
-			float3 td = 2 * _TerrainDistanceField.SampleLevel(sampler_TerrainDistanceField, uv, 0) - 1;
 			float2 tForce = float2(0, 0);
-			if (td.x < _Demultiplier) {
-				float r = max(0, td.x) / _Demultiplier;
-				float q = 1 - r;
+			const float2 uv = _Demultiplier * p.position * _TerrainDistanceFieldScale.xy + 0.5;
+			const float3 td = 2 * _TerrainDistanceField.SampleLevel(sampler_TerrainDistanceField, uv, 0) - 1;
+			const float distance = td.x * _Multiplier - _CollisionRadius;
+			if (distance < 1) {
+				const float q = 1 - max(0, distance);
 				float2 _v = -p.velocity;
 				tForce = _v * (_Viscosity * LaplacianWviscosity / (p.density * p.density) * q);
 			}
 
 			float2 up = p.position / h;
-			p.velocity += (p.force + tForce + (G / _Demultiplier) * up) * _DT;
-			if (td.x < 0) {
-				float2 n = td.yz;
-				float vn = max(0, -dot(p.velocity, n));
-				p.velocity += 1.1 * vn * n;
-				//p.velocity *= 0.9;
+			p.velocity += (p.force + tForce + G * _Multiplier * up) * _DT;
+			if (distance > -1) {
+				if (distance < 0) {
+					const float2 n = td.yz;
+					const float vn = max(0, -dot(p.velocity, n));
+					p.velocity += 1.1 * vn * n;
+				}
+				const float speed = length(p.velocity);
+				p.velocity -= 0.0005 * speed * p.velocity;
+				p.position += p.velocity * _DT;
+				_Alive.Append(idx);
+			} else {
+				p.alive = false;
+				_Dead.Append(idx);
 			}
-			p.position += p.velocity * _DT;
-			_Alive.Append(idx);
 		} else {
 			p.alive = false;
 			_Dead.Append(idx);

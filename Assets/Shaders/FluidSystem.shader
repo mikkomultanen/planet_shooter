@@ -44,7 +44,7 @@ Shader "Unlit/InstancedParticleVisualize"
 				uint idx = _Alive[instanceID];
 				Particle p = _Particles[idx];
 				
-				v.vertex.xy *= 2;
+				v.vertex.xy *= 1.5;
 				v.vertex.xy += _Demultiplier * p.position;
 
 				v2f o;

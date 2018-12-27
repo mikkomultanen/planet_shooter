@@ -45,6 +45,8 @@ public class GPUFluidSystem : FluidSystem {
 
 	[Range(0.05f, 1f)]
 	public float radius = 1f;
+	[Range(0f, 1f)]
+	public float collisionRadius = 0.5f;
 	public ComputeShader computeShader;
 	public int maxParticles = 131072;
 	public int maxKinematicParticles = 1024;
@@ -230,6 +232,7 @@ public class GPUFluidSystem : FluidSystem {
 		computeShader.SetFloat("_Demultiplier", radius);
 		computeShader.SetFloat("_MinH", 42f / radius);
 		computeShader.SetFloat("_MaxH", 128f / radius);
+		computeShader.SetFloat("_CollisionRadius", collisionRadius);
 		computeShader.SetFloat("_DT", DT);
 		computeShader.SetVector("_TerrainDistanceFieldScale", terrainDistanceField.terrainDistanceFieldScale);
 	}

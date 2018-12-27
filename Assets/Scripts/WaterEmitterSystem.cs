@@ -5,6 +5,7 @@ using UnityEngine;
 public class WaterEmitterSystem : MonoBehaviour {
 	[Range(0f, 1f)]
 	public float interval = 0.1f;
+	public uint emitterCount = 10;
 	public TerrainMesh terrainMesh;
 	public FluidSystem fluidSystem;
 	private PSEdge[] emitters = new PSEdge[0];
@@ -17,7 +18,7 @@ public class WaterEmitterSystem : MonoBehaviour {
 	private IEnumerator CreateEmitters()
 	{
 		yield return new WaitUntil(() => terrainMesh.Ready);
-		emitters = new PSEdge[6];
+		emitters = new PSEdge[emitterCount];
 		for (int i = 0; i < emitters.Length; i++)
 		{
 			emitters[i] = terrainMesh.randomCaveCeiling();
