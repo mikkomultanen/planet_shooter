@@ -227,7 +227,6 @@ public class GPUFluidSystem : FluidSystem {
 		steamMaterial.SetBuffer(propParticles, particles);
 		steamMaterial.SetBuffer(propAlive, steamAlive);
 		steamMaterial.SetFloat("_Demultiplier", radius);
-		Graphics.DrawMeshInstancedIndirect(mesh, 0, steamMaterial, new Bounds(Vector2.zero, new Vector2(256f, 256f)), steamArgs, 0);
 	}
 
 	public override void EmitWater(Vector2 position, Vector2 velocity) {
@@ -254,6 +253,10 @@ public class GPUFluidSystem : FluidSystem {
 
 	public override void Render(CommandBuffer commandBuffer) {
 		commandBuffer.DrawMeshInstancedIndirect(mesh, 0, material, -1, args, 0);
+	}
+
+	public override void RenderSteam(CommandBuffer commandBuffer) {
+		commandBuffer.DrawMeshInstancedIndirect(mesh, 0, steamMaterial, -1, steamArgs, 0);
 	}
 
 	private void UpdateConstants() {

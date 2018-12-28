@@ -189,6 +189,7 @@ public class WaterSystem : FluidSystem {
 
 	private ParticleSystem waterSystem;
 	private ParticleSystemRenderer waterSystemRenderer;
+	private ParticleSystemRenderer steamSystemRenderer;
 	private FluidContainers waterContainers;
 	private FluidContainers steamContainers;
 	private KinematicContainers kinematicContainers;
@@ -203,6 +204,7 @@ public class WaterSystem : FluidSystem {
 
 		waterSystem = GetComponent<ParticleSystem>();
 		waterSystemRenderer = GetComponent<ParticleSystemRenderer>();
+		steamSystemRenderer = steamSystem.GetComponent<ParticleSystemRenderer>();
 		
 		waterContainers = new FluidContainers(waterSystem);
 		steamContainers = new FluidContainers(steamSystem);
@@ -748,6 +750,10 @@ public class WaterSystem : FluidSystem {
 
 	public override void Render(CommandBuffer commandBuffer) {
 		commandBuffer.DrawRenderer(waterSystemRenderer, waterSystemRenderer.sharedMaterial);
+	}
+
+	public override void RenderSteam(CommandBuffer commandBuffer) {
+		commandBuffer.DrawRenderer(steamSystemRenderer, steamSystemRenderer.sharedMaterial);
 	}
 
 	public static int Hash(float2 v, float cellSize)

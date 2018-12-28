@@ -364,12 +364,12 @@ void Update (uint3 id : SV_DispatchThreadID)
 			p.flags = 0;
 		} else {
 			const float viscosity = p.flags == TYPE_WATER ? _Viscosity : _SteamViscosity;
-			const float g = p.flags == TYPE_WATER ? G : SteamG;
+			const float g = p.flags == TYPE_WATER ? G : SteamG * (1 - p.life.x / p.life.y);
 
 			float2 tForce = float2(0, 0);
 			const float2 uv = _Demultiplier * p.position * _TerrainDistanceFieldScale.xy + 0.5;
 			const float3 td = 2 * _TerrainDistanceField.SampleLevel(sampler_TerrainDistanceField, uv, 0) - 1;
-			const float distance = td.x * _Multiplier - _CollisionRadius;
+			const float distance = min(td.x * _Multiplier - _CollisionRadius, h - _MinH);
 			if (distance < 1) {
 				const float q = 1 - max(0, distance);
 				float2 _v = -p.velocity;
