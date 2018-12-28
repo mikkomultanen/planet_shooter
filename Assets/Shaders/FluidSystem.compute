@@ -32,6 +32,8 @@ float4 _TerrainDistanceFieldScale; // x = 1 / width, y = 1 / height, z = width, 
 
 static const float G = -9.81;
 static const float SteamG = 5;
+static const float Drag = 0.0005;
+static const float SteamDrag = 0.002;
 static const float Wpoly6 = 1.56668147106;
 static const float GradientWspiky = -14.3239448783;
 static const float LaplacianWviscosity = 14.3239448783;
@@ -385,7 +387,8 @@ void Update (uint3 id : SV_DispatchThreadID)
 					p.velocity += 1.1 * vn * n;
 				}
 				const float speed = length(p.velocity);
-				p.velocity -= 0.0005 * speed * p.velocity;
+				const float drag = p.flags == TYPE_WATER ? Drag : SteamDrag;
+				p.velocity -= drag * speed * p.velocity;
 				p.position += p.velocity * _DT;
 			} else {
 				p.flags = 0;

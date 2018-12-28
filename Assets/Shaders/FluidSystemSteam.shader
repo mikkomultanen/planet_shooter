@@ -47,16 +47,19 @@ Shader "Unlit/Instanced Steam"
 				uint idx = _Alive[instanceID];
 				Particle p = _Particles[idx];
 
-				float x = p.life.x / p.life.y;
-				float oneMinuseX = 1 - x * x;
+				float l = 1 - p.life.x / p.life.y;
 				
-				v.vertex.xy *= _Scale;
+				float s = l * l;
+				s *= s;
+				s = 1 - 0.8 * s;
+				
+				v.vertex.xy *= s * _Scale;
 				v.vertex.xy += _Demultiplier * p.position;
 
 				v2f o;
 				o.pos = UnityObjectToClipPos(v.vertex);
                 o.uv = TRANSFORM_TEX(v.uv,_MainTex);
-				o.color = float4(oneMinuseX, oneMinuseX, oneMinuseX, 1);
+				o.color = float4(l, l, l, 1);
 				return o;
 			}
 			
