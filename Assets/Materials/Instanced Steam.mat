@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Instanced Steam
-  m_Shader: {fileID: 4800000, guid: 3b2e48c3145c5fa4197b5d33eba7b2f1, type: 3}
+  m_Shader: {fileID: 4800000, guid: 4663f99a033d1194eb9a37ba9d43c24b, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 0
   m_EnableInstancingVariants: 0
@@ -87,7 +87,7 @@ Material:
     - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _Scale: 5
+    - _Scale: 10
     - _SmoothnessTextureChannel: 0
     - _SoftParticlesEnabled: 0
     - _SoftParticlesFarFadeDistance: 1
