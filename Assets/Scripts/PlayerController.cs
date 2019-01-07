@@ -132,8 +132,6 @@ public class PlayerController : MonoBehaviour
         ship.gameObject.SetActive(true);
         ship.playerController = this;
         ship.color = color;
-        var flamerTrigger = ship.flamer.trigger;
-        flamerTrigger.SetCollider(0, gameController.water);
         resetDeviceEffects();
         hud.UpdateHealth(Mathf.RoundToInt(ship.health));
     }
@@ -280,6 +278,10 @@ public class LaserDevice : IDevice
 public class FlamerDevice : IDevice
 {
     private float energy = 10;
+    private bool wasOn = false;
+    private Vector3 oldPosition;
+    private Vector3 oldVelocity;
+    private Vector3 oldUp;
     public void Update(string button, PlayerController player, ShipController ship)
     {
         bool flamerOn = Input.GetButton(button) && energy > 0;
@@ -288,14 +290,40 @@ public class FlamerDevice : IDevice
             energy -= Time.deltaTime;
             player.updateWeaponHud();
         }
-        if (flamerOn != ship.flamer.isEmitting)
+        if (flamerOn)
         {
-            if (flamerOn)
-                ship.flamer.Play();
-            else
-                ship.flamer.Stop();
+            var currentPosition = ship.gunPoint.position;
+            Vector3 currentVelocity = ship.GetComponent<Rigidbody2D>().velocity;
+            var currentUp = ship.gunPoint.up;
+
+            if (wasOn) {
+                var count = Mathf.RoundToInt(Time.deltaTime / 0.005f);
+                for (int i = 1; i < count; i++)
+                {
+                    var fraction = i * 1f / count;
+                    var position = Vector3.Lerp(oldPosition, currentPosition, fraction);
+                    var velocity = Vector3.Lerp(oldVelocity, currentVelocity, fraction);
+                    var up = Vector3.Slerp(oldUp, currentUp, fraction);
+                    var elapsed = Time.deltaTime * (1f - fraction);
+                    Emit(position, velocity, up, elapsed, player);
+                }
+            }
+            Emit(currentPosition, currentVelocity, currentUp, 0, player);
+
+            oldPosition = currentPosition;
+            oldVelocity = currentVelocity;
+            oldUp = currentUp;
         }
+        wasOn = flamerOn;
     }
+
+    private void Emit(Vector3 position, Vector3 velocity, Vector3 up, float elapsed, PlayerController player) {
+        var p = new ParticleSystem.EmitParams();
+        p.velocity = velocity + up * 15f;
+        p.position = position + p.velocity * elapsed;
+        player.gameController.fireSystem.Emit(p, 1);
+    }
+
     public string HudRow()
     {
         return "Flamer: " + Hud.energyToString(energy);

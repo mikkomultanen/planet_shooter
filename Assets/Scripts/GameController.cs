@@ -13,8 +13,8 @@ public class GameController : MonoBehaviour
     public PlayerController cameraTemplate;
     public Hud hudTemplate;
     public List<Color> colors;
-    public Collider2D water;
     public TerrainMesh terrain;
+    public ParticleSystem fireSystem;
     public Text roundText;
     public List<Text> scoreTexts;
     public Canvas canvas;
