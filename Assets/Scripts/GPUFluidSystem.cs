@@ -79,6 +79,7 @@ public class GPUFluidSystem : FluidSystem {
 	private const string propPool = "_Pool";
 	private const string propAlive = "_Alive";
 	private const string propSteamAlive = "_SteamAlive";
+	private const string propCounter = "_Counter";
 	private const string propUploads = "_Uploads";
 	private const string propTerrainDistanceField = "_TerrainDistanceField";
 	private int initKernel;
@@ -110,8 +111,6 @@ public class GPUFluidSystem : FluidSystem {
 	private ComputeBuffer steamAlive;
 	private ComputeBuffer uploads;
 	private ComputeBuffer counter;
-	private int[] counterArray;
-    public int poolCount = 0;
 	private Mesh mesh;
 	private List<Vector4> emitWaterList = new List<Vector4>();
 	private List<GPUExplosion> explosionsList = new List<GPUExplosion>();
@@ -158,7 +157,7 @@ public class GPUFluidSystem : FluidSystem {
 		steamAlive.SetCounterValue(0);
 		uploads = new ComputeBuffer(Mathf.Max((256 / threadCount) * threadCount, threadCount), Marshal.SizeOf(typeof(Vector4)));
 		counter = new ComputeBuffer(4, sizeof(int), ComputeBufferType.IndirectArguments);
-		counterArray = new int[] { 0, 1, 0, 0 };
+		counter.SetData(new int[] { 0, 1, 0, 0 });
 
 		kParticles = new KinematicParticle[kinematicBufferSize];
 		kGPUParticles = new GPUKinematicParticle[kinematicBufferSize];
@@ -213,11 +212,6 @@ public class GPUFluidSystem : FluidSystem {
 
 		DispatchUpdate();
 
-		counter.SetData(counterArray);
-        ComputeBuffer.CopyCount(pool, counter, 0);
-		counter.GetData(counterArray);
-		poolCount = counterArray[0];
-
 		ComputeBuffer.CopyCount(alive, args, Marshal.SizeOf(typeof(uint)));
 		material.SetBuffer(propParticles, particles);
 		material.SetBuffer(propAlive, alive);
@@ -230,7 +224,7 @@ public class GPUFluidSystem : FluidSystem {
 	}
 
 	public override void EmitWater(Vector2 position, Vector2 velocity) {
-		if (emitWaterList.Count < uploads.count && emitWaterList.Count < poolCount) {
+		if (emitWaterList.Count < uploads.count) {
 			emitWaterList.Add(new Vector4(position.x, position.y, velocity.x, velocity.y) / radius);
 		}
 	}
@@ -284,9 +278,12 @@ public class GPUFluidSystem : FluidSystem {
 
 	private void DispatchEmitWater() {
 		if (emitWaterList.Count > 0) {
+			ComputeBuffer.CopyCount(pool, counter, 0);
 			uploads.SetData(emitWaterList);
+			computeShader.SetInt("_CounterOffset", 0);
 			computeShader.SetInt("_EmitCount", emitWaterList.Count);
 			computeShader.SetFloat("_LifeTime", 3600);
+			computeShader.SetBuffer(emitWaterKernel, propCounter, counter);
 			computeShader.SetBuffer(emitWaterKernel, propUploads, uploads);
 			computeShader.SetBuffer(emitWaterKernel, propPool, pool);
 			computeShader.SetBuffer(emitWaterKernel, propParticles, particles);
