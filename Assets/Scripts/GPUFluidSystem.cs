@@ -68,6 +68,8 @@ public class GPUFluidSystem : FluidSystem {
 
 	public Material steamMaterial;
 
+	public Material fireMaterial;
+
 	public TerrainDistanceField terrainDistanceField;
 
 	private const string propParticles = "_Particles";
@@ -79,6 +81,7 @@ public class GPUFluidSystem : FluidSystem {
 	private const string propPool = "_Pool";
 	private const string propAlive = "_Alive";
 	private const string propSteamAlive = "_SteamAlive";
+	private const string propFireAlive = "_FireAlive";	
 	private const string propCounter = "_Counter";
 	private const string propUploads = "_Uploads";
 	private const string propTerrainDistanceField = "_TerrainDistanceField";
@@ -107,9 +110,11 @@ public class GPUFluidSystem : FluidSystem {
 	private ComputeBuffer cellOffsets;
 	private ComputeBuffer args;
 	private ComputeBuffer steamArgs;
+	private ComputeBuffer fireArgs;
 	private ComputeBuffer pool;
 	private ComputeBuffer alive;
 	private ComputeBuffer steamAlive;
+	private ComputeBuffer fireAlive;
 	private ComputeBuffer uploads;
 	private ComputeBuffer counter;
 	private Mesh mesh;
@@ -152,12 +157,15 @@ public class GPUFluidSystem : FluidSystem {
 		cellOffsets = new ComputeBuffer(1024 * 1024, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Default);
 		args = new ComputeBuffer(5, Marshal.SizeOf(typeof(uint)), ComputeBufferType.IndirectArguments);
 		steamArgs = new ComputeBuffer(5, Marshal.SizeOf(typeof(uint)), ComputeBufferType.IndirectArguments);
+		fireArgs = new ComputeBuffer(5, Marshal.SizeOf(typeof(uint)), ComputeBufferType.IndirectArguments);
 		pool = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Append);
 		pool.SetCounterValue(0);
 		alive = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Append);
 		alive.SetCounterValue(0);
 		steamAlive = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Append);
 		steamAlive.SetCounterValue(0);
+		fireAlive = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Append);
+		fireAlive.SetCounterValue(0);
 		uploads = new ComputeBuffer(Mathf.Max((256 / threadCount) * threadCount, threadCount), Marshal.SizeOf(typeof(Vector4)));
 		counter = new ComputeBuffer(4, sizeof(int), ComputeBufferType.IndirectArguments);
 		counter.SetData(new int[] { 0, 1, 0, 0 });
@@ -172,6 +180,7 @@ public class GPUFluidSystem : FluidSystem {
 		uint[] argsData = new uint[] { mesh.GetIndexCount(0), 0, 0, 0, 0 };
 		args.SetData(argsData);
 		steamArgs.SetData(argsData);
+		fireArgs.SetData(argsData);
 
 		computeShader.SetBuffer(initKernel, propParticles, particles);
 		computeShader.SetBuffer(initKernel, propDead, pool);
@@ -185,9 +194,11 @@ public class GPUFluidSystem : FluidSystem {
 		cellOffsets.Dispose();
 		args.Dispose();
 		steamArgs.Dispose();
+		fireArgs.Dispose();
 		pool.Dispose();
 		alive.Dispose();
 		steamAlive.Dispose();
+		fireAlive.Dispose();
 		uploads.Dispose();
 		counter.Dispose();
 
@@ -225,6 +236,12 @@ public class GPUFluidSystem : FluidSystem {
 		steamMaterial.SetBuffer(propParticles, particles);
 		steamMaterial.SetBuffer(propAlive, steamAlive);
 		steamMaterial.SetFloat("_Demultiplier", radius);
+
+		ComputeBuffer.CopyCount(fireAlive, fireArgs, Marshal.SizeOf(typeof(uint)));
+		fireMaterial.SetBuffer(propParticles, particles);
+		fireMaterial.SetBuffer(propAlive, fireAlive);
+		fireMaterial.SetFloat("_Demultiplier", radius);
+		Graphics.DrawMeshInstancedIndirect(mesh, 0, fireMaterial, new Bounds(Vector3.zero, Vector3.one * 128f), fireArgs, 0);
 	}
 
 	public override void EmitWater(Vector2 position, Vector2 velocity) {
@@ -377,11 +394,13 @@ public class GPUFluidSystem : FluidSystem {
 	private void DispatchUpdate() {
 		alive.SetCounterValue(0);
 		steamAlive.SetCounterValue(0);
+		fireAlive.SetCounterValue(0);
 		computeShader.SetTexture(updateKernel, propTerrainDistanceField, terrainDistanceField.terrainDistanceField);
 		computeShader.SetBuffer(updateKernel, propParticles, particles);
 		computeShader.SetBuffer(updateKernel, propDead, pool);
 		computeShader.SetBuffer(updateKernel, propAlive, alive);
 		computeShader.SetBuffer(updateKernel, propSteamAlive, steamAlive);
+		computeShader.SetBuffer(updateKernel, propFireAlive, fireAlive);
 		computeShader.Dispatch(updateKernel, groupCount, 1, 1);
 	}
 

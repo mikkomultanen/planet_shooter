@@ -24,6 +24,7 @@ AppendStructuredBuffer<uint> _Dead;
 ConsumeStructuredBuffer<uint> _Pool;
 AppendStructuredBuffer<uint> _Alive;
 AppendStructuredBuffer<uint> _SteamAlive;
+AppendStructuredBuffer<uint> _FireAlive;
 
 uint _CounterOffset;
 StructuredBuffer<uint> _Counter;
@@ -42,6 +43,7 @@ static const float GradientWspiky = -14.3239448783;
 static const float LaplacianWviscosity = 14.3239448783;
 static const uint TYPE_WATER = 1;
 static const uint TYPE_STEAM = 2;
+static const uint TYPE_FIRE = 3;
 
 int _SortBlock;
 int _SortDim;
@@ -209,7 +211,10 @@ void CalculateForce (uint3 id : SV_DispatchThreadID)
 {
 	const uint idx = id.x;
 	Particle p = _Particles[idx];
-	if (p.flags != 0) {
+	if (p.flags == TYPE_FIRE) {
+		p.force = float2(0, 0);
+		_Particles[idx] = p;
+	} else if (p.flags != 0) {
 		const float restDensity = p.flags == TYPE_WATER ? _RestDensity : _SteamRestDensity;
 		const float pressureConstant = p.flags == TYPE_WATER ? _PressureConstant : _SteamPressureConstant;
 		const float viscosity = p.flags == TYPE_WATER ? _Viscosity : _SteamViscosity;
@@ -402,6 +407,8 @@ void Update (uint3 id : SV_DispatchThreadID)
 			_Alive.Append(idx);
 		} else if (p.flags == TYPE_STEAM) {
 			_SteamAlive.Append(idx);
+		} else if (p.flags == TYPE_FIRE) {
+			_FireAlive.Append(idx);
 		} else {
 			_Dead.Append(idx);
 		}
@@ -433,7 +440,7 @@ void EmitFire (uint3 id : SV_DispatchThreadID)
 		float4 upload = _Uploads[idx];
 		idx = _Pool.Consume();
 		Particle p = _Particles[idx];
-		p.flags = TYPE_STEAM;
+		p.flags = TYPE_FIRE;
 		p.position = upload.xy;
 		p.velocity = upload.zw;
 		p.life = float2(0, _LifeTime);
