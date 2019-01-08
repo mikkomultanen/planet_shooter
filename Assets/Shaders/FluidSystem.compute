@@ -10,6 +10,7 @@
 #pragma kernel CalculateForce2
 #pragma kernel Update
 #pragma kernel EmitWater
+#pragma kernel EmitFire
 
 #include "./ParticleCommon.cginc"
 
@@ -416,6 +417,22 @@ void EmitWater (uint3 id : SV_DispatchThreadID)
 		idx = _Pool.Consume();
 		Particle p = _Particles[idx];
 		p.flags = TYPE_WATER;
+		p.position = upload.xy;
+		p.velocity = upload.zw;
+		p.life = float2(0, _LifeTime);
+		_Particles[idx] = p;
+	}
+}
+
+[numthreads(256,1,1)]
+void EmitFire (uint3 id : SV_DispatchThreadID)
+{
+	uint idx = id.x;
+	if (idx < _EmitCount && idx < _Counter[_CounterOffset]) {
+		float4 upload = _Uploads[idx];
+		idx = _Pool.Consume();
+		Particle p = _Particles[idx];
+		p.flags = TYPE_STEAM;
 		p.position = upload.xy;
 		p.velocity = upload.zw;
 		p.life = float2(0, _LifeTime);
