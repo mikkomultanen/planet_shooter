@@ -293,6 +293,7 @@ public class GPUFluidSystem : FluidSystem {
 			uploads.SetData(emitWaterList);
 			computeShader.SetInt("_CounterOffset", 0);
 			computeShader.SetInt("_EmitCount", emitWaterList.Count);
+			computeShader.SetInt("_EmitMinPoolCount", 1024);
 			computeShader.SetFloat("_LifeTime", 3600);
 			computeShader.SetBuffer(emitWaterKernel, propCounter, counter);
 			computeShader.SetBuffer(emitWaterKernel, propUploads, uploads);
@@ -309,6 +310,7 @@ public class GPUFluidSystem : FluidSystem {
 			uploads.SetData(emitFireList);
 			computeShader.SetInt("_CounterOffset", 0);
 			computeShader.SetInt("_EmitCount", emitFireList.Count);
+			computeShader.SetInt("_EmitMinPoolCount", 0);
 			computeShader.SetFloat("_LifeTime", 1);
 			computeShader.SetBuffer(emitFireKernel, propCounter, counter);
 			computeShader.SetBuffer(emitFireKernel, propUploads, uploads);

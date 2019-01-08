@@ -68,6 +68,7 @@ float _Demultiplier;
 float _DT;
 
 uint _EmitCount;
+uint _EmitMinPoolCount;
 float _LifeTime;
 float _SteamLifeTime;
 
@@ -412,7 +413,7 @@ void Update (uint3 id : SV_DispatchThreadID)
 void EmitWater (uint3 id : SV_DispatchThreadID)
 {
 	uint idx = id.x;
-	if (idx < _EmitCount && idx < _Counter[_CounterOffset]) {
+	if (idx < _EmitCount && idx < _Counter[_CounterOffset] - _EmitMinPoolCount) {
 		float4 upload = _Uploads[idx];
 		idx = _Pool.Consume();
 		Particle p = _Particles[idx];
@@ -428,7 +429,7 @@ void EmitWater (uint3 id : SV_DispatchThreadID)
 void EmitFire (uint3 id : SV_DispatchThreadID)
 {
 	uint idx = id.x;
-	if (idx < _EmitCount && idx < _Counter[_CounterOffset]) {
+	if (idx < _EmitCount && idx < _Counter[_CounterOffset] - _EmitMinPoolCount) {
 		float4 upload = _Uploads[idx];
 		idx = _Pool.Consume();
 		Particle p = _Particles[idx];
