@@ -14,7 +14,7 @@ public class GameController : MonoBehaviour
     public Hud hudTemplate;
     public List<Color> colors;
     public TerrainMesh terrain;
-    public ParticleSystem fireSystem;
+    public FluidSystem fluidSystem;
     public Text roundText;
     public List<Text> scoreTexts;
     public Canvas canvas;

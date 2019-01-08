@@ -233,6 +233,11 @@ public class GPUFluidSystem : FluidSystem {
 		// TODO
 	}
 
+	public override void EmitFire(Vector2 position, Vector2 velocity)
+	{
+		EmitWater(position, velocity);
+	}
+
 	public override void EmitExplosion(Vector2 position, float force, float lifeTime)
 	{
 		if (explosionsList.Count < explosions.count) {

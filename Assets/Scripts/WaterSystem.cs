@@ -170,6 +170,8 @@ public class WaterSystem : FluidSystem {
 	[Range(0f, 10f)]
 	public float steamViscosity = 0.1f;
 
+    public ParticleSystem fireSystem;
+
 	public float skippingFrames = 0f;
 	public const float H = 1f;
 	public const float H2 = H * H;
@@ -734,6 +736,14 @@ public class WaterSystem : FluidSystem {
 		p.position = position;
 		p.velocity = velocity;
 		steamContainers.particlesToEmit.Add(p);
+	}
+
+	public override void EmitFire(Vector2 position, Vector2 velocity)
+	{
+        var p = new ParticleSystem.EmitParams();
+        p.velocity = velocity;
+        p.position = position;
+        fireSystem.Emit(p, 1);
 	}
 
 	public override void EmitExplosion(Vector2 position, float force, float lifeTime)

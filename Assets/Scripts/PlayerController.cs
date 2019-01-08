@@ -318,10 +318,9 @@ public class FlamerDevice : IDevice
     }
 
     private void Emit(Vector3 position, Vector3 velocity, Vector3 up, float elapsed, PlayerController player) {
-        var p = new ParticleSystem.EmitParams();
-        p.velocity = velocity + up * 15f;
-        p.position = position + p.velocity * elapsed;
-        player.gameController.fireSystem.Emit(p, 1);
+        Vector3 v = velocity + up * 15f;
+        Vector3 p = position + v * elapsed;
+        player.gameController.fluidSystem.EmitFire(p, v);
     }
 
     public string HudRow()
