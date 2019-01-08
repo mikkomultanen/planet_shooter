@@ -29,6 +29,9 @@ public class GPUFluidSystem : FluidSystem {
 		public float lifeTime;
 	}
 
+	private const int TYPE_WATER = 1;
+	private const int TYPE_STEAM = 2;
+	private const int TYPE_FIRE = 3;
 	public const float DT = 0.016f;
 
 	[Range(1f, 10f)]
@@ -86,8 +89,7 @@ public class GPUFluidSystem : FluidSystem {
 	private const string propUploads = "_Uploads";
 	private const string propTerrainDistanceField = "_TerrainDistanceField";
 	private int initKernel;
-	private int emitWaterKernel;
-	private int emitFireKernel;
+	private int emitKernel;
 	private int sortKernel;
 	private int sortKinematicKernel;
 	private int resetCellOffsetsKernel;
@@ -127,8 +129,7 @@ public class GPUFluidSystem : FluidSystem {
 	public int kinematicNumAlive = 0;
 	private void OnEnable() {
 		initKernel = computeShader.FindKernel("Init");
-		emitWaterKernel = computeShader.FindKernel("EmitWater");
-		emitFireKernel = computeShader.FindKernel("EmitFire");
+		emitKernel = computeShader.FindKernel("Emit");
 		sortKernel = computeShader.FindKernel("BitonicSortParticles");
 		sortKinematicKernel = computeShader.FindKernel("BitonicSortKinematicParticles");
 		resetCellOffsetsKernel = computeShader.FindKernel("ResetCellOffsets");
@@ -208,8 +209,8 @@ public class GPUFluidSystem : FluidSystem {
 	private void Update() {
 		UpdateConstants();
 
-		DispatchEmitWater();
-		DispatchEmitFire();
+		DispatchEmit(emitWaterList, 1024, TYPE_WATER, 3600);
+		DispatchEmit(emitFireList, 0, TYPE_FIRE, 1);
 
 		DispatchResetCellOffsets();
 		DispatchSortParticles();
@@ -304,37 +305,21 @@ public class GPUFluidSystem : FluidSystem {
 		computeShader.SetVector("_TerrainDistanceFieldScale", terrainDistanceField.terrainDistanceFieldScale);
 	}
 
-	private void DispatchEmitWater() {
-		if (emitWaterList.Count > 0) {
+	private void DispatchEmit(List<Vector4> emitList, int minPoolCount, int flags, float lifeTime) {
+		if (emitList.Count > 0) {
 			ComputeBuffer.CopyCount(pool, counter, 0);
-			uploads.SetData(emitWaterList);
+			uploads.SetData(emitList);
 			computeShader.SetInt("_CounterOffset", 0);
-			computeShader.SetInt("_EmitCount", emitWaterList.Count);
-			computeShader.SetInt("_EmitMinPoolCount", 1024);
-			computeShader.SetFloat("_LifeTime", 3600);
-			computeShader.SetBuffer(emitWaterKernel, propCounter, counter);
-			computeShader.SetBuffer(emitWaterKernel, propUploads, uploads);
-			computeShader.SetBuffer(emitWaterKernel, propPool, pool);
-			computeShader.SetBuffer(emitWaterKernel, propParticles, particles);
-			computeShader.Dispatch(emitWaterKernel, uploads.count / threadCount, 1, 1);
-			emitWaterList.Clear();
-		}
-	}
-
-	private void DispatchEmitFire() {
-		if (emitFireList.Count > 0) {
-			ComputeBuffer.CopyCount(pool, counter, 0);
-			uploads.SetData(emitFireList);
-			computeShader.SetInt("_CounterOffset", 0);
-			computeShader.SetInt("_EmitCount", emitFireList.Count);
-			computeShader.SetInt("_EmitMinPoolCount", 0);
-			computeShader.SetFloat("_LifeTime", 1);
-			computeShader.SetBuffer(emitFireKernel, propCounter, counter);
-			computeShader.SetBuffer(emitFireKernel, propUploads, uploads);
-			computeShader.SetBuffer(emitFireKernel, propPool, pool);
-			computeShader.SetBuffer(emitFireKernel, propParticles, particles);
-			computeShader.Dispatch(emitFireKernel, uploads.count / threadCount, 1, 1);
-			emitFireList.Clear();
+			computeShader.SetInt("_EmitCount", emitList.Count);
+			computeShader.SetInt("_EmitMinPoolCount", minPoolCount);
+			computeShader.SetInt("_Flags", flags);
+			computeShader.SetFloat("_LifeTime", lifeTime);
+			computeShader.SetBuffer(emitKernel, propCounter, counter);
+			computeShader.SetBuffer(emitKernel, propUploads, uploads);
+			computeShader.SetBuffer(emitKernel, propPool, pool);
+			computeShader.SetBuffer(emitKernel, propParticles, particles);
+			computeShader.Dispatch(emitKernel, uploads.count / threadCount, 1, 1);
+			emitList.Clear();
 		}
 	}
 

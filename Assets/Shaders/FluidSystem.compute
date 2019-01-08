@@ -9,8 +9,7 @@
 #pragma kernel CalculateKinematicForce
 #pragma kernel CalculateForce2
 #pragma kernel Update
-#pragma kernel EmitWater
-#pragma kernel EmitFire
+#pragma kernel Emit
 
 #include "./ParticleCommon.cginc"
 
@@ -71,6 +70,7 @@ float _DT;
 
 uint _EmitCount;
 uint _EmitMinPoolCount;
+uint _Flags;
 float _LifeTime;
 float _SteamLifeTime;
 
@@ -417,30 +417,14 @@ void Update (uint3 id : SV_DispatchThreadID)
 }
 
 [numthreads(256,1,1)]
-void EmitWater (uint3 id : SV_DispatchThreadID)
+void Emit (uint3 id : SV_DispatchThreadID)
 {
 	uint idx = id.x;
 	if (idx < _EmitCount && idx < _Counter[_CounterOffset] - _EmitMinPoolCount) {
 		float4 upload = _Uploads[idx];
 		idx = _Pool.Consume();
 		Particle p = _Particles[idx];
-		p.flags = TYPE_WATER;
-		p.position = upload.xy;
-		p.velocity = upload.zw;
-		p.life = float2(0, _LifeTime);
-		_Particles[idx] = p;
-	}
-}
-
-[numthreads(256,1,1)]
-void EmitFire (uint3 id : SV_DispatchThreadID)
-{
-	uint idx = id.x;
-	if (idx < _EmitCount && idx < _Counter[_CounterOffset] - _EmitMinPoolCount) {
-		float4 upload = _Uploads[idx];
-		idx = _Pool.Consume();
-		Particle p = _Particles[idx];
-		p.flags = TYPE_FIRE;
+		p.flags = _Flags;
 		p.position = upload.xy;
 		p.velocity = upload.zw;
 		p.life = float2(0, _LifeTime);
