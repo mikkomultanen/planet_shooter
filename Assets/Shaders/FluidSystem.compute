@@ -202,6 +202,7 @@ void CalculateDensity (uint3 id : SV_DispatchThreadID)
 		const float restDensity = RestDensity(p);
 
 		float density = 0;
+		float fireInWaterDensity = 0;
 		uint count, stride;
 		_Particles.GetDimensions(count, stride);
 		for (int x = -1; x < 2; ++x) {
@@ -213,12 +214,17 @@ void CalculateDensity (uint3 id : SV_DispatchThreadID)
 					if (gridHash != GridHash(o)) {
 						break;
 					}
-					if (o.flags == p.flags) {
+					const bool fireInWater = p.flags == TYPE_FIRE && o.flags == TYPE_WATER;
+					if (o.flags == p.flags || fireInWater) {
 						const float2 r = o.position - p.position;
 						const float r2 = dot(r, r);
 						if (r2 < 1) {
 							const float q = 1 - r2;
-							density += q * q * q;
+							if (fireInWater) {
+								fireInWaterDensity += q * q * q;
+							} else {
+								density += q * q * q;
+							}
 						}
 					}
 					i++;
@@ -227,6 +233,9 @@ void CalculateDensity (uint3 id : SV_DispatchThreadID)
 		}
 
 		p.density = max(restDensity, Wpoly6 * density);
+		if (fireInWaterDensity > 1) {
+			p.life.x += p.life.y;
+		}
 		_Particles[idx] = p;
 	}
 }
