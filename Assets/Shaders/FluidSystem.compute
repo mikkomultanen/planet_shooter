@@ -33,10 +33,6 @@ Texture2D<float3> _TerrainDistanceField;
 SamplerState sampler_TerrainDistanceField;
 float4 _TerrainDistanceFieldScale; // x = 1 / width, y = 1 / height, z = width, w = height
 
-static const float G = -9.81;
-static const float SteamG = 5;
-static const float Drag = 0.0005;
-static const float SteamDrag = 0.002;
 static const float Wpoly6 = 1.56668147106;
 static const float GradientWspiky = -14.3239448783;
 static const float LaplacianWviscosity = 14.3239448783;
@@ -73,6 +69,35 @@ uint _EmitMinPoolCount;
 uint _Flags;
 float _LifeTime;
 float _SteamLifeTime;
+
+inline float RestDensity(Particle p) {
+	return p.flags == TYPE_WATER ? _RestDensity : _SteamRestDensity;
+} 
+
+inline float PressureConstant(Particle p) {
+	return p.flags == TYPE_WATER ? _PressureConstant : _SteamPressureConstant;
+}
+
+inline float Viscosity(Particle p) {
+	return p.flags == TYPE_WATER ? _Viscosity : _SteamViscosity;
+}
+
+static const float G = -9.81;
+static const float SteamG = 5;
+
+inline float Gravity(Particle p) {
+	if (p.flags == TYPE_STEAM) {
+		return lerp(SteamG, 0, p.life.x / p.life.y);
+	} else if (p.flags == TYPE_FIRE) {
+		return lerp(G, SteamG, p.life.x / p.life.y);
+	} else {
+		return G;
+	}
+}
+
+inline float Drag(Particle p) {
+	return 0.0005;
+}
 
 [numthreads(256,1,1)]
 void Init (uint3 id : SV_DispatchThreadID)
@@ -174,7 +199,7 @@ void CalculateDensity (uint3 id : SV_DispatchThreadID)
 	const uint idx = id.x;
 	Particle p = _Particles[idx];
 	if (p.flags != 0) {
-		const float restDensity = p.flags == TYPE_WATER ? _RestDensity : _SteamRestDensity;
+		const float restDensity = RestDensity(p);
 
 		float density = 0;
 		uint count, stride;
@@ -215,9 +240,9 @@ void CalculateForce (uint3 id : SV_DispatchThreadID)
 		p.force = float2(0, 0);
 		_Particles[idx] = p;
 	} else if (p.flags != 0) {
-		const float restDensity = p.flags == TYPE_WATER ? _RestDensity : _SteamRestDensity;
-		const float pressureConstant = p.flags == TYPE_WATER ? _PressureConstant : _SteamPressureConstant;
-		const float viscosity = p.flags == TYPE_WATER ? _Viscosity : _SteamViscosity;
+		const float restDensity = RestDensity(p);
+		const float pressureConstant = PressureConstant(p);
+		const float viscosity = Viscosity(p);
 
 		float2 pForce = float2(0, 0);
 		float2 vForce = float2(0, 0);
@@ -374,8 +399,8 @@ void Update (uint3 id : SV_DispatchThreadID)
 		if (p.life.x > p.life.y || h > _MaxH) {
 			p.flags = 0;
 		} else {
-			const float viscosity = p.flags == TYPE_WATER ? _Viscosity : _SteamViscosity;
-			const float g = p.flags == TYPE_WATER ? G : SteamG * (1 - p.life.x / p.life.y);
+			const float viscosity = Viscosity(p);
+			const float g = Gravity(p);
 
 			float2 tForce = float2(0, 0);
 			const float2 uv = _Demultiplier * p.position * _TerrainDistanceFieldScale.xy + 0.5;
@@ -396,7 +421,7 @@ void Update (uint3 id : SV_DispatchThreadID)
 					p.velocity += 1.1 * vn * n;
 				}
 				const float speed = length(p.velocity);
-				const float drag = p.flags == TYPE_WATER ? Drag : SteamDrag;
+				const float drag = Drag(p);
 				p.velocity -= drag * speed * p.velocity;
 				p.position += p.velocity * _DT;
 			} else {
