@@ -766,6 +766,10 @@ public class WaterSystem : FluidSystem {
 		commandBuffer.DrawRenderer(steamSystemRenderer, steamSystemRenderer.sharedMaterial);
 	}
 
+	public override void RenderFire(CommandBuffer commandBuffer) {
+		// TODO
+	}
+
 	public static int Hash(float2 v, float cellSize)
 	{
 		return Hash(Quantize(v, cellSize));

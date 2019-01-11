@@ -10,4 +10,5 @@ public abstract class FluidSystem : MonoBehaviour
 	public abstract void EmitExplosion(Vector2 position, float force, float lifeTime);
     public abstract void Render(CommandBuffer commandBuffer);
     public abstract void RenderSteam(CommandBuffer commandBuffer);
+    public abstract void RenderFire(CommandBuffer commandBuffer);
 }
