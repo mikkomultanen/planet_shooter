@@ -22,6 +22,12 @@ public class GPUFluidSystem : FluidSystem {
 		public Vector2 velocity;
 	}
 
+	private struct GPUKinematicParticleResult
+	{
+		public Vector2 force;
+		public uint flags;
+	}
+
 	private struct GPUExplosion
 	{
 		public Vector2 position;
@@ -32,6 +38,8 @@ public class GPUFluidSystem : FluidSystem {
 	private const int TYPE_WATER = 1;
 	private const int TYPE_STEAM = 2;
 	private const int TYPE_FIRE = 3;
+	private const uint IN_WATER = 1;
+	private const uint IN_FIRE = 2;
 	public const float DT = 0.016f;
 
 	[Range(1f, 10f)]
@@ -75,10 +83,12 @@ public class GPUFluidSystem : FluidSystem {
 
 	public TerrainDistanceField terrainDistanceField;
 
+	public float fireDamagePerSecond = 20f;
+
 	private const string propParticles = "_Particles";
 	private const string propExplosions = "_Explosions";
 	private const string propKinematicParticles = "_KinematicParticles";
-	private const string propKinematicForcesAndBuoyances = "_KinematicForcesAndBuoyances";
+	private const string propKinematicResults = "_KinematicResults";
 	private const string propCellOffsets = "_CellOffsets";
 	private const string propDead = "_Dead";
 	private const string propPool = "_Pool";
@@ -108,7 +118,7 @@ public class GPUFluidSystem : FluidSystem {
 	private ComputeBuffer particles;
 	private ComputeBuffer kinematicParticles;
 	private ComputeBuffer explosions;
-	private ComputeBuffer kinematicForcesAndBuoyances;
+	private ComputeBuffer kinematicResults;
 	private ComputeBuffer cellOffsets;
 	private ComputeBuffer args;
 	private ComputeBuffer steamArgs;
@@ -125,7 +135,7 @@ public class GPUFluidSystem : FluidSystem {
 	private List<GPUExplosion> explosionsList = new List<GPUExplosion>();
 	private KinematicParticle[] kParticles;
 	private GPUKinematicParticle[] kGPUParticles;
-	private Vector3[] kForcesAndBuoyances;
+	private GPUKinematicParticleResult[] kResults;
 	public int kinematicNumAlive = 0;
 	private void OnEnable() {
 		initKernel = computeShader.FindKernel("Init");
@@ -154,7 +164,7 @@ public class GPUFluidSystem : FluidSystem {
 		particles = new ComputeBuffer(bufferSize, Marshal.SizeOf(typeof(GPUParticle)), ComputeBufferType.Default);
 		explosions = new ComputeBuffer(128, Marshal.SizeOf(typeof(GPUExplosion)), ComputeBufferType.Default);
 		kinematicParticles = new ComputeBuffer(kinematicBufferSize, Marshal.SizeOf(typeof(GPUKinematicParticle)), ComputeBufferType.Default);
-		kinematicForcesAndBuoyances = new ComputeBuffer(kinematicBufferSize, Marshal.SizeOf(typeof(Vector3)), ComputeBufferType.Default);
+		kinematicResults = new ComputeBuffer(kinematicBufferSize, Marshal.SizeOf(typeof(GPUKinematicParticleResult)), ComputeBufferType.Default);
 		cellOffsets = new ComputeBuffer(1024 * 1024, Marshal.SizeOf(typeof(uint)), ComputeBufferType.Default);
 		args = new ComputeBuffer(5, Marshal.SizeOf(typeof(uint)), ComputeBufferType.IndirectArguments);
 		steamArgs = new ComputeBuffer(5, Marshal.SizeOf(typeof(uint)), ComputeBufferType.IndirectArguments);
@@ -173,7 +183,7 @@ public class GPUFluidSystem : FluidSystem {
 
 		kParticles = new KinematicParticle[kinematicBufferSize];
 		kGPUParticles = new GPUKinematicParticle[kinematicBufferSize];
-		kForcesAndBuoyances = new Vector3[kinematicBufferSize];
+		kResults = new GPUKinematicParticleResult[kinematicBufferSize];
 
 		GameObject o = GameObject.CreatePrimitive(PrimitiveType.Quad);
 		mesh = o.GetComponent<MeshFilter>().sharedMesh;
@@ -191,7 +201,7 @@ public class GPUFluidSystem : FluidSystem {
 		particles.Dispose();
 		explosions.Dispose();
 		kinematicParticles.Dispose();
-		kinematicForcesAndBuoyances.Dispose();
+		kinematicResults.Dispose();
 		cellOffsets.Dispose();
 		args.Dispose();
 		steamArgs.Dispose();
@@ -441,7 +451,7 @@ public class GPUFluidSystem : FluidSystem {
 
 	private void DispatchCalculateKinematicForce() {
 		computeShader.SetBuffer(calculateKinematicForceKernel, propKinematicParticles, kinematicParticles);
-		computeShader.SetBuffer(calculateKinematicForceKernel, propKinematicForcesAndBuoyances, kinematicForcesAndBuoyances);
+		computeShader.SetBuffer(calculateKinematicForceKernel, propKinematicResults, kinematicResults);
 		computeShader.SetBuffer(calculateKinematicForceKernel, propParticles, particles);
 		computeShader.SetBuffer(calculateKinematicForceKernel, propCellOffsets, cellOffsets);
 		computeShader.Dispatch(calculateKinematicForceKernel, kinematicGroupCount, 1, 1);
@@ -457,13 +467,14 @@ public class GPUFluidSystem : FluidSystem {
 
 	private IEnumerator UpdateKinematicParticles() {
 		yield return new WaitForEndOfFrame();
-		kinematicForcesAndBuoyances.GetData(kForcesAndBuoyances);
+		kinematicResults.GetData(kResults);
 		KinematicParticle particle;
 		for(int i = 0; i < kinematicNumAlive; i++)
 		{
 			particle = kParticles[i];
-			particle.buoyance = kForcesAndBuoyances[i].z;
-			particle.force = kForcesAndBuoyances[i];
+			particle.buoyance = (kResults[i].flags & IN_WATER) == IN_WATER ? 1f : 0f;
+			particle.damage = (kResults[i].flags & IN_FIRE) == IN_FIRE ? fireDamagePerSecond : 0f;
+			particle.force = kResults[i].force;
 		}
 	}
 }

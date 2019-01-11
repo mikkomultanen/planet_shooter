@@ -16,7 +16,7 @@
 RWStructuredBuffer<Particle> _Particles;
 StructuredBuffer<Explosion> _Explosions;
 RWStructuredBuffer<KinematicParticle> _KinematicParticles;
-RWStructuredBuffer<float3> _KinematicForcesAndBuoyances;
+RWStructuredBuffer<KinematicParticleResult> _KinematicResults;
 RWStructuredBuffer<uint> _CellOffsets;
 
 AppendStructuredBuffer<uint> _Dead;
@@ -39,6 +39,9 @@ static const float LaplacianWviscosity = 14.3239448783;
 static const uint TYPE_WATER = 1;
 static const uint TYPE_STEAM = 2;
 static const uint TYPE_FIRE = 3;
+
+static const uint IN_WATER = 1;
+static const uint IN_FIRE = 2;
 
 int _SortBlock;
 int _SortDim;
@@ -307,6 +310,7 @@ void CalculateKinematicForce (uint3 id : SV_DispatchThreadID)
 		const float2 velocity = p.velocity * _Multiplier;
 		float density = 0;
 		float2 vForce = float2(0, 0);
+		float inFireDensity = 0;
 
 		uint count, stride;
 		_Particles.GetDimensions(count, stride);
@@ -331,15 +335,26 @@ void CalculateKinematicForce (uint3 id : SV_DispatchThreadID)
 							const float d = o.density;						
 							vForce += _v * ((1 - r) / (d * d));
 						}
+					} else if (o.flags == TYPE_FIRE) {
+						const float2 _r = o.position - position;
+						const float r2 = dot(_r, _r);
+						if (r2 < 1) {
+							const float q = 1 - r2;
+							inFireDensity += q * q * q;
+						}
 					}
 					i++;
 				}
 			}
 		}
 
-		density = step(_RestDensity, Wpoly6 * density);
 		vForce *= _KinematicViscosity * LaplacianWviscosity;
-		_KinematicForcesAndBuoyances[idx] = float3(vForce, density);
+		KinematicParticleResult r;
+		const uint inWaterFlag = Wpoly6 * density > _RestDensity ? IN_WATER : 0;
+		const uint inFireFlag = Wpoly6 * inFireDensity > 0.01 ? IN_FIRE : 0;
+		r.flags = inWaterFlag + inFireFlag;
+		r.force = vForce;
+		_KinematicResults[idx] = r;
 	}
 }
 

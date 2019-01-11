@@ -10,6 +10,7 @@ public class WaterKinematicBody : MonoBehaviour {
 	public KinematicParticle[] particles;
 	private Rigidbody2D rb;
 	private float buoyanceForce;
+	private Damageable damageable;
 
 	private void Awake() {
 		rb = GetComponent<Rigidbody2D>();
@@ -20,6 +21,7 @@ public class WaterKinematicBody : MonoBehaviour {
 			particles[i] = new KinematicParticle();
 		}
 		buoyanceForce = buoyanceA * rb.mass / count;
+		damageable = GetComponent<Damageable>();
 	}
 
 	public void UpdateParticles() {
@@ -39,6 +41,7 @@ public class WaterKinematicBody : MonoBehaviour {
 		Vector2 point;
 		Vector2 particlePosition;
 		Vector2 force;
+		float damage = 0;
 		for (int i = 0; i < count; i++)
 		{
 			particle = particles[i];
@@ -46,7 +49,11 @@ public class WaterKinematicBody : MonoBehaviour {
 			particlePosition = transform.TransformPoint(point.x, point.y, 0);
 			force = buoyanceForce * particle.buoyance * positionNormalized;
 			force += particle.force;
+			damage = Mathf.Max(damage, particle.damage);
 			rb.AddForceAtPosition(force, particlePosition);
+		}
+		if (damageable != null) {
+			damageable.doDamage(Time.fixedDeltaTime * damage);
 		}
 	}
 

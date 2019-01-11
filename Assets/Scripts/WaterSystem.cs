@@ -13,6 +13,7 @@ public sealed class KinematicParticle
 	public Vector2 position;
 	public Vector2 velocity;
 	public float buoyance;
+	public float damage;
 	public Vector2 force;
 }
 

@@ -17,6 +17,12 @@ struct KinematicParticle
     float2 velocity;
 };
 
+struct KinematicParticleResult
+{
+    float2 force;
+    uint flags;
+};
+
 struct Explosion
 {
     float2 position;
