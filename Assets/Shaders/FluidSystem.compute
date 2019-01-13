@@ -12,6 +12,8 @@
 #pragma kernel Emit
 
 #include "./ParticleCommon.cginc"
+#include "./SimplexNoise3D.cginc"
+#include "UnityCG.cginc"
 
 RWStructuredBuffer<Particle> _Particles;
 StructuredBuffer<Explosion> _Explosions;
@@ -358,6 +360,12 @@ void CalculateKinematicForce (uint3 id : SV_DispatchThreadID)
 	}
 }
 
+float3 divergenceFreeNoise(float3 pos){
+	float3 grad0 = snoise_grad(pos).xyz;
+	float3 grad1 = snoise_grad(pos + 5.33).xyz;
+	return cross(grad0, grad1);
+}
+
 [numthreads(256,1,1)]
 void CalculateForce2 (uint3 id : SV_DispatchThreadID)
 {
@@ -403,6 +411,9 @@ void CalculateForce2 (uint3 id : SV_DispatchThreadID)
 		}
 
 		p.force += kForce + eForce;
+		if (p.flags == TYPE_FIRE) {
+			p.force += 10 * divergenceFreeNoise(float3(p.position, _Time.y)).xy;
+		}
 		_Particles[idx] = p;
 	}
 }
