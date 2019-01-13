@@ -438,6 +438,9 @@ void Update (uint3 id : SV_DispatchThreadID)
 			p.velocity = float2(0, 0);
 			p.force = float2(0, 0);
 			p.life = float2(0, _SteamLifeTime);
+		} else if (p.flags == TYPE_FIRE && p.life.x > p.life.y) {
+			p.flags = TYPE_STEAM;
+			p.life = float2(10, 10.5);
 		} else if (p.life.x > p.life.y || h > _MaxH) {
 			p.flags = 0;
 		} else {
