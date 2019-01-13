@@ -50,8 +50,7 @@ SubShader {
 				float s = 1;
 				for (int i = 0; i < 3; i++) {
 					float3 coord = float3(position * s, _Time.w);
-					float n = 1 - abs(snoise(coord));
-					n *= n;
+					float n = abs(snoise(coord));
 					o += n * w;
 					s *= 2.0;
             		w *= 0.5;
@@ -61,8 +60,8 @@ SubShader {
 
 			fixed4 frag (v2f i) : SV_Target {
 				fixed4 col = tex2Dproj(Firemap_RT, i.screenPos);
-				float n = fractalNoise(i.position * 128);
-				col.rgb = saturate(2 * n * col.rgb) * 2;
+				float n = fractalNoise(i.position * 256);
+				col.rgb = saturate((0.4 + n) * col.rgb) * 2;
 				col.a = saturate(col.a);
 
 				return col;
