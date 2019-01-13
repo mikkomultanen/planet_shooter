@@ -208,6 +208,7 @@ void CalculateDensity (uint3 id : SV_DispatchThreadID)
 
 		float density = 0;
 		float fireInWaterDensity = 0;
+		float waterInFireDensity = 0;
 		uint count, stride;
 		_Particles.GetDimensions(count, stride);
 		for (int x = -1; x < 2; ++x) {
@@ -220,15 +221,19 @@ void CalculateDensity (uint3 id : SV_DispatchThreadID)
 						break;
 					}
 					const bool fireInWater = p.flags == TYPE_FIRE && o.flags == TYPE_WATER;
-					if (o.flags == p.flags || fireInWater) {
+					const bool waterInFire = p.flags == TYPE_WATER && o.flags == TYPE_FIRE;
+					if (o.flags == p.flags || fireInWater || waterInFire) {
 						const float2 r = o.position - p.position;
 						const float r2 = dot(r, r);
 						if (r2 < 1) {
 							const float q = 1 - r2;
+							const float q3 = q * q * q;
 							if (fireInWater) {
-								fireInWaterDensity += q * q * q;
+								fireInWaterDensity += q3;
+							} else if(waterInFire)  {
+								waterInFireDensity += q3;
 							} else {
-								density += q * q * q;
+								density += q3;
 							}
 						}
 					}
@@ -239,6 +244,8 @@ void CalculateDensity (uint3 id : SV_DispatchThreadID)
 
 		p.density = max(restDensity, Wpoly6 * density);
 		if (fireInWaterDensity > 1) {
+			p.life.x += p.life.y;
+		} else if (waterInFireDensity > 1 && density < 1.1) {
 			p.life.x += p.life.y;
 		}
 		_Particles[idx] = p;
@@ -425,9 +432,10 @@ void Update (uint3 id : SV_DispatchThreadID)
 	Particle p = _Particles[idx];
 	if (p.flags != 0) {
 		const float h = length(p.position);
-		if (p.flags == TYPE_WATER && h <= _MinH) {
+		if (p.flags == TYPE_WATER && (h <= _MinH || p.life.x > p.life.y)) {
 			p.flags = TYPE_STEAM;
 			p.velocity = float2(0, 0);
+			p.force = float2(0, 0);
 			p.life = float2(0, _SteamLifeTime);
 		}
 		p.life.x += _DT;

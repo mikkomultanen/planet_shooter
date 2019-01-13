@@ -219,7 +219,7 @@ public class GPUFluidSystem : FluidSystem {
 	private void Update() {
 		UpdateConstants();
 
-		DispatchEmit(emitWaterList, 1024, TYPE_WATER, 3600);
+		DispatchEmit(emitWaterList, 1024, TYPE_WATER, 31536000);
 		DispatchEmit(emitFireList, 0, TYPE_FIRE, 1);
 
 		DispatchResetCellOffsets();
