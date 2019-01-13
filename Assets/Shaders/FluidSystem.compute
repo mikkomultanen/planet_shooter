@@ -80,6 +80,9 @@ inline float RestDensity(Particle p) {
 } 
 
 inline float PressureConstant(Particle p) {
+	if (p.flags == TYPE_FIRE) {
+		return 0;
+	}
 	return p.flags == TYPE_WATER ? _PressureConstant : _SteamPressureConstant;
 }
 
@@ -257,10 +260,7 @@ void CalculateForce (uint3 id : SV_DispatchThreadID)
 {
 	const uint idx = id.x;
 	Particle p = _Particles[idx];
-	if (p.flags == TYPE_FIRE) {
-		p.force = float2(0, 0);
-		_Particles[idx] = p;
-	} else if (p.flags != 0) {
+	if (p.flags != 0) {
 		const float restDensity = RestDensity(p);
 		const float pressureConstant = PressureConstant(p);
 		const float viscosity = Viscosity(p);
