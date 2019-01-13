@@ -269,7 +269,7 @@ void CalculateForce (uint3 id : SV_DispatchThreadID)
 		float2 vForce = float2(0, 0);
 
 		float pressure_p = p.density / restDensity;
-		pressure_p = pressureConstant * (pressure_p * pressure_p - 1);
+		pressure_p = pressure_p * pressure_p - 1;
 
 		uint count, stride;
 		_Particles.GetDimensions(count, stride);
@@ -288,12 +288,12 @@ void CalculateForce (uint3 id : SV_DispatchThreadID)
 							const float r = max(0.001, length(_r));
 							if (r < 1) {
 								float pressure_n = o.density / restDensity;
-								pressure_n = pressureConstant * (pressure_n * pressure_n - 1);
+								pressure_n = pressure_n * pressure_n - 1;
 								const float q = 1 - r;
 								pForce += _r / r * ((pressure_p + pressure_n) / (2 * o.density) * q * q);
 
 								const float2 _v = o.velocity - p.velocity;
-								vForce += _v * (1 / o.density * q);
+								vForce += _v * (q / o.density);
 							}
 						}
 					}
@@ -302,7 +302,7 @@ void CalculateForce (uint3 id : SV_DispatchThreadID)
 			}
 		}
 
-		pForce *= GradientWspiky;
+		pForce *= pressureConstant * GradientWspiky;
 		vForce *= viscosity * LaplacianWviscosity;
 		p.force = (pForce + vForce) / p.density;
 		_Particles[idx] = p;
