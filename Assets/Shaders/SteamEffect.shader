@@ -52,12 +52,14 @@ SubShader {
 			}
 			
 			float fractalNoise(float2 position) {
-				float o = 0.5;
-				float w = 0.25;
+				float o = 0;
+				float w = 0.5;
 				float s = 1;
 				for (int i = 0; i < 3; i++) {
 					float3 coord = float3(position * s, _Time.y);
-					o += snoise(coord) * w;
+					float n = abs(snoise(coord));
+					n *= n;
+					o += n * w;
 					s *= 2.0;
             		w *= 0.5;
 				}
@@ -69,7 +71,7 @@ SubShader {
 				fixed4 col;
 				float n = fractalNoise(i.position * 128);
 				fixed w = max(0.001, _Stroke - _Cutoff);
-				col.a = clamp(v * lerp(1, n, 0.7) - _Cutoff, 0, w) / w * lerp(1, n, 0.3);
+				col.a = clamp(v * lerp(1, n, 0.3) - _Cutoff, 0, w) / w * lerp(1, n, 0.3);
 				col.rgb = tex2Dproj(Lightmap_RT, i.screenPos).rgb;
 
 				return col;
