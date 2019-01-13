@@ -5075,7 +5075,6 @@ Transform:
   - {fileID: 278498850}
   - {fileID: 345658266}
   - {fileID: 2014018012}
-  - {fileID: 1202247073}
   m_Father: {fileID: 1133514701}
   m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -15130,6 +15129,31 @@ Transform:
   m_Father: {fileID: 1133514701}
   m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: -90, y: 0, z: 0}
+--- !u!21 &201899616
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: PlanetShooter/DistanceFieldDebug
+  m_Shader: {fileID: 4800000, guid: 0a66bd5c5aa6f2a4e836994ce4d1ff52, type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats: []
+    m_Colors: []
 --- !u!1 &209205112
 GameObject:
   m_ObjectHideFlags: 0
@@ -64089,7 +64113,7 @@ MeshRenderer:
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 1607220318}
+  - {fileID: 201899616}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -79537,7 +79561,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   angle: 360
-  intensity: 0.5
+  intensity: 1
   size: 40
   lightColor: {r: 1, g: 0.916376, b: 0.495283, a: 1}
   blurAmount: 1
@@ -79751,108 +79775,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1149015801}
   m_Mesh: {fileID: 613955027}
---- !u!1 &1202247072
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1202247073}
-  - component: {fileID: 1202247074}
-  m_Layer: 10
-  m_Name: Ligth
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1202247073
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202247072}
-  m_LocalRotation: {x: 0, y: 0, z: 0.7071068, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
-  m_Father: {fileID: 66156833}
-  m_RootOrder: 5
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 90}
---- !u!114 &1202247074
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202247072}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5448c4f3cdeff5e4ba687cd0fa2a9db6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  angle: 15
-  intensity: 1
-  size: 60
-  lightColor: {r: 0, g: 1, b: 0, a: 1}
-  blurAmount: 0
-  MapResolution: 8
-  needsUpdate: 1
-  on: 1
-  mvp:
-    e00: 0
-    e01: 0
-    e02: 0
-    e03: 0
-    e10: 0
-    e11: 0
-    e12: 0
-    e13: 0
-    e20: 0
-    e21: 0
-    e22: 0
-    e23: 0
-    e30: 0
-    e31: 0
-    e32: 0
-    e33: 0
-  lightMvp:
-    e00: 0
-    e01: 0
-    e02: 0
-    e03: 0
-    e10: 0
-    e11: 0
-    e12: 0
-    e13: 0
-    e20: 0
-    e21: 0
-    e22: 0
-    e23: 0
-    e30: 0
-    e31: 0
-    e32: 0
-    e33: 0
-  orthoProj:
-    e00: 0
-    e01: 0
-    e02: 0
-    e03: 0
-    e10: 0
-    e11: 0
-    e12: 0
-    e13: 0
-    e20: 0
-    e21: 0
-    e22: 0
-    e23: 0
-    e30: 0
-    e31: 0
-    e32: 0
-    e33: 0
 --- !u!1 &1214775043
 GameObject:
   m_ObjectHideFlags: 0
@@ -80052,6 +79974,7 @@ MonoBehaviour:
   steamMaterial: {fileID: 2100000, guid: 9048edfb73026554595c07be3ba5133d, type: 2}
   fireMaterial: {fileID: 2100000, guid: ca8eeb3ae483ee240be27eec05c84371, type: 2}
   terrainDistanceField: {fileID: 910546228}
+  fireDamagePerSecond: 20
   kinematicNumAlive: 0
 --- !u!4 &1236142345
 Transform:
@@ -95495,31 +95418,6 @@ MonoBehaviour:
   renderTexture: {fileID: 0}
   steamRenderTexture: {fileID: 0}
   fireRenderTexture: {fileID: 0}
---- !u!21 &1607220318
-Material:
-  serializedVersion: 6
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: PlanetShooter/DistanceFieldDebug
-  m_Shader: {fileID: 4800000, guid: 0a66bd5c5aa6f2a4e836994ce4d1ff52, type: 3}
-  m_ShaderKeywords: 
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Floats: []
-    m_Colors: []
 --- !u!1 &1607834494
 GameObject:
   m_ObjectHideFlags: 0
