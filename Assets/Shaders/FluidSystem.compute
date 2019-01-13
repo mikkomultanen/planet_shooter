@@ -432,14 +432,13 @@ void Update (uint3 id : SV_DispatchThreadID)
 	Particle p = _Particles[idx];
 	if (p.flags != 0) {
 		const float h = length(p.position);
+		p.life.x += _DT;
 		if (p.flags == TYPE_WATER && (h <= _MinH || p.life.x > p.life.y)) {
 			p.flags = TYPE_STEAM;
 			p.velocity = float2(0, 0);
 			p.force = float2(0, 0);
 			p.life = float2(0, _SteamLifeTime);
-		}
-		p.life.x += _DT;
-		if (p.life.x > p.life.y || h > _MaxH) {
+		} else if (p.life.x > p.life.y || h > _MaxH) {
 			p.flags = 0;
 		} else {
 			const float viscosity = Viscosity(p);
