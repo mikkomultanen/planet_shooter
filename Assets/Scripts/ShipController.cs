@@ -10,8 +10,6 @@ public class ShipController : Explosive, Repairable
     public GameObject shield;
 
     public ParticleSystem afterBurner;
-    public LineRenderer laserRay;
-    public ParticleSystem laserSparkles;
     public ParticleSystem deathrayLoading;
     public GameObject spike;
 
@@ -77,18 +75,12 @@ public class ShipController : Explosive, Repairable
     public void resetDeviceEffects(IDevice[] devices)
     {
         var afterBurnerOff = !devices.Any(d => d is AfterBurnerDevice);
-        var laserOff = !devices.Any(d => d is LaserDevice);
         var deathrayOff = !devices.Any(d => d is DeathrayDevice);
         var shieldOff = !devices.Any(d => d is ShieldDevice);
         if (afterBurnerOff)
         {
             afterBurner.Stop();
             spike.SetActive(false);
-        }
-        if (laserOff)
-        {
-            laserSparkles.Stop();
-            laserRay.enabled = false;
         }
         if (deathrayOff) deathrayLoading.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         if (shieldOff) shield.SetActive(false);
