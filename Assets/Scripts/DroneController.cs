@@ -58,7 +58,11 @@ public class DroneController : Explosive
                 thruster.Stop();
         }
 
-        UpdateLaser(GetTarget());
+        if (ship) {
+            UpdateLaser(GetTarget());
+        } else {
+            explode();
+        }
     }
     void FixedUpdate()
     {
@@ -90,6 +94,8 @@ public class DroneController : Explosive
 
     private Vector2 Direction()
     {
+        if (ship == null) return Vector2.zero;
+
         var direction = ship.position - rb.position;
         if (direction.magnitude < minDistance)
         {
@@ -111,7 +117,7 @@ public class DroneController : Explosive
         Collider2D[] colliders = Physics2D.OverlapCircleAll(rb.position, targetRadius, targetLayerMask);
         return colliders.Aggregate((Transform)null, (memo, c) =>
         {
-            if (c.gameObject == ship.gameObject || c.gameObject == gameObject)
+            if (!IsEnemy(c.gameObject))
             {
                 return memo;
             }
@@ -126,6 +132,16 @@ public class DroneController : Explosive
                 return memoSqrD < cSqrD ? memo : c.transform;
             }
         });
+    }
+
+    private bool IsEnemy(GameObject other)
+    {
+        if (other == ship.gameObject || other == gameObject) return false;
+        var drone = other.GetComponent<DroneController>();
+        if (drone) {
+            return drone.ship != ship;
+        }
+        return true;
     }
 
     private float laserDamagePerSecond = 20f;
