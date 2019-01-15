@@ -65,7 +65,7 @@ public class PlayerController : MonoBehaviour
     {
         if (ship == null && lives > 0) {
             float turn = Input.GetAxis(turnAxis);
-            if (Mathf.Abs(turn) > 0.5f && Time.time > nextSwitchShip)
+            if (Mathf.Abs(turn) > 0.2f && Time.time > nextSwitchShip)
             {
                 nextSwitchShip = Time.time + 0.5f;
                 var count = shipTemplates.Count();
