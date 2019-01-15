@@ -214,64 +214,46 @@ public class MachineGunDevice : IDevice
 
 public class LaserDevice : IDevice
 {
-    private float energy = 30;
-    private float laserDamagePerSecond = 20f;
+    private float fireRate = 0.5f;
+    private float nextFire = 0.0f;
+    private int pulses = 10;
+    private float laserDamage = 10f;
     public void Update(string button, PlayerController player, ShipController ship)
     {
-        bool laserOn = Input.GetButton(button) && energy > 0;
-        if (laserOn)
+        if (Input.GetButton(button) && Time.time > nextFire && pulses > 0)
         {
-            energy -= Time.deltaTime;
+            pulses--;
             player.updateWeaponHud();
-        }
-        bool laserSparklesOn = false;
-        if (laserOn)
-        {
-            laserSparklesOn = updateLaserBeam(player, ship);
-        }
-        if (laserOn != ship.laserRay.enabled)
-        {
-            ship.laserRay.enabled = laserOn;
-        }
-        if (laserSparklesOn != ship.laserSparkles.isEmitting)
-        {
-            if (laserSparklesOn)
-                ship.laserSparkles.Play();
-            else
-                ship.laserSparkles.Stop();
-        }
-    }
-    private bool updateLaserBeam(PlayerController player, ShipController ship)
-    {
-        var laserSparklesOn = false;
-        Vector2 position = ship.gunPoint.transform.position;
-        RaycastHit2D hit = Physics2D.Raycast(position, ship.gunPoint.transform.up, 100, player.laserLayerMask);
-        var laserRay = ship.laserRay;
-        if (hit.collider != null)
-        {
-            laserRay.SetPosition(1, laserRay.transform.InverseTransformPoint(hit.point));
-            ship.laserSparkles.transform.position = new Vector3(hit.point.x, hit.point.y, ship.laserSparkles.transform.position.z);
-            laserSparklesOn = true;
-            Damageable damageable = hit.collider.GetComponent<Damageable>();
-            if (damageable != null)
+            nextFire = Time.time + fireRate;
+            Vector3 start = ship.gunPoint.position;
+            RaycastHit2D hit = Physics2D.Raycast(start, ship.gunPoint.up, 100, player.laserLayerMask);
+            Vector3 end;
+            if (hit.collider != null)
             {
-                damageable.doDamage(laserDamagePerSecond * Time.smoothDeltaTime);
+                end = hit.point;
+                Damageable damageable = hit.collider.GetComponent<Damageable>();
+                if (damageable != null)
+                {
+                    damageable.doDamage(laserDamage);
+                }
             }
+            else
+            {
+                end = start + ship.gunPoint.up * 100f;
+            }
+            var center = (start + end) * 0.5f;
+
+            var clone = GameObject.Instantiate(player.deathrayBeamTemplate, center, ship.gunPoint.rotation);
+            clone.radius = (start - end).magnitude * 0.5f;
         }
-        else
-        {
-            laserRay.SetPosition(1, Vector3.up * 100);
-        }
-        return laserSparklesOn;
     }
     public string HudRow()
     {
-        return "Laser: " + Hud.energyToString(energy);
+        return "Laser charges: " + pulses;
     }
-
     public bool Depleted
     {
-        get { return energy <= 0; }
+        get { return pulses <= 0; }
     }
 }
 
