@@ -39,7 +39,7 @@ public class WeaponCrate : Explosive
             if (ship != null)
             {
                 var player = ship.playerController;
-                var weapon = Weapon.Flamer;//RandomEnumValue<Weapon>();
+                var weapon = RandomEnumValue<Weapon>();
                 switch (weapon)
                 {
                     case Weapon.Flamer:
