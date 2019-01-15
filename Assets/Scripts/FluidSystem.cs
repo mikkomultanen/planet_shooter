@@ -2,6 +2,15 @@ using System;
 using UnityEngine;
 using UnityEngine.Rendering;
 
+public sealed class KinematicParticle
+{
+	public Vector2 position;
+	public Vector2 velocity;
+	public float buoyance;
+	public float damage;
+	public Vector2 force;
+}
+
 public abstract class FluidSystem : MonoBehaviour
 {
     public abstract void EmitWater(Vector2 position, Vector2 velocity);
