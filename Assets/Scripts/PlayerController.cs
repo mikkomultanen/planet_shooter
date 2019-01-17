@@ -429,88 +429,34 @@ public class BombDevice : IDevice
 
 public class DeathrayDevice : IDevice
 {
-    private int rays = 5;
-    private float deathrayDamage = 100f;
-    private float deathrayLoadingTimeMin = 0.5f;
-    private float deathrayLoadingTimeMax = 10f;
-    private float loaded = 0.0f;
+    private float energy = 10;
     public void Update(string button, PlayerController player, ShipController ship)
     {
-        bool deathrayLoadingOn = false;
-        if (rays > 0)
+        var deathrayOn = Input.GetButton(button) && energy > 0;
+        if (deathrayOn)
         {
-            if (Input.GetButtonDown(button))
-            {
-                loaded = 0.0f;
-            }
-            if (Input.GetButton(button))
-            {
-                loaded += Time.deltaTime;
-                var loadedNormalized = Mathf.Clamp01(loaded / deathrayLoadingTimeMax);
-                var emission = ship.deathrayLoading.emission;
-                emission.rateOverTime = Mathf.Max(10, loadedNormalized * 100);
-                ship.doDamage(loadedNormalized * Time.deltaTime);
-                deathrayLoadingOn = true;
-            }
-            if (Input.GetButtonUp(button))
-            {
-                if (loaded > deathrayLoadingTimeMin)
-                {
-                    rays--;
-                    fireDeathray(player, ship);
-                    player.updateWeaponHud();
-                }
-                loaded = 0.0f;
-            }
+            energy -= Time.deltaTime;
+            player.updateWeaponHud();
         }
-        if (deathrayLoadingOn != ship.deathrayLoading.isEmitting)
+        if (deathrayOn != ship.deathray.isEmitting)
         {
-            if (deathrayLoadingOn)
-                ship.deathrayLoading.Play();
+            if (deathrayOn)
+                ship.deathray.Play();
             else
-                ship.deathrayLoading.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                ship.deathray.Stop();
         }
-    }
-
-    private void fireDeathray(PlayerController player, ShipController ship)
-    {
-        var loadedNormalized = Mathf.Clamp01(loaded / deathrayLoadingTimeMax);
-        var distance = loadedNormalized * player.deathrayDistance;
-        var damage = loadedNormalized * deathrayDamage;
-        var start = ship.gunPoint.position;
-        var direction = ship.gunPoint.transform.up * distance;
-        var center = start + direction * 0.5f;
-        var angle = ship.gunPoint.transform.eulerAngles.z;
-        Collider2D[] colliders = Physics2D.OverlapCapsuleAll(center, new Vector2(player.deathrayWidth, distance + player.deathrayWidth), CapsuleDirection2D.Vertical, angle);
-        Damageable damageable;
-        TerrainPiece terrainPiece;
-        foreach (Collider2D coll in colliders)
+        if (deathrayOn != ship.deathrayField.activeSelf)
         {
-            if (coll.gameObject == ship.gameObject)
-            {
-                continue;
-            }
-            damageable = coll.GetComponent<Damageable>();
-            if (damageable != null)
-            {
-                damageable.doDamage(damage);
-            }
-            terrainPiece = coll.GetComponent<TerrainPiece>();
-            if (terrainPiece != null)
-            {
-                terrainPiece.destroyTerrain(start, direction, player.deathrayWidth);
-            }
+            ship.deathrayField.SetActive(deathrayOn);
         }
-        var clone = GameObject.Instantiate(player.deathrayBeamTemplate, center, ship.gunPoint.rotation);
-        clone.radius = distance * 0.5f;
     }
     public string HudRow()
     {
-        return "Deathray: " + rays;
+        return "Deathray: " + Hud.energyToString(energy);
     }
     public bool Depleted
     {
-        get { return rays <= 0; }
+        get { return energy <= 0; }
     }
 }
 

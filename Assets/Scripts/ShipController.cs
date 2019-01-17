@@ -10,7 +10,8 @@ public class ShipController : Explosive, Repairable
     public GameObject shield;
 
     public ParticleSystem afterBurner;
-    public ParticleSystem deathrayLoading;
+    public ParticleSystem deathray;
+    public GameObject deathrayField;
     public GameObject spike;
 
     [HideInInspector]
@@ -82,7 +83,11 @@ public class ShipController : Explosive, Repairable
             afterBurner.Stop();
             spike.SetActive(false);
         }
-        if (deathrayOff) deathrayLoading.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        if (deathrayOff) 
+        {
+            deathray.Stop();
+            deathrayField.SetActive(false);
+        }
         if (shieldOff) shield.SetActive(false);
     }
 
