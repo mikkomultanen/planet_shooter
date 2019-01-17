@@ -3,39 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class HomingMissileMover : Explosive
+public class HomingMissileMover : MissileMover
 {
-    public float thrustAcceleration = 10f;
-    public float maxSpeed = 10f;
-    [Range(0.0f, 10f)]
-    public float orthogonalDrag = 2f;
     public float homingRadius = 10f;
     public LayerMask homingLayerMask = 1;
 
-    private Rigidbody2D rb;
-    private float thurstForceMagnitude;
     private Transform target = null;
 
-    void Start()
-    {
-        rb = GetComponent<Rigidbody2D>();
-        thurstForceMagnitude = rb.mass * thrustAcceleration;
-    }
-
-    private void OnCollisionEnter2D(Collision2D other)
-    {
-        explode();
-    }
-
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.gameObject.layer == 4) // Water
-        {
-            explode();
-        }
-    }
-
-    void FixedUpdate()
+    new void FixedUpdate()
     {
         if (target != null)
         {
@@ -44,24 +19,13 @@ public class HomingMissileMover : Explosive
             rb.angularVelocity = Mathf.Clamp(angle / 15f, -1, 1) * 300f;
         }
 
-        var forwardSpeed = Vector2.Dot(rb.velocity, transform.up);
-        var forwardVelocity = forwardSpeed * (Vector2)transform.up;
-        var orthogonalVelocity = rb.velocity - forwardVelocity;
-        rb.AddForce(-orthogonalVelocity * orthogonalVelocity.magnitude * orthogonalDrag);
-
-        if (forwardSpeed < maxSpeed)
-        {
-            rb.AddForce(transform.up * thurstForceMagnitude);
-        }
+        base.FixedUpdate();
     }
 
-    void LateUpdate()
+    new void LateUpdate()
     {
-        if (rb.position.magnitude > 300f)
-        {
-            Destroy(gameObject);
-        }
         UpdateTarget();
+        base.LateUpdate();
     }
 
     private void UpdateTarget()

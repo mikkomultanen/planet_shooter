@@ -6,8 +6,10 @@ public class MissileMover : Explosive
 {
     public float thrustAcceleration = 10f;
     public float maxSpeed = 10f;
+    [Range(0.0f, 10f)]
+    public float orthogonalDrag = 2f;
 
-    private Rigidbody2D rb;
+    protected Rigidbody2D rb;
     private float thurstForceMagnitude;
 
     void Start()
@@ -21,23 +23,20 @@ public class MissileMover : Explosive
         explode();
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    protected void FixedUpdate()
     {
-        if (other.gameObject.layer == 4) // Water
-        {
-            explode();
-        }
-    }
+        var forwardSpeed = Vector2.Dot(rb.velocity, transform.up);
+        var forwardVelocity = forwardSpeed * (Vector2)transform.up;
+        var orthogonalVelocity = rb.velocity - forwardVelocity;
+        rb.AddForce(-orthogonalVelocity * orthogonalVelocity.magnitude * orthogonalDrag);
 
-    void FixedUpdate()
-    {
-        if (Vector2.Dot(rb.velocity, transform.up) < maxSpeed)
+        if (forwardSpeed < maxSpeed)
         {
             rb.AddForce(transform.up * thurstForceMagnitude);
         }
     }
 
-    void LateUpdate()
+    protected void LateUpdate()
     {
         if (rb.position.magnitude > 300f)
         {
