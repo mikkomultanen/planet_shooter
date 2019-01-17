@@ -112,31 +112,6 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!21 &10529421
-Material:
-  serializedVersion: 6
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: PlanetShooter/DistanceFieldDebug
-  m_Shader: {fileID: 4800000, guid: 0a66bd5c5aa6f2a4e836994ce4d1ff52, type: 3}
-  m_ShaderKeywords: 
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Floats: []
-    m_Colors: []
 --- !u!1 &18504765
 GameObject:
   m_ObjectHideFlags: 0
@@ -45379,7 +45354,7 @@ MeshRenderer:
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10529421}
+  - {fileID: 1038901621}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -50348,6 +50323,31 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1002738288}
   m_CullTransparentMesh: 0
+--- !u!21 &1038901621
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: PlanetShooter/DistanceFieldDebug
+  m_Shader: {fileID: 4800000, guid: 0a66bd5c5aa6f2a4e836994ce4d1ff52, type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats: []
+    m_Colors: []
 --- !u!1 &1052548258
 GameObject:
   m_ObjectHideFlags: 0
@@ -71050,7 +71050,7 @@ MonoBehaviour:
   spike: {fileID: 1862619495}
   playerController: {fileID: 0}
   maxThrustPower: 300
-  maxSpeed: 10
+  maxSpeed: 12
   airDrag: 0.5
   orthogonalDrag: 2
   thruster: {fileID: 629460618}
