@@ -66,11 +66,9 @@ Shader "Unlit/TerrainTest"
 				for (int i = 0; i < _Iterations; i++) {
 					float3 coord = float3(position * s, _Seed);
 					float n = abs(snoise(coord));
-					//n *= n;
-					//n *= n;
 					n = 1 - n;
-					n *= n;
-					n *= n;
+					//n *= n;
+					//n *= n;
 					o += n * w;
 					s *= 2.0;
             		w *= 0.5;
@@ -85,9 +83,6 @@ Shader "Unlit/TerrainTest"
 				float a = smoothstep(_Min, _Min + 0.1, d) * (1 - smoothstep(_Max - 0.1, _Max, d));
 				float v = snoise(float3(i.uv, _Seed + 1));
 				float b = step(_Threshold + _ThresholdAmplitude * v, n * a);
-				/*if (b > 0) {
-					return (float4(n,n,n,1) - _Threshold) / (1 - _Threshold);
-				} */
 				
 				return float4(b,n,0.5 * v + 0.5,1);
 			}
