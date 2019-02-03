@@ -28,7 +28,8 @@ public class Vector2EqualComparer : IEqualityComparer<Vector2>
 
 public class TerrainSystem : MonoBehaviour
 {
-	public float size = 256;
+    public float innerRadius = 35;
+    public float outerRadius = 125;
     public float tiling = 6;
     [Range(1,4)]
     public int iterations;
@@ -37,9 +38,9 @@ public class TerrainSystem : MonoBehaviour
     [Range(0,1)]
     public float thresholdAmplitude;
     [Range(0,1)]
-    public float innerRadius;
+    public float innerThreshold;
     [Range(0,1)]
-    public float outerRadius;
+    public float outerThreshold;
     public float terrainSeed;
 
     private bool _ready = false;
@@ -56,22 +57,21 @@ public class TerrainSystem : MonoBehaviour
 #endif
     private void GenerateTerrain()
     {
-        fastNoise.SetFrequency(1);
-        Debug.Log("GenerateTerrain start" + fastNoise.GetSimplex(2, 2.5f));
+        fastNoise.SetFrequency(tiling / (outerRadius * 2));
+        Debug.Log("GenerateTerrain start");
         DeleteTerrain();
-        int r = Mathf.RoundToInt(size / 2 + 1);
+        int r = Mathf.RoundToInt(outerRadius + 1);
 
-        float scale = tiling / size;
         var allPoints = new ConcurrentBag<Vector2>();
         Parallel.For(-r, r, x => {
             Vector2 v00, v10, v01, v11;
             bool b00, b10, b01, b11;
             for (int y = -r; y < r; y++)
             {
-                v00 = new Vector2(x, y) * scale;
-                v10 = new Vector2(x + 1, y) * scale;
-                v01 = new Vector2(x, y + 1) * scale;
-                v11 = new Vector2(x + 1, y + 1) * scale;
+                v00 = new Vector2(x, y);
+                v10 = new Vector2(x + 1, y);
+                v01 = new Vector2(x, y + 1);
+                v11 = new Vector2(x + 1, y + 1);
                 b00 = insideCave(v00);
                 b10 = insideCave(v10);
                 b01 = insideCave(v01);
@@ -79,19 +79,19 @@ public class TerrainSystem : MonoBehaviour
 
                 if (b00 != b10)
                 {
-                    allPoints.Add(findBorder(v00, b00, v10, b10) / scale);
+                    allPoints.Add(findBorder(v00, b00, v10, b10));
                 }
                 if (b00 != b01)
                 {
-                    allPoints.Add(findBorder(v00, b00, v01, b01) / scale);
+                    allPoints.Add(findBorder(v00, b00, v01, b01));
                 }
                 if (b11 != b10)
                 {
-                    allPoints.Add(findBorder(v11, b11, v10, b10) / scale);
+                    allPoints.Add(findBorder(v11, b11, v10, b10));
                 }
                 if (b11 != b01)
                 {
-                    allPoints.Add(findBorder(v11, b11, v01, b01) / scale);
+                    allPoints.Add(findBorder(v11, b11, v01, b01));
                 }
             }
         });
@@ -139,8 +139,8 @@ public class TerrainSystem : MonoBehaviour
             coord.z = terrainSeed;
             float n = Mathf.Abs(fastNoise.GetSimplex(coord.x, coord.y, coord.z));
             n = 1 - n;
-            //n *= n;
-            //n *= n;
+            n *= n;
+            n *= n;
             o += n * w;
             s *= 2.0f;
             w *= 0.5f;
@@ -156,9 +156,10 @@ public class TerrainSystem : MonoBehaviour
 
     private bool insideCave(Vector2 coord)
     {
-        float d = coord.magnitude / tiling * 2;
+        float d = coord.magnitude;
+        if (d < innerRadius || d > outerRadius) return true;
         float n = fractalNoise(coord);
-        float a = smoothstep(innerRadius, innerRadius + 0.1f, d) * (1 - smoothstep(outerRadius - 0.1f, outerRadius, d));
+        float a = smoothstep(innerThreshold, innerThreshold + 0.1f, d / outerRadius) * (1 - smoothstep(outerThreshold - 0.1f, outerThreshold, d / outerRadius));
         Vector3 vCoord = coord;
         vCoord.z = terrainSeed + 1;
         float v = fastNoise.GetSimplex(vCoord.x, vCoord.y, vCoord.z);
@@ -192,7 +193,7 @@ public class TerrainSystem : MonoBehaviour
             Gizmos.color = Color.cyan;
             editorEdges.ForEach(e => DrawEdge(e, offset));
 
-            Gizmos.color = Color.red;
+            Gizmos.color = Color.white;
             DrawDiamonds(editorPoints, offset);
         }
     }

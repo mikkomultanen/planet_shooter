@@ -67,8 +67,8 @@ Shader "Unlit/TerrainTest"
 					float3 coord = float3(position * s, _Seed);
 					float n = abs(snoise(coord));
 					n = 1 - n;
-					//n *= n;
-					//n *= n;
+					n *= n;
+					n *= n;
 					o += n * w;
 					s *= 2.0;
             		w *= 0.5;
