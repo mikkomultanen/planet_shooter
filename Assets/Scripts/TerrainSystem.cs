@@ -98,10 +98,31 @@ public class TerrainSystem : MonoBehaviour
 
         var points = allPoints.Distinct(Vector2EqualComparer.Instance).ToList();
 
+        Debug.Log("GenerateTerrain start generate polygons");
+        List<Vector2> vertices;
+        List<int> triangles;
+        GenerateTerrainTriangles(points, out vertices, out triangles);
+        var polygons = MeshToPolygonConverter.ContourPolygons(vertices, triangles).ToList();
+
 #if UNITY_EDITOR
+        var meshFilter = GetComponent<MeshFilter>();
+        var mesh = meshFilter.sharedMesh;
+        if (mesh == null)
+        {
+            meshFilter.mesh = new Mesh();
+            mesh = meshFilter.sharedMesh;
+        }
+        var verts = new List<Vector2>();
+        var tris = new List<int>();
+        mesh.vertices = vertices.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
+        mesh.triangles = triangles.ToArray();
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+        meshFilter.mesh = mesh;
+
         editorPoints = points;
-        //editorPolygons = polygons;
-        //editorEdges = editorPolygons.SelectMany(getFloorEdges).ToList();
+        editorPolygons = polygons;
+        //editorEdges = MeshToPolygonConverter.ContourEdges(vertices, triangles).ToList();//editorPolygons.SelectMany(getFloorEdges).ToList();
 #endif
 
         _ready = true;
@@ -157,13 +178,60 @@ public class TerrainSystem : MonoBehaviour
     private bool insideCave(Vector2 coord)
     {
         float d = coord.magnitude;
-        if (d < innerRadius || d > outerRadius) return true;
+        if (d <= innerRadius || d >= outerRadius) return true;
         float n = fractalNoise(coord);
         float a = smoothstep(innerThreshold, innerThreshold + 0.1f, d / outerRadius) * (1 - smoothstep(outerThreshold - 0.1f, outerThreshold, d / outerRadius));
         Vector3 vCoord = coord;
         vCoord.z = terrainSeed + 1;
         float v = fastNoise.GetSimplex(vCoord.x, vCoord.y, vCoord.z);
         return threshold + thresholdAmplitude * v <= n * a;
+    }
+
+    public static Vector2 getCenter(List<Vector2> coords)
+    {
+        return coords.Aggregate(Vector2.zero, (center, next) => center + next) / coords.Count;
+    }
+    public static int indexOf(List<Vector2> coords, Vector2 coord)
+    {
+        for (int i = 0; i < coords.Count; i++)
+        {
+            if ((coords[i] - coord).sqrMagnitude < 0.01)
+            {
+                return i;
+            }
+        }
+        return -1;
+    }
+    public Vertex toVertex(Vector2 vector)
+    {
+        return new Vertex(vector.x, vector.y);
+    }
+    public Vector2 toVector2(Vertex vertex)
+    {
+        return new Vector2((float)vertex.X, (float)vertex.Y);
+    }
+    private void GenerateTerrainTriangles(List<Vector2> points, out List<Vector2> vertices, out List<int> triangles)
+    {
+        var imesh = (new GenericMesher().Triangulate(points.Select(toVertex).ToList()));
+        vertices = new List<Vector2>();
+        triangles = new List<int>();
+        foreach (var triangle in imesh.Triangles)
+        {
+            var list = triangle.vertices.Select(toVector2).Reverse().ToList();
+            if (!insideCave(getCenter(list)))
+            {
+                foreach (var v in list)
+                {
+                    var index = indexOf(vertices, v);
+                    if (index < 0)
+                    {
+                        index = vertices.Count;
+                        vertices.Add(v);
+                    }
+                    triangles.Add(index);
+                }
+            }
+        }
     }
 
 #if UNITY_EDITOR
@@ -173,6 +241,20 @@ public class TerrainSystem : MonoBehaviour
     {
         _ready = false;
 #if UNITY_EDITOR
+    var meshFilter = GetComponent<MeshFilter>();
+    var mesh = meshFilter.sharedMesh;
+    if (mesh == null)
+    {
+        meshFilter.mesh = new Mesh();
+        mesh = meshFilter.sharedMesh;
+    }
+    mesh.vertices = new Vector3[0];
+    mesh.triangles = new int[0];
+    mesh.RecalculateNormals();
+    mesh.RecalculateBounds();
+    meshFilter.mesh = mesh;
+
+
     editorPolygons = new List<PSPolygon>();
     editorEdges = new List<PSEdge>();
     editorPoints = new List<Vector2>();
@@ -187,8 +269,17 @@ public class TerrainSystem : MonoBehaviour
             Gizmos.matrix = transform.localToWorldMatrix;
             Vector2 offset = (Vector2)transform.position * 0;
 
-            Gizmos.color = Color.yellow;
-            editorPolygons.ForEach(p => DrawPolygon(p, offset));
+            editorPolygons.ForEach(p => {
+                if (PSPolygon.CalculateSignedArea(p.points) < 0)
+                {
+                    Gizmos.color = Color.white;
+                }
+                else
+                {
+                    Gizmos.color = Color.red;
+                }
+                DrawPolygon(p, offset);
+            });
 
             Gizmos.color = Color.cyan;
             editorEdges.ForEach(e => DrawEdge(e, offset));
@@ -215,12 +306,18 @@ public class TerrainSystem : MonoBehaviour
 
     private void DrawEdge(PSEdge edge, Vector2 offset)
     {
-        Gizmos.DrawLine(edge.v0 + offset, edge.v1 + offset);
+        var v0 = edge.v0 + offset;
+        var v1 = edge.v1 + offset;
+        var arrow = 0.9f * v1 + 0.1f * v0;
+        var perpendicular = 0.1f * Vector2.Perpendicular(v1 - v0);
+        Gizmos.DrawLine(v0, v1);
+        Gizmos.DrawLine(arrow + perpendicular, v1);
+        Gizmos.DrawLine(arrow - perpendicular, v1);
     }
 
     private void DrawDiamonds(IEnumerable<Vector2> points, Vector2 offset)
     {
-        float diamondSize = 0.2f;
+        float diamondSize = 0.01f;
         List<Vector2> diamond = new List<Vector2>();
         diamond.Add(new Vector2(-diamondSize / transform.lossyScale.x, 0f));
         diamond.Add(new Vector2(0f, diamondSize / transform.lossyScale.y));

@@ -87,7 +87,7 @@ public sealed class PSPolygon
         return oddNodes;
     }
 
-    public static float CalculateArea(Vector2[] p)
+    public static float CalculateSignedArea(Vector2[] p)
     {
         int n = p.Length;
         float sum = p[0].x * (p[1].y - p[n - 1].y);
@@ -96,7 +96,12 @@ public sealed class PSPolygon
             sum += p[i].x * (p[i + 1].y - p[i - 1].y);
         }
         sum += p[n - 1].x * (p[0].y - p[n - 2].y);
-        return Mathf.Abs(0.5f * sum);
+        return 0.5f * sum;
+    }
+
+    public static float CalculateArea(Vector2[] p)
+    {
+        return Mathf.Abs(CalculateSignedArea(p));
     }
 
     public static Rect CalculateBounds(Vector2[] p)
