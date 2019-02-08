@@ -24,7 +24,7 @@ class MeshToPolygonConverter {
         return Edges(vertices, triangles).Values.Select(e => new PSEdge(vertices[e.v0], vertices[e.v1]));
     }
 
-    public static IEnumerable<PSPolygon> ContourPolygons(List<Vector2> vertices, List<int> triangles)
+    public static List<PSPolygon> ContourPolygons(List<Vector2> vertices, List<int> triangles)
     {
         Dictionary<string, Edge> edges = new Dictionary<string, Edge>();
         for (int i = 0; i < triangles.Count; i += 3)
@@ -78,6 +78,11 @@ class MeshToPolygonConverter {
         }        
 
         return polygons;
+    }
+
+    public static IEnumerable<PSPolygon> FragmentPolygons(IEnumerable<PSPolygon> contours, IEnumerable<Vector2> clip)
+    {
+        return PSClipperHelper.intersection(contours.Select(c => c.points), clip).Select(p => new PSPolygon(p));
     }
 
     private static Dictionary<string, Edge> Edges(List<Vector2> vertices, List<int> triangles)

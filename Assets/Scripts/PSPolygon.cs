@@ -117,41 +117,9 @@ public sealed class PSPolygon
         return new Rect(minX, minY, maxX - minX, maxY - minY);
     }
 
-    private static float multiplier = 1000;
     public static List<PSPolygon> difference(PSPolygon subject, PSPolygon clip)
     {
-        return PSPolygon.difference(subject.points, clip.points).Select(p => new PSPolygon(p)).ToList();
-    }
-    public static IEnumerable<IEnumerable<Vector2>> difference(ICollection<Vector2> subject, ICollection<Vector2> clip)
-    {
-        return operation(subject, clip, ClipType.ctDifference);
-    }
-
-    public static IEnumerable<IEnumerable<Vector2>> intersection(ICollection<Vector2> subject, ICollection<Vector2> clip)
-    {
-        return operation(subject, clip, ClipType.ctIntersection);
-    }
-
-    private static IEnumerable<IEnumerable<Vector2>> operation(ICollection<Vector2> subject, ICollection<Vector2> clip, ClipType clipType)
-    {
-        ClipperLibPolygons result = new ClipperLibPolygons();
-        Clipper c = new Clipper();
-        c.AddPaths(createPolygons(clip), PolyType.ptClip, true);
-        c.AddPaths(createPolygons(subject), PolyType.ptSubject, true);
-        c.Execute(clipType, result, PolyFillType.pftEvenOdd, PolyFillType.pftEvenOdd);
-        return result.Select(poly => poly.Select(p => new Vector2(p.X, p.Y) / multiplier));
-    }
-
-    private static ClipperLibPolygons createPolygons(ICollection<Vector2> source)
-    {
-        ClipperLibPolygons poly = new ClipperLibPolygons(1);
-        poly.Add(new ClipperLibPolygon(source.Count));
-        foreach (Vector2 p in source)
-        {
-            poly[0].Add(new IntPoint(p.x * multiplier, p.y * multiplier));
-        }
-
-        return poly;
+        return PSClipperHelper.difference(subject.points, clip.points).Select(p => new PSPolygon(p)).ToList();
     }
 }
 
@@ -211,5 +179,62 @@ public sealed class PSEdge
         if (u < 0f || u > 1f) return false;
         float t = (Cross(v0, s) - Cross(p0, s)) * rxsr;
         return t >= 0f && t <= 1f;
+    }
+}
+
+public sealed class PSClipperHelper
+{
+    private static float multiplier = 1000;
+
+    public static IEnumerable<IEnumerable<Vector2>> difference(IEnumerable<Vector2> subject, IEnumerable<Vector2> clip)
+    {
+        return operation(subject, clip, ClipType.ctDifference);
+    }
+
+    public static IEnumerable<IEnumerable<Vector2>> intersection(IEnumerable<Vector2> subject, IEnumerable<Vector2> clip)
+    {
+        return operation(subject, clip, ClipType.ctIntersection);
+    }
+
+    public static IEnumerable<IEnumerable<Vector2>> intersection(IEnumerable<IEnumerable<Vector2>> subjects, IEnumerable<Vector2> clip)
+    {
+        return operation(subjects, clip, ClipType.ctIntersection);
+    }
+
+    private static IEnumerable<IEnumerable<Vector2>> operation(IEnumerable<Vector2> subject, IEnumerable<Vector2> clip, ClipType clipType)
+    {
+        ClipperLibPolygons result = new ClipperLibPolygons();
+        Clipper c = new Clipper();
+        c.ReverseSolution = true;
+        c.AddPath(createPolygon(clip), PolyType.ptClip, true);
+        c.AddPath(createPolygon(subject), PolyType.ptSubject, true);
+        c.Execute(clipType, result, PolyFillType.pftNonZero, PolyFillType.pftNonZero);
+        return result.Select(createPoints);
+    }
+
+    private static IEnumerable<IEnumerable<Vector2>> operation(IEnumerable<IEnumerable<Vector2>> subjects, IEnumerable<Vector2> clip, ClipType clipType)
+    {
+        PolyTree tree = new PolyTree();
+        Clipper c = new Clipper();
+        c.ReverseSolution = true;
+        c.AddPath(createPolygon(clip), PolyType.ptClip, true);
+        c.AddPaths(subjects.Select(createPolygon).ToList(), PolyType.ptSubject, true);
+        c.Execute(clipType, tree, PolyFillType.pftNonZero, PolyFillType.pftNonZero);
+        return tree.Childs.Select(toPath);
+    }
+
+    private static IEnumerable<Vector2> toPath(PolyNode node) {
+        // TODO handle holes and polygons inside holes
+        return createPoints(node.Contour);
+    }
+
+    private static ClipperLibPolygon createPolygon(IEnumerable<Vector2> source)
+    {
+        return source.Select(p => new IntPoint(p.x * multiplier, p.y * multiplier)).ToList();
+    }
+
+    private static IEnumerable<Vector2> createPoints(IEnumerable<IntPoint> path)
+    {
+        return path.Select(p => new Vector2(p.X, p.Y) / multiplier);
     }
 }

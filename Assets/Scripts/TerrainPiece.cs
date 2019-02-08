@@ -258,7 +258,7 @@ public class TerrainPiece : MonoBehaviour
 
         var newPolygons = clippedTriangles
         .Select(t => t.Select(oldIndex => (Vector2)oldVertices[oldIndex]))
-        .SelectMany(t => PSPolygon.difference(t.ToArray(), clipPolygon.points));
+        .SelectMany(t => PSClipperHelper.difference(t, clipPolygon.points));
 
         var mesher = new GenericMesher();
         foreach (var points in newPolygons)
@@ -280,12 +280,12 @@ public class TerrainPiece : MonoBehaviour
         }
 
         var newPaths = oldPaths
-            .SelectMany(p => PSPolygon.difference(p, clipPolygon.points))
+            .SelectMany(p => PSClipperHelper.difference(p, clipPolygon.points))
             .Select(p => p.ToArray())
             .ToArray();
 
         var particles = oldPaths
-            .SelectMany(p => PSPolygon.intersection(p, clipPolygon.points))
+            .SelectMany(p => PSClipperHelper.intersection(p, clipPolygon.points))
             .Select(p => GenerateParticles(new PSPolygon(p)))
             .ToArray();
 

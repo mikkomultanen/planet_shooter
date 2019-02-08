@@ -41,7 +41,7 @@ public class TerrainSystem : MonoBehaviour
     public float innerThreshold;
     [Range(0,1)]
     public float outerThreshold;
-    public float terrainSeed;
+    public int terrainSeed;
 
     private bool _ready = false;
     public bool Ready { get { return _ready; }}
@@ -57,6 +57,7 @@ public class TerrainSystem : MonoBehaviour
 #endif
     private void GenerateTerrain()
     {
+        fastNoise.SetSeed(terrainSeed);
         fastNoise.SetFrequency(tiling / (outerRadius * 2));
         Debug.Log("GenerateTerrain start");
         DeleteTerrain();
@@ -98,13 +99,26 @@ public class TerrainSystem : MonoBehaviour
 
         var points = allPoints.Distinct(Vector2EqualComparer.Instance).ToList();
 
-        Debug.Log("GenerateTerrain start generate polygons");
+        Debug.Log("GenerateTerrain start generate triangles");
         List<Vector2> vertices;
         List<int> triangles;
         GenerateTerrainTriangles(points, out vertices, out triangles);
-        var polygons = MeshToPolygonConverter.ContourPolygons(vertices, triangles).ToList();
-
+        Debug.Log("GenerateTerrain start generate contours");
+        var contours = MeshToPolygonConverter.ContourPolygons(vertices, triangles).ToList();
+        Debug.Log("GenerateTerrain start generate polygons");
+        var segments = new Vector2[][]{
+            new Vector2[]{new Vector2(0,0), new Vector2(-r,0), new Vector2(-r,r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(-r,r), new Vector2(0,r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(0,r), new Vector2(r,r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(r,r), new Vector2(r,0)},
+            new Vector2[]{new Vector2(0,0), new Vector2(r,0), new Vector2(r,-r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(r,-r), new Vector2(0,-r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(0,-r), new Vector2(-r,-r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(-r,-r), new Vector2(-r,0)}
+        };
+        var polygons = segments.AsParallel().SelectMany(segment => MeshToPolygonConverter.FragmentPolygons(contours, segment)).ToList();
 #if UNITY_EDITOR
+        Debug.Log("GenerateTerrain start generate mesh");
         var meshFilter = GetComponent<MeshFilter>();
         var mesh = meshFilter.sharedMesh;
         if (mesh == null)
@@ -156,9 +170,8 @@ public class TerrainSystem : MonoBehaviour
         float w = 0.5f;
         float s = 1;
         for (int i = 0; i < iterations; i++) {
-            Vector3 coord = position * s;
-            coord.z = terrainSeed;
-            float n = Mathf.Abs(fastNoise.GetSimplex(coord.x, coord.y, coord.z));
+            Vector2 coord = position * s;
+            float n = Mathf.Abs(fastNoise.GetSimplex(coord.x, coord.y));
             n = 1 - n;
             n *= n;
             n *= n;
@@ -181,9 +194,7 @@ public class TerrainSystem : MonoBehaviour
         if (d <= innerRadius || d >= outerRadius) return true;
         float n = fractalNoise(coord);
         float a = smoothstep(innerThreshold, innerThreshold + 0.1f, d / outerRadius) * (1 - smoothstep(outerThreshold - 0.1f, outerThreshold, d / outerRadius));
-        Vector3 vCoord = coord;
-        vCoord.z = terrainSeed + 1;
-        float v = fastNoise.GetSimplex(vCoord.x, vCoord.y, vCoord.z);
+        float v = fastNoise.GetSimplex(coord.x, coord.y);
         return threshold + thresholdAmplitude * v <= n * a;
     }
 
@@ -248,8 +259,8 @@ public class TerrainSystem : MonoBehaviour
         meshFilter.mesh = new Mesh();
         mesh = meshFilter.sharedMesh;
     }
-    mesh.vertices = new Vector3[0];
     mesh.triangles = new int[0];
+    mesh.vertices = new Vector3[0];
     mesh.RecalculateNormals();
     mesh.RecalculateBounds();
     meshFilter.mesh = mesh;
