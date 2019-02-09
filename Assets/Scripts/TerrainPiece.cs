@@ -114,6 +114,8 @@ class CapsuleClipShape : IClipShape
 [RequireComponent(typeof(MeshRenderer))]
 public class TerrainPiece : MonoBehaviour
 {
+    public ParticleSystem terrainParticleTemplate;
+
     private CompositeDisposable disposeBag = new CompositeDisposable();
 
     private sealed class TerrainParticles
@@ -170,7 +172,7 @@ public class TerrainPiece : MonoBehaviour
     private Mesh mesh;
     private void Start()
     {
-        maxParticles = terrainMesh.terrainParticleTemplate.main.maxParticles;
+        maxParticles = terrainParticleTemplate.main.maxParticles;
         MeshFilter meshFilter = GetComponent<MeshFilter>();
         mesh = meshFilter.sharedMesh;
         if (mesh == null)
@@ -360,7 +362,7 @@ public class TerrainPiece : MonoBehaviour
         foreach (var terrainParticles in allParticles)
         {
             var direction = terrainParticles.center;
-            var ps = Instantiate(terrainMesh.terrainParticleTemplate);
+            var ps = Instantiate(terrainParticleTemplate);
             ps.transform.rotation = Quaternion.Euler(0, 0, -Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg);
             ps.gameObject.SetActive(true);
             int count = Mathf.Min(ps.main.maxParticles, terrainParticles.positions.Length);

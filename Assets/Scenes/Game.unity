@@ -10016,6 +10016,31 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 123394435}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!21 &123804615
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: PlanetShooter/DistanceFieldDebug
+  m_Shader: {fileID: 4800000, guid: 0a66bd5c5aa6f2a4e836994ce4d1ff52, type: 3}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _MainTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Floats: []
+    m_Colors: []
 --- !u!1 &150540751
 GameObject:
   m_ObjectHideFlags: 0
@@ -15610,6 +15635,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f74d6eb681d2c469db7ac55b5a272c66, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  terrainParticleTemplate: {fileID: 1117460058}
   terrainMesh: {fileID: 0}
   doNotWrapUV: 0
 --- !u!114 &435229433
@@ -45215,7 +45241,7 @@ MeshRenderer:
   m_RenderingLayerMask: 4294967295
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 998556778}
+  - {fileID: 123804615}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -50110,31 +50136,6 @@ AreaEffector2D:
   m_ForceTarget: 0
   m_Drag: 20
   m_AngularDrag: 0
---- !u!21 &998556778
-Material:
-  serializedVersion: 6
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: PlanetShooter/DistanceFieldDebug
-  m_Shader: {fileID: 4800000, guid: 0a66bd5c5aa6f2a4e836994ce4d1ff52, type: 3}
-  m_ShaderKeywords: 
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs:
-    - _MainTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
-    m_Floats: []
-    m_Colors: []
 --- !u!1 &1002738288
 GameObject:
   m_ObjectHideFlags: 0
@@ -55348,7 +55349,6 @@ MonoBehaviour:
   caveBackground: {fileID: 1382745258}
   background: {fileID: 1149015804}
   terrainPieceTemplate: {fileID: 435229432}
-  terrainParticleTemplate: {fileID: 1117460058}
   terrainMaterials:
   - background: {fileID: 2100000, guid: 18a29a3b868b540cbb3143576236358d, type: 2}
     pieceBackground: {fileID: 2100000, guid: dcf65b654a01c453193f96eb7198dd03, type: 2}

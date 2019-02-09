@@ -112,7 +112,6 @@ public class TerrainMesh : MonoBehaviour
     public MeshFilter caveBackground;
     public MeshFilter background;
     public TerrainPiece terrainPieceTemplate;
-    public ParticleSystem terrainParticleTemplate;
     public List<TerrainMaterials> terrainMaterials;
     public float outerRadius = 1;
     public float innerRadius = 0.1f;
