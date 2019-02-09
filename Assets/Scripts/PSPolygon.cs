@@ -137,6 +137,11 @@ public sealed class PSPolygon
         return new Rect(minX, minY, maxX - minX, maxY - minY);
     }
 
+    public static Vector2 GetCenter(ICollection<Vector2> coords)
+    {
+        return coords.Aggregate(Vector2.zero, (center, next) => center + next) / coords.Count;
+    }
+
     public static List<PSPolygon> difference(PSPolygon subject, PSPolygon clip)
     {
         return PSClipperHelper.difference(subject.points, clip.points).Select(p => new PSPolygon(p)).ToList();

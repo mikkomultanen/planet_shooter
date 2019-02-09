@@ -1,102 +1,16 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using UnityEngine;
+using System.Threading;
+using System.Threading.Tasks;
 using TriangleNet.Geometry;
 using TriangleNet.Meshing;
 using TriangleNet.Topology;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
-
-[System.Serializable]
-public class Noise : System.Object
-{
-    [SerializeField]
-    private float aMin;
-    [SerializeField]
-    private float aMax;
-    [SerializeField]
-    private float[] a;
-    [SerializeField]
-    private int[] f;
-    [SerializeField]
-    private float[] p;
-
-    public Noise(float aMin, float aMax, int minF, int maxF, int n)
-    {
-        this.aMin = aMin;
-        this.aMax = aMax;
-        this.a = new float[n];
-        this.f = new int[n];
-        this.p = new float[n];
-        float sumA = 0;
-        for (int i = 0; i < n; i++)
-        {
-            this.a[i] = Random.Range(n - i - 0.9f, n - i);
-            sumA += this.a[i];
-            this.f[i] = Mathf.RoundToInt(Random.Range((i + 1) * minF, (i + 1) * maxF));
-            this.p[i] = Random.Range(0, 2 * Mathf.PI);
-        }
-        float scale = 1.0f / sumA;
-        for (int i = 0; i < n; i++)
-        {
-            this.a[i] *= scale;
-        }
-    }
-
-    public float value(float angle)
-    {
-        float sum = 0;
-        for (int i = 0; i < a.Length; i++)
-        {
-            sum += a[i] * Mathf.Sin(f[i] * angle + p[i]);
-        }
-        return Mathf.Lerp(aMin, aMax, 0.5f * sum + 0.5f);
-    }
-}
-
-[System.Serializable]
-public class Cave : System.Object
-{
-    [SerializeField]
-    private float r = 1;
-    [SerializeField]
-    private Noise wave;
-    [SerializeField]
-    private Noise thickness;
-    public Cave(float r, float aMin, float aMax, float tMin, float tMax)
-    {
-        this.r = r;
-        this.wave = new Noise(aMin, aMax, 1, 5, 5);
-        this.thickness = new Noise(tMin, tMax, 11, 17, 5);
-    }
-
-    public float ceilingMagnitude(float angle)
-    {
-        return waveValue(angle) + thicknessValue(angle) / 2;
-    }
-
-    public float centerMagnitude(float angle)
-    {
-        return waveValue(angle);
-    }
-
-    public float floorMagnitude(float angle)
-    {
-        return waveValue(angle) - thicknessValue(angle) / 2;
-    }
-
-    public float waveValue(float angle)
-    {
-        return wave.value(angle) + r;
-    }
-
-    public float thicknessValue(float angle)
-    {
-        return thickness.value(angle);
-    }
-}
 
 [System.Serializable]
 public struct TerrainMaterials {
@@ -113,13 +27,15 @@ public class TerrainMesh : MonoBehaviour
     public MeshFilter background;
     public TerrainPiece terrainPieceTemplate;
     public List<TerrainMaterials> terrainMaterials;
-    public float outerRadius = 1;
-    public float innerRadius = 0.1f;
+    public float outerRadius = 125;
+    public float innerRadius = 35;
+    [Range(0,10)]
+    public float insideOffset = 3;
+    public float insideInnerRadius = 70;
     private Gradient tintColorU;
     private Gradient tintColorV;
     private float textureScaleU = 6;
     private float textureScaleV = 1;
-    private float threshold = 1f;
     private Material material;
     private Texture2D mainTex;
     private Vector2 mainTexOffset;
@@ -132,8 +48,9 @@ public class TerrainMesh : MonoBehaviour
 
     public List<GameObject> fragments = new List<GameObject>();
 
-    public List<Cave> caves = new List<Cave>();
+    private ICaveSystem caveSystem;
     private List<PSEdge> caveCeilingEdges = new List<PSEdge>();
+    private List<List<Vector2>> caveInsidePoints = new List<List<Vector2>>();
     private bool _ready = false;
     public bool Ready { get { return _ready; }}
 #if UNITY_EDITOR
@@ -141,6 +58,10 @@ public class TerrainMesh : MonoBehaviour
     private List<PSEdge> editorEdges = new List<PSEdge>();
     private List<Vector2> editorPoints = new List<Vector2>();
 #endif
+
+    private void Awake() {
+        caveSystem = new SinCaveSystem(outerRadius, innerRadius);
+    }
 
     private void Start()
     {
@@ -151,27 +72,6 @@ public class TerrainMesh : MonoBehaviour
         }
     }
 
-    public static Vector2 RandomPointOnUnitCircle()
-    {
-        float angle = Random.Range(0f, Mathf.PI * 2);
-        float x = Mathf.Sin(angle);
-        float y = Mathf.Cos(angle);
-        return new Vector2(x, y);
-    }
-
-    public Vector2 randomUpperCaveCenter()
-    {
-        var direction = RandomPointOnUnitCircle();
-        return upperCaveCenterMagnitude(direction) * direction;
-    }
-
-    public Vector2 randomUpperCaveCeiling()
-    {
-        var direction = RandomPointOnUnitCircle();
-        var angle = Mathf.Atan2(direction.x, direction.y);
-        return caves.Select(c => c.ceilingMagnitude(angle)).Max() * direction;
-    }
-
     public PSEdge randomCaveCeiling()
     {
         if(caveCeilingEdges.Count > 0) {
@@ -180,41 +80,32 @@ public class TerrainMesh : MonoBehaviour
         return null;
     }
 
+    public Vector2 RandomPositionInsideCave()
+    {
+        if (caveInsidePoints.Count > 0) {
+            var list = caveInsidePoints[Random.Range(0, caveInsidePoints.Count)];
+            return list[Random.Range(0, list.Count)];
+        }
+        return Vector2.zero;
+    }
+
     public Vector2[] startPositions(int playerCount)
     {
-        if (caves.Count == 0)
-        {
-            GenerateCaves();
-        }
-        float step = Mathf.PI * 2 / playerCount;
-        float phase = Random.Range(0f, Mathf.PI * 2);
-        float angle, magnitude;
         Vector2[] result = new Vector2[playerCount];
-        for (int i = 0; i < playerCount; i++)
-        {
-            angle = i * step + phase;
-            magnitude = caves.Select(c => c.centerMagnitude(angle)).Max();
-            result[i] = new Vector2(Mathf.Sin(angle), Mathf.Cos(angle)) * magnitude;
+        var columnCount = caveInsidePoints.Count;
+        if (columnCount > 0) {
+            int step = columnCount / playerCount;
+            int phase = Random.Range(0, columnCount);
+            Debug.Log("startPositions " + columnCount + " " + step + " " + phase);
+            for (int i = 0; i < playerCount; i++)
+            {
+                var index = (i * step + phase) % columnCount;
+                Debug.Log("startPositions " + index);
+                var list = caveInsidePoints[index];
+                result[i] = list[Random.Range(0, list.Count)];
+            }
         }
         return result;
-    }
-
-    public float upperCaveCenterMagnitude(Vector2 position)
-    {
-        var angle = Mathf.Atan2(position.x, position.y);
-        return caves.Select(c => c.centerMagnitude(angle)).Max();
-    }
-
-    private void GenerateCaves()
-    {
-        float r = (innerRadius + outerRadius) / 2;
-        float t = (outerRadius - innerRadius);
-        caves.Clear();
-        int n = Random.Range(2, 4);
-        for (int i = 0; i < n; i++)
-        {
-            caves.Add(new Cave(r - t / 4 * i / (n - 1), -t / 4, t / 4 + t / 8, t / 8, t / 4));
-        }
     }
 
     private void InitMaterial()
@@ -245,61 +136,17 @@ public class TerrainMesh : MonoBehaviour
     private void GenerateTerrain()
     {
         DeleteTerrain();
-        if (caves.Count == 0)
-        {
-            GenerateCaves();
-        }
+        int r = Mathf.RoundToInt(outerRadius + 1);
 
-        var points = new List<Vector2>();
+        var points = GeneratePoints(r);
 
-        Vector2 v00, v10, v01, v11;
-        float f00, f10, f01, f11;
-        bool b00, b10, b01, b11;
-        var r = outerRadius + 1;
-        for (float x = -r; x < r; x++)
-        {
-            for (float y = -r; y < r; y++)
-            {
-                v00 = new Vector2(x, y);
-                v10 = new Vector2(x + 1, y);
-                v01 = new Vector2(x, y + 1);
-                v11 = new Vector2(x + 1, y + 1);
-                f00 = caveFieldValue(v00);
-                f10 = caveFieldValue(v10);
-                f01 = caveFieldValue(v01);
-                f11 = caveFieldValue(v11);
-                b00 = f00 > threshold;
-                b10 = f10 > threshold;
-                b01 = f01 > threshold;
-                b11 = f11 > threshold;
+        List<Vector2> vertices;
+        List<int> triangles;
+        GenerateTerrainTriangles(points, out vertices, out triangles);
 
-                if (b00 != b10)
-                {
-                    addBorderPoint(points, findBorder(v00, f00, v10, f10));
-                }
-                if (b00 != b01)
-                {
-                    addBorderPoint(points, findBorder(v00, f00, v01, f01));
-                }
-                if (b11 != b10)
-                {
-                    addBorderPoint(points, findBorder(v11, f11, v10, f10));
-                }
-                if (b11 != b01)
-                {
-                    addBorderPoint(points, findBorder(v11, f11, v01, f01));
-                }
-            }
-        }
-
-        var pointSets = new List<List<Vector2>>();
-        pointSets.Add(points.Where(p => p.x >= 0 && p.y >= 0).ToList());
-        pointSets.Add(points.Where(p => p.x >= 0 && p.y <= 0).ToList());
-        pointSets.Add(points.Where(p => p.x <= 0 && p.y >= 0).ToList());
-        pointSets.Add(points.Where(p => p.x <= 0 && p.y <= 0).ToList());
-
-        var polygons = pointSets.SelectMany(s => GenerateMeshAndPolygons(s)).ToList();
+        var polygons = GeneratePolygons(vertices, triangles, r);
         caveCeilingEdges = polygons.SelectMany(p => getCeilingEdges(p, innerRadius)).ToList();
+        caveInsidePoints = GenerateInsidePoints(polygons, r);
 
 #if UNITY_EDITOR
         //editorPoints = points;
@@ -313,37 +160,28 @@ public class TerrainMesh : MonoBehaviour
         _ready = true;
     }
 
-    private Vector2 findBorder(Vector2 v0, float f0, Vector2 v1, float f1)
+    private Vector2 findBorder(Vector2 v0, bool b0, Vector2 v1, bool b1)
     {
-        Vector2 minV, maxV, middleV;
-        float middleF;
-        if (f0 < f1)
-        {
-            minV = v0;
-            maxV = v1;
-        }
-        else
-        {
-            minV = v1;
-            maxV = v0;
-        }
+        Vector2 inV = b0 ? v0 : v1;
+        Vector2 outV = b0 ? v1 : v0;
+        Vector2 middleV;
         int iterations = 0;
         do
         {
-            middleV = (minV + maxV) * 0.5f;
-            middleF = caveFieldValue(middleV);
-            if (middleF < threshold)
+            middleV = (inV + outV) * 0.5f;
+            if (caveSystem.insideCave(middleV))
             {
-                minV = middleV;
+                inV = middleV;
             }
             else
             {
-                maxV = middleV;
+                outV = middleV;
             }
             iterations++;
-        } while ((minV - maxV).sqrMagnitude > 0.0001f && iterations < 10);
-        return (minV + maxV) * 0.5f;
+        } while ((inV - outV).sqrMagnitude > 0.0001f && iterations < 10);
+        return (inV + outV) * 0.5f;
     }
+
 
     public static Contour createContour(IEnumerable<Vector2> points)
     {
@@ -375,11 +213,6 @@ public class TerrainMesh : MonoBehaviour
         return -1;
     }
 
-    public static Vector2 getCenter(List<Vector2> coords)
-    {
-        return coords.Aggregate(Vector2.zero, (center, next) => center + next) / coords.Count;
-    }
-
     public static Vertex toVertex(Vector2 vector)
     {
         return new Vertex(vector.x, vector.y);
@@ -389,182 +222,110 @@ public class TerrainMesh : MonoBehaviour
         return new Vector2((float)vertex.X, (float)vertex.Y);
     }
 
-    private bool shouldAdd(List<Vector2> triangle)
+    private List<Vector2> GeneratePoints(int r)
     {
-        return !insideCave(getCenter(triangle));
-    }
+        var allPoints = new ConcurrentBag<Vector2>();
+        Parallel.For(-r, r, x => {
+            Vector2 v00, v10, v01, v11;
+            bool b00, b10, b01, b11;
+            for (int y = -r; y < r; y++)
+            {
+                v00 = new Vector2(x, y);
+                v10 = new Vector2(x + 1, y);
+                v01 = new Vector2(x, y + 1);
+                v11 = new Vector2(x + 1, y + 1);
+                b00 = caveSystem.insideCave(v00);
+                b10 = caveSystem.insideCave(v10);
+                b01 = caveSystem.insideCave(v01);
+                b11 = caveSystem.insideCave(v11);
 
-    private bool insideCave(Vector2 coord)
-    {
-        return caveFieldValue(coord) > threshold;
-    }
+                if (b00 != b10)
+                {
+                    allPoints.Add(findBorder(v00, b00, v10, b10));
+                }
+                if (b00 != b01)
+                {
+                    allPoints.Add(findBorder(v00, b00, v01, b01));
+                }
+                if (b11 != b10)
+                {
+                    allPoints.Add(findBorder(v11, b11, v10, b10));
+                }
+                if (b11 != b01)
+                {
+                    allPoints.Add(findBorder(v11, b11, v01, b01));
+                }
+            }
+        });
 
-    private float caveFieldValue(Vector2 coord)
-    {
-        var magnitude = coord.magnitude;
-        var innerValue = stepValue(magnitude - innerRadius);
-        var outerValue = stepValue(outerRadius - magnitude);
-        return caves.Select(c => caveFieldValue(c, coord)).Sum() + innerValue + outerValue;
+        return allPoints.Distinct(Vector2EqualComparer.Instance).ToList();
     }
-
-    private float caveFieldValue(Cave cave, Vector2 coord)
+    private void GenerateTerrainTriangles(List<Vector2> points, out List<Vector2> vertices, out List<int> triangles)
     {
-        var angle = Mathf.Atan2(coord.x, coord.y);
-        var magnitude = coord.magnitude;
-        var d = Mathf.Abs(magnitude - cave.centerMagnitude(angle));
-        return stepValue(d - cave.thicknessValue(angle) / 2);
-    }
-
-    private static float STEP_V = 5;
-    private static float stepValue(float x)
-    {
-        return -Mathf.Sin(Mathf.Clamp(x / STEP_V, -1f, 1f) * Mathf.PI / 2) + 1;
-    }
-
-    private List<PSPolygon> GenerateMeshAndPolygons(List<Vector2> points)
-    {
-        var imesh = new GenericMesher().Triangulate(points.Select(toVertex).ToList());
-        var coords = new List<Vector2>();
-        var triangles = new List<int>();
+        Debug.Log("GenerateTerrainTriangles start triangulate");
+        var imesh = (new GenericMesher().Triangulate(points.Select(toVertex).ToList()));
+        Debug.Log("GenerateTerrainTriangles start filter");
+        vertices = new List<Vector2>();
+        triangles = new List<int>();
         foreach (var triangle in imesh.Triangles)
         {
             var list = triangle.vertices.Select(toVector2).Reverse().ToList();
-            if (!insideCave(getCenter(list)))
+            if (!caveSystem.insideCave(PSPolygon.GetCenter(list)))
             {
                 foreach (var v in list)
                 {
-                    var index = indexOf(coords, v);
+                    var index = indexOf(vertices, v);
                     if (index < 0)
                     {
-                        index = coords.Count;
-                        coords.Add(v);
+                        index = vertices.Count;
+                        vertices.Add(v);
                     }
                     triangles.Add(index);
                 }
             }
         }
-        /*
-                var meshFilter = GetComponent<MeshFilter>();
-                var mesh = meshFilter.sharedMesh;
-                if (mesh == null)
-                {
-                    meshFilter.mesh = new Mesh();
-                    mesh = meshFilter.sharedMesh;
-                }
-                mesh.vertices = coords.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
-                mesh.uv = coords.Select(getUV).ToArray();
-                mesh.uv2 = coords.Select(getUV2).ToArray();
-                mesh.triangles = triangles.ToArray();
-                mesh.RecalculateNormals();
-                mesh.RecalculateBounds();
-                meshFilter.mesh = mesh;
-         */
-        return GeneratePolygons(coords, triangles);
+        Debug.Log("GenerateTerrainTriangles done");
     }
-    private List<PSPolygon> GeneratePolygons(List<Vector2> vertices, List<int> triangles)
+
+    private List<PSPolygon> GeneratePolygons(List<Vector2> vertices, List<int> triangles, int r)
     {
-        // Get just the outer edges from the mesh's triangles (ignore or remove any shared edges)
-        Dictionary<string, KeyValuePair<int, int>> edges = new Dictionary<string, KeyValuePair<int, int>>();
-        for (int i = 0; i < triangles.Count; i += 3)
-        {
-            for (int e = 0; e < 3; e++)
-            {
-                int vert1 = triangles[i + e];
-                int vert2 = triangles[i + e + 1 > i + 2 ? i : i + e + 1];
-                string edge = Mathf.Min(vert1, vert2) + ":" + Mathf.Max(vert1, vert2);
-                if (edges.ContainsKey(edge))
-                {
-                    edges.Remove(edge);
-                }
-                else
-                {
-                    edges.Add(edge, new KeyValuePair<int, int>(vert1, vert2));
-                }
-            }
-        }
-
-        // Create edge lookup (Key is first vertex, Value is second vertex, of each edge)
-        HashSet<int> validVertices = new HashSet<int>();
-        Dictionary<int, int> lookup = new Dictionary<int, int>();
-        foreach (KeyValuePair<int, int> edge in edges.Values)
-        {
-            if (lookup.ContainsKey(edge.Key) == false)
-            {
-                validVertices.Add(edge.Key);
-                lookup.Add(edge.Key, edge.Value);
-            }
-        }
-
-        var polygons = new List<PSPolygon>();
-
-        // Loop through edge vertices in order
-        int startVert = 0;
-        int nextVert = startVert;
-        List<int> colliderPath = new List<int>();
-        while (true)
-        {
-
-            // Add vertex to collider path
-            colliderPath.Add(nextVert);
-            var removed = validVertices.Remove(nextVert);
-            if (!removed)
-            {
-                // Edges share a vertex
-                colliderPath.Clear();
-
-                // Go to next shape if one exists
-                if (validVertices.Count > 0)
-                {
-                    // Set starting and next vertices
-                    startVert = validVertices.First();
-                    nextVert = startVert;
-
-                    // Continue to next loop
-                    continue;
-                }
-
-                // No more verts
-                break;
-            }
-
-            // Get next vertex
-            nextVert = lookup[nextVert];
-
-            // Shape complete
-            if (nextVert == startVert)
-            {
-                var onAxisBorder = colliderPath.Any(index =>
-                {
-                    var v = vertices[index];
-                    return v.x == 0 || v.y == 0;
-                });
-                if (onAxisBorder || colliderPath.Count > 5)
-                {
-                    var polygon = new PSPolygon(colliderPath.Select(index => vertices[index]));
-                    if (onAxisBorder || polygon.Area > 20)
-                    {
-                        polygons.Add(polygon);
-                    }
-                }
-                colliderPath.Clear();
-
-                // Go to next shape if one exists
-                if (validVertices.Count > 0)
-                {
-                    // Set starting and next vertices
-                    startVert = validVertices.First();
-                    nextVert = startVert;
-
-                    // Continue to next loop
-                    continue;
-                }
-
-                // No more verts
-                break;
-            }
-        }
-
+        Debug.Log("GeneratePolygons start contours");
+        var contours = MeshToPolygonConverter.ContourPolygons(vertices, triangles).ToList();
+        Debug.Log("GeneratePolygons start polygons");
+        var segments = new Vector2[][]{
+            new Vector2[]{new Vector2(0,0), new Vector2(-r,0), new Vector2(-r,r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(-r,r), new Vector2(0,r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(0,r), new Vector2(r,r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(r,r), new Vector2(r,0)},
+            new Vector2[]{new Vector2(0,0), new Vector2(r,0), new Vector2(r,-r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(r,-r), new Vector2(0,-r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(0,-r), new Vector2(-r,-r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(-r,-r), new Vector2(-r,0)}
+        };
+        var polygons = segments.AsParallel().SelectMany(segment => MeshToPolygonConverter.FragmentPolygons(contours, segment)).ToList();
+        Debug.Log("GeneratePolygons done");
         return polygons;
+    }
+
+    private List<List<Vector2>> GenerateInsidePoints(IEnumerable<PSPolygon> polygons, int r)
+    {
+        Debug.Log("GenerateInsidePoints start");
+        var area = new Vector2[]{
+            new Vector2(r,r), new Vector2(r,-r), new Vector2(-r,-r), new Vector2(-r,r)
+        };
+        var insidePolygons = MeshToPolygonConverter.InsidePolygons(area, polygons, -insideOffset).ToList();
+        insidePolygons.ForEach(p => p.Precalc());
+        var insideLookup = insidePolygons.ToLookup(p => p.IsHole);
+        var magnitudeStep = 1f;
+        var magnitudeCount = Mathf.CeilToInt((outerRadius - insideInnerRadius) / magnitudeStep);
+        return Enumerable.Range(0, 360).Select(i => {
+            var angle = i * Mathf.Deg2Rad;
+            var direction = new Vector2(Mathf.Sin(angle), Mathf.Cos(angle));
+            return Enumerable.Range(0, magnitudeCount).Select(j => direction * (insideInnerRadius + j * magnitudeStep)).Where(p => {
+                return insideLookup[false].Any(c => c.PointInPolygon(p)) && insideLookup[true].All(c => !c.PointInPolygon(p));
+            }).ToList();
+        }).Where(l => l.Count > 0).ToList();
+        Debug.Log("GenerateInsidePoints done");
     }
 
     private static List<PSEdge> getFloorEdges(PSPolygon polygon)
@@ -618,7 +379,7 @@ public class TerrainMesh : MonoBehaviour
     private float tangent(Vector2 point)
     {
         var normalized = point.normalized;
-        return caveFieldValue(point + (normalized * 0.5f)) - caveFieldValue(point + (normalized * -0.5f));
+        return caveSystem.caveFieldValue(point + (normalized * 0.5f)) - caveSystem.caveFieldValue(point + (normalized * -0.5f));
     }
 
     public Color terrainTintColor(Vector2 point, bool doNotWrap)

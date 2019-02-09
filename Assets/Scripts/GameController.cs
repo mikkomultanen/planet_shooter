@@ -173,7 +173,7 @@ public class GameController : MonoBehaviour
             yield return new WaitForSeconds(interval);
 
             GameObject weaponCrateTemplate = weaponCrateTemplates[Random.Range(0, weaponCrateTemplates.Count)];
-            Vector2 position = terrain.randomUpperCaveCenter();
+            Vector2 position = terrain.RandomPositionInsideCave();
             Quaternion rotation = Quaternion.Euler(0, 0, Random.Range(0, 2 * Mathf.PI));
             GameObject newCrate = Instantiate(weaponCrateTemplate, position, rotation);
             newCrate.SetActive(true);

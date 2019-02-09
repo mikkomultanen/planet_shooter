@@ -217,10 +217,6 @@ public class TerrainSystem : MonoBehaviour
         return threshold + thresholdAmplitude * v <= n * a;
     }
 
-    public static Vector2 getCenter(List<Vector2> coords)
-    {
-        return coords.Aggregate(Vector2.zero, (center, next) => center + next) / coords.Count;
-    }
     public static int indexOf(List<Vector2> coords, Vector2 coord)
     {
         for (int i = 0; i < coords.Count; i++)
@@ -248,7 +244,7 @@ public class TerrainSystem : MonoBehaviour
         foreach (var triangle in imesh.Triangles)
         {
             var list = triangle.vertices.Select(toVector2).Reverse().ToList();
-            if (!insideCave(getCenter(list)))
+            if (!insideCave(PSPolygon.GetCenter(list)))
             {
                 foreach (var v in list)
                 {
