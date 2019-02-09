@@ -64,6 +64,7 @@ public class TerrainMesh : MonoBehaviour
 
     private ICaveSystem caveSystem;
     private List<PSEdge> caveCeilingEdges = new List<PSEdge>();
+    private List<PSEdge> caveFloorEdges = new List<PSEdge>();
     private List<List<Vector2>> caveInsidePoints = new List<List<Vector2>>();
     private bool _ready = false;
     public bool Ready { get { return _ready; }}
@@ -110,11 +111,9 @@ public class TerrainMesh : MonoBehaviour
         if (columnCount > 0) {
             int step = columnCount / playerCount;
             int phase = Random.Range(0, columnCount);
-            Debug.Log("startPositions " + columnCount + " " + step + " " + phase);
             for (int i = 0; i < playerCount; i++)
             {
                 var index = (i * step + phase) % columnCount;
-                Debug.Log("startPositions " + index);
                 var list = caveInsidePoints[index];
                 result[i] = list[Random.Range(0, list.Count)];
             }
@@ -152,25 +151,36 @@ public class TerrainMesh : MonoBehaviour
         DeleteTerrain();
         int r = Mathf.RoundToInt(outerRadius + 1);
 
+        Debug.Log("GenerateTerrain start");
         var points = GeneratePoints(r);
+        Debug.Log("GenerateTerrain points done");
 
         List<Vector2> vertices;
         List<int> triangles;
         GenerateTerrainTriangles(points, out vertices, out triangles);
+        Debug.Log("GenerateTerrain triangles done");
 
         var polygons = GeneratePolygons(vertices, triangles, r);
+        Debug.Log("GenerateTerrain polygons done");
         caveCeilingEdges = polygons.SelectMany(p => getCeilingEdges(p, innerRadius)).ToList();
+        Debug.Log("GenerateTerrain caveCeilingEdges done");
+        caveFloorEdges = polygons.SelectMany(getFloorEdges).ToList();
+        Debug.Log("GenerateTerrain caveFloorEdges done");
         caveInsidePoints = GenerateInsidePoints(polygons, r);
+        Debug.Log("GenerateTerrain caveInsidePoints done");
 
 #if UNITY_EDITOR
         editorPoints = caveInsidePoints.SelectMany(l => l).ToList();
-        editorPolygons = polygons;
-        editorEdges = editorPolygons.SelectMany(getFloorEdges).ToList();
+        //editorPolygons = polygons;
+        //editorEdges = ;
 #endif
 
         GenerateFragments(polygons);
+        Debug.Log("GenerateTerrain fragments done");
         UpdateBackground();
+        Debug.Log("GenerateTerrain background done");
         UpdateCaveBackground(polygons);
+        Debug.Log("GenerateTerrain cave background done");
         _ready = true;
     }
 
@@ -383,8 +393,12 @@ public class TerrainMesh : MonoBehaviour
 
     private float tangent(Vector2 point)
     {
-        // TODO distance to floor (lighter) or ceiling (darker)
-        return 0f;
+        var magnitude = point.magnitude;
+        var direction = point.normalized;
+        var d = outerRadius - innerRadius;
+        var distanceToFloor = caveFloorEdges.Select(e => magnitude - e.IntersectMagnitude(direction)).Where(m => m > -0.1f).DefaultIfEmpty(d).Min();
+        var distanceToCeiling = caveCeilingEdges.Select(e => e.IntersectMagnitude(direction) - magnitude).Where(m => m > -0.1f).DefaultIfEmpty(d).Min();
+        return (1 - Mathf.Clamp01(distanceToFloor / 3f)) - (1 - Mathf.Clamp01(distanceToCeiling / 3f));
     }
 
     public Color terrainTintColor(Vector2 point, bool doNotWrap)
@@ -413,9 +427,16 @@ public class TerrainMesh : MonoBehaviour
         return Color.white;
     }
 
+    private Color backgroundTintColor(Vector2 point, bool doNotWrap)
+    {
+        var color = terrainTintColor(point, doNotWrap) * 0.5f;
+        color.a = 1f;
+        return color;
+    }
+
     private Color caveBackgroundTintColor(Vector2 point, bool doNotWrap)
     {
-        var value = 1f - Mathf.Clamp01(0.5f - 0.5f * tangent(point));
+        var value = 1f - 0.5f * Mathf.Clamp01(0.5f - 0.5f * tangent(point));
         var color = terrainTintColor(point, doNotWrap) * value;
         color.a = 1f;
         return color;
@@ -578,7 +599,7 @@ public class TerrainMesh : MonoBehaviour
             uv.AddRange(mesh.uv);
             triangles.AddRange(mesh.triangles.Select(i => currentIndex + i));
         }
-        UpdateMesh(background, vertices, uv, vertices.Select(v => (Color32)caveBackgroundTintColor(v, false)), triangles);
+        UpdateMesh(background, vertices, uv, vertices.Select(v => (Color32)backgroundTintColor(v, false)), triangles);
     }
 
     private void UpdateCaveBackground(IEnumerable<PSPolygon> allPolygons)
@@ -702,8 +723,8 @@ public class TerrainMesh : MonoBehaviour
             Gizmos.color = Color.green;
             caveCeilingEdges.ForEach(e => DrawEdge(e, offset));
 
-            Gizmos.color = Color.white;
-            DrawDiamonds(editorPoints, offset);
+            Gizmos.color = Color.yellow;
+            caveFloorEdges.ForEach(e => DrawEdge(e, offset));
         }
     }
 
