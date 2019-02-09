@@ -58,7 +58,6 @@ public class GameController : MonoBehaviour
 
             var repairBase = Instantiate(repairBaseTemplate, startPositions[i], Quaternion.identity) as RepairBase;
             repairBase.gameObject.SetActive(true);
-            repairBase.terrain = terrain;
             playerController.repairBase = repairBase;
 
             playerController.controls = players[i].controls;
