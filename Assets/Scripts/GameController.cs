@@ -27,10 +27,9 @@ public class GameController : MonoBehaviour
     {
         playerCount = players.Count;
         playerControllers = new List<PlayerController>();
-        var startPositions = terrain.startPositions(playerCount);
         for (int i = 0; i < playerCount; i++)
         {
-            PlayerController playerController = Instantiate(cameraTemplate, startPositions[i], Quaternion.identity) as PlayerController;
+            PlayerController playerController = Instantiate(cameraTemplate, Vector3.zero, Quaternion.identity) as PlayerController;
             playerController.gameObject.SetActive(true);
             Camera camera = playerController._camera;
             switch (i)
@@ -51,13 +50,12 @@ public class GameController : MonoBehaviour
 
             playerController.gameController = this;
 
-            Hud hud = Instantiate(hudTemplate, startPositions[i], Quaternion.identity) as Hud;
+            Hud hud = Instantiate(hudTemplate, Vector3.zero, Quaternion.identity) as Hud;
             hud.gameObject.SetActive(true);
             hud.GetComponent<Canvas>().worldCamera = camera;
             playerController.hud = hud;
 
-            var repairBase = Instantiate(repairBaseTemplate, startPositions[i], Quaternion.identity) as RepairBase;
-            repairBase.gameObject.SetActive(true);
+            var repairBase = Instantiate(repairBaseTemplate, Vector3.zero, Quaternion.identity) as RepairBase;
             playerController.repairBase = repairBase;
 
             playerController.controls = players[i].controls;
@@ -75,10 +73,15 @@ public class GameController : MonoBehaviour
         eventSystem.enabled = false;
         canvas.enabled = false;
         updateScoreboard();
-        startNewRound();
+        StartCoroutine(StartGame());
         StartCoroutine(spawnWeaponCrateWithInterval(10));
-
     }
+
+	private IEnumerator StartGame()
+	{
+		yield return new WaitUntil(() => terrain.Ready);
+        startNewRound();
+	}
 
     private void Update()
     {
@@ -149,6 +152,7 @@ public class GameController : MonoBehaviour
         var startPositions = terrain.startPositions(playerCount);
         for (int i = 0; i < playerCount; i++)
         {
+            playerControllers[i].repairBase.gameObject.SetActive(true);
             playerControllers[i].respawn(startPositions[i]);
         }
         foreach (var crate in GameObject.FindObjectsOfType<WeaponCrate>())
@@ -165,6 +169,7 @@ public class GameController : MonoBehaviour
     {
         while (true)
         {
+    		yield return new WaitUntil(() => terrain.Ready);
             yield return new WaitForSeconds(interval);
 
             GameObject weaponCrateTemplate = weaponCrateTemplates[Random.Range(0, weaponCrateTemplates.Count)];
