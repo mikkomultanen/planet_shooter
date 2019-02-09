@@ -12,20 +12,6 @@ using TriangleNet.Topology;
 using UnityEditor;
 #endif
 
-public class Vector2EqualComparer : IEqualityComparer<Vector2>
-{
-    public static Vector2EqualComparer Instance = new Vector2EqualComparer();
-
-    public bool Equals(Vector2 x, Vector2 y)
-    {
-        return (x - y).sqrMagnitude < 0.01f;
-    }
-    public int GetHashCode(Vector2 obj)
-    {
-        return new Vector2Int(Mathf.RoundToInt(obj.x), Mathf.RoundToInt(obj.y)).GetHashCode();
-    }
-}
-
 public class TerrainSystem : MonoBehaviour
 {
     public float innerRadius = 35;

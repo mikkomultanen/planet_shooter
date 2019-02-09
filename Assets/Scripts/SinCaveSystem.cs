@@ -119,7 +119,7 @@ public class SinCaveSystem : ICaveSystem
         return caveFieldValue(coord) > threshold;
     }
 
-    public float caveFieldValue(Vector2 coord)
+    private float caveFieldValue(Vector2 coord)
     {
         var magnitude = coord.magnitude;
         var innerValue = stepValue(magnitude - innerRadius);
@@ -139,13 +139,5 @@ public class SinCaveSystem : ICaveSystem
     private static float stepValue(float x)
     {
         return -Mathf.Sin(Mathf.Clamp(x / STEP_V, -1f, 1f) * Mathf.PI / 2) + 1;
-    }
-
-    private static Vector2 RandomPointOnUnitCircle()
-    {
-        float angle = Random.Range(0f, Mathf.PI * 2);
-        float x = Mathf.Sin(angle);
-        float y = Mathf.Cos(angle);
-        return new Vector2(x, y);
     }
 }
