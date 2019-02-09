@@ -42,6 +42,9 @@ public class TerrainSystem : MonoBehaviour
     [Range(0,1)]
     public float outerThreshold;
     public int terrainSeed;
+    [Range(0,10)]
+    public float insideOffset = 2;
+    public float insideInnerRadius = 50;
 
     private bool _ready = false;
     public bool Ready { get { return _ready; }}
@@ -117,6 +120,22 @@ public class TerrainSystem : MonoBehaviour
             new Vector2[]{new Vector2(0,0), new Vector2(-r,-r), new Vector2(-r,0)}
         };
         var polygons = segments.AsParallel().SelectMany(segment => MeshToPolygonConverter.FragmentPolygons(contours, segment)).ToList();
+        var area = new Vector2[]{
+            new Vector2(r,r), new Vector2(r,-r), new Vector2(-r,-r), new Vector2(-r,r)
+        };
+        Debug.Log("GenerateTerrain start generate inside points");
+        var insidePolygons = MeshToPolygonConverter.InsidePolygons(area, polygons, -insideOffset).ToList();
+        insidePolygons.ForEach(p => p.Precalc());
+        var insideLookup = insidePolygons.ToLookup(p => p.IsHole);
+        var magnitudeStep = 1f;
+        var magnitudeCount = Mathf.CeilToInt((outerRadius - insideInnerRadius) / magnitudeStep);
+        var insidePoints = Enumerable.Range(0, 360).AsParallel().Select(i => {
+            var angle = i * Mathf.PI / 180f;
+            var direction = new Vector2(Mathf.Sin(angle), Mathf.Cos(angle));
+            return Enumerable.Range(0, magnitudeCount).Select(j => direction * (insideInnerRadius + j * magnitudeStep)).Where(p => {
+                return insideLookup[false].Any(c => c.PointInPolygon(p)) && insideLookup[true].All(c => !c.PointInPolygon(p));
+            }).ToList();
+        }).Where(l => l.Count > 0).ToList();
 #if UNITY_EDITOR
         Debug.Log("GenerateTerrain start generate mesh");
         var meshFilter = GetComponent<MeshFilter>();
@@ -134,8 +153,8 @@ public class TerrainSystem : MonoBehaviour
         mesh.RecalculateBounds();
         meshFilter.mesh = mesh;
 
-        editorPoints = points;
-        editorPolygons = polygons;
+        editorPoints = insidePoints.SelectMany(l => l).ToList();
+        editorPolygons = insidePolygons;
         //editorEdges = MeshToPolygonConverter.ContourEdges(vertices, triangles).ToList();//editorPolygons.SelectMany(getFloorEdges).ToList();
 #endif
 
@@ -281,14 +300,7 @@ public class TerrainSystem : MonoBehaviour
             Vector2 offset = (Vector2)transform.position * 0;
 
             editorPolygons.ForEach(p => {
-                if (PSPolygon.CalculateSignedArea(p.points) < 0)
-                {
-                    Gizmos.color = Color.white;
-                }
-                else
-                {
-                    Gizmos.color = Color.red;
-                }
+                Gizmos.color = p.IsHole ? Color.red : Color.white;
                 DrawPolygon(p, offset);
             });
 
@@ -328,7 +340,7 @@ public class TerrainSystem : MonoBehaviour
 
     private void DrawDiamonds(IEnumerable<Vector2> points, Vector2 offset)
     {
-        float diamondSize = 0.01f;
+        float diamondSize = 0.1f;
         List<Vector2> diamond = new List<Vector2>();
         diamond.Add(new Vector2(-diamondSize / transform.lossyScale.x, 0f));
         diamond.Add(new Vector2(0f, diamondSize / transform.lossyScale.y));

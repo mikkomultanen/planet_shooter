@@ -85,6 +85,11 @@ class MeshToPolygonConverter {
         return PSClipperHelper.intersection(contours.Select(c => c.points), clip).Select(p => new PSPolygon(p));
     }
 
+    public static IEnumerable<PSPolygon> InsidePolygons(IEnumerable<Vector2> area, IEnumerable<PSPolygon> contours, float offset)
+    {
+        return PSClipperHelper.inverseWithOffset(area, contours.Select(c => c.points), offset).Select(p => new PSPolygon(p));
+    }
+
     private static Dictionary<string, Edge> Edges(List<Vector2> vertices, List<int> triangles)
     {
         Dictionary<string, Edge> edges = new Dictionary<string, Edge>();

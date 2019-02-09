@@ -9,6 +9,7 @@ using ClipperLibPolygons = System.Collections.Generic.List<System.Collections.Ge
 public sealed class PSPolygon
 {
     public readonly Vector2[] points;
+    private float signedArea = 0;
     private float[] constant = null;
     private float[] multiple = null;
 
@@ -17,16 +18,29 @@ public sealed class PSPolygon
         this.points = points.ToArray();
     }
 
-    private float _Area = -1;
     public float Area
     {
         get
         {
-            if (_Area < 0)
-            {
-                _Area = CalculateArea(points);
-            }
-            return _Area;
+            this.calcArea();
+            return Mathf.Abs(signedArea);
+        }
+    }
+
+    public bool IsHole
+    {
+        get
+        {
+            calcArea();
+            return signedArea > 0;
+        }
+    }
+
+    private void calcArea()
+    {
+        if (signedArea == 0 && (Bounds.width > 0 || Bounds.height > 0))
+        {
+            signedArea = CalculateSignedArea(points);
         }
     }
 
@@ -85,6 +99,12 @@ public sealed class PSPolygon
             }
         }
         return oddNodes;
+    }
+
+    public void Precalc()
+    {
+        calcArea();
+        precalcValues();
     }
 
     public static float CalculateSignedArea(Vector2[] p)
@@ -189,6 +209,25 @@ public sealed class PSClipperHelper
     public static IEnumerable<IEnumerable<Vector2>> difference(IEnumerable<Vector2> subject, IEnumerable<Vector2> clip)
     {
         return operation(subject, clip, ClipType.ctDifference);
+    }
+
+    public static IEnumerable<IEnumerable<Vector2>> inverseWithOffset(IEnumerable<Vector2> subject, IEnumerable<IEnumerable<Vector2>> clips, float offset)
+    {
+        ClipperLibPolygons result = new ClipperLibPolygons();
+        Clipper c = new Clipper();
+        c.ReverseSolution = true;
+        c.AddPaths(clips.Select(createPolygon).ToList(), PolyType.ptClip, true);
+        c.AddPath(createPolygon(subject), PolyType.ptSubject, true);
+        c.Execute(ClipType.ctDifference, result, PolyFillType.pftNonZero, PolyFillType.pftNonZero);
+
+        ClipperLibPolygons offsetResult = new ClipperLibPolygons();
+        ClipperOffset co = new ClipperOffset();
+        co.ArcTolerance = 0.25f * multiplier;
+        co.AddPaths(result, JoinType.jtRound, EndType.etClosedPolygon);
+        co.Execute(ref offsetResult, offset * multiplier);
+        Clipper.ReversePaths(offsetResult);
+
+        return offsetResult.Select(createPoints);
     }
 
     public static IEnumerable<IEnumerable<Vector2>> intersection(IEnumerable<Vector2> subject, IEnumerable<Vector2> clip)
