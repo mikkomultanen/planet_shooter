@@ -203,6 +203,14 @@ public class TerrainMesh : MonoBehaviour
         return new Contour(points.Select(toVertex));
     }
 
+    public static void getTriangles(IMesh imesh, ref List<Vector2> vertices, ref List<int> triangles)
+    {
+        var idToIndex = imesh.Vertices.Select((v, index) => new KeyValuePair<int, int>(v.ID, index)).ToDictionary(kv => kv.Key, kv => kv.Value);
+        int currentIndex = vertices.Count;
+        vertices.AddRange(imesh.Vertices.Select(v => toVector2(v)));
+        triangles.AddRange(imesh.Triangles.SelectMany(t => t.vertices.Select(v => currentIndex + idToIndex[v.ID]).Reverse()));
+    }
+
     private static void addBorderPoint(List<Vector2> coords, Vector2 coord)
     {
         var oldIndex = indexOf(coords, coord);
@@ -277,23 +285,22 @@ public class TerrainMesh : MonoBehaviour
     }
     private void GenerateTerrainTriangles(List<Vector2> points, out List<Vector2> vertices, out List<int> triangles)
     {
-        var imesh = (new GenericMesher().Triangulate(points.Select(toVertex).ToList()));
+        var imesh = new GenericMesher().Triangulate(points.Select(toVertex).ToList());
+        var idToIndex = new Dictionary<int, int>();
         vertices = new List<Vector2>();
         triangles = new List<int>();
         foreach (var triangle in imesh.Triangles)
         {
-            var list = triangle.vertices.Select(toVector2).Reverse().ToList();
-            if (!caveSystem.insideCave(PSPolygon.GetCenter(list)))
+            if (!caveSystem.insideCave(PSPolygon.GetCenter(triangle.vertices.Select(toVector2).ToList())))
             {
-                foreach (var v in list)
+                foreach (var v in triangle.vertices)
                 {
-                    var index = indexOf(vertices, v);
-                    if (index < 0)
+                    if (!idToIndex.ContainsKey(v.ID))
                     {
-                        index = vertices.Count;
-                        vertices.Add(v);
+                        idToIndex.Add(v.ID, vertices.Count);
+                        vertices.Add(toVector2(v));
                     }
-                    triangles.Add(index);
+                    triangles.Add(idToIndex[v.ID]);
                 }
             }
         }
@@ -524,38 +531,27 @@ public class TerrainMesh : MonoBehaviour
         quality.MinimumAngle = 36;
         quality.MaximumAngle = 91;
         var imesh = poly.Triangulate(quality);
-        var meshVectices = imesh.Triangles.SelectMany(t => t.vertices.Select(TerrainMesh.toVector2).Reverse());
 
-        var vertices = new List<Vector2>();
-        var triangles = new List<int>();
-        foreach (var v in meshVectices)
-        {
-            var index = TerrainMesh.indexOf(vertices, v);
-            if (index < 0)
-            {
-                index = vertices.Count;
-                vertices.Add(v);
-            }
-            triangles.Add(index);
-        }
+        List<Vector2> vertices = new List<Vector2>();
+        List<int> triangles = new List<int>();
+        getTriangles(imesh, ref vertices, ref triangles);
 
         var polygonBoundsCenter = polygon.Bounds.center;
         var doNotWrapUV = polygonBoundsCenter.x < 0 && polygonBoundsCenter.y < 0;
         var floorEdges = getFloorEdges(polygon);
 
-        var verts = vertices.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
         var uvs = vertices.Select(v => getUV(v, doNotWrapUV)).ToArray();
         var uv2s = vertices.Select(v => getUV2(v, doNotWrapUV, floorEdges)).ToArray();
         UpdateMesh(
             piece.GetComponent<MeshFilter>(), 
-            verts,
+            vertices.Select(v => (Vector3)v),
             uvs,
             uv2s,
             vertices.Select(p => (Color32)terrainTintColor(p, doNotWrapUV)),
             triangles);
         UpdateMesh(
             piece.background,
-            verts,
+            vertices.Select(v => (Vector3)v),
             uvs,
             uv2s,
             vertices.Select(p => (Color32)backgroundTintColor(p, doNotWrapUV)),

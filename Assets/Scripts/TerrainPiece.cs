@@ -269,17 +269,7 @@ public class TerrainPiece : MonoBehaviour
             var poly = new Polygon();
             poly.Add(TerrainMesh.createContour(points));
             var imesh = mesher.Triangulate(poly);
-            var meshVertices = imesh.Triangles.SelectMany(t => t.vertices.Select(TerrainMesh.toVector2).Reverse());
-            foreach (var vertex in meshVertices)
-            {
-                var index = TerrainMesh.indexOf(newVertices, vertex);
-                if (index < 0)
-                {
-                    index = newVertices.Count;
-                    newVertices.Add(vertex);
-                }
-                newTriangles.Add(index);
-            }
+            TerrainMesh.getTriangles(imesh, ref newVertices, ref newTriangles);
         }
 
         var newPaths = oldPaths
@@ -292,11 +282,14 @@ public class TerrainPiece : MonoBehaviour
             .Select(p => GenerateParticles(new PSPolygon(p)))
             .ToArray();
 
-        var vertices = newVertices.Select(c => new Vector3(c.x, c.y, 0)).ToArray();
-        var colors32 = newVertices.Select(c => (Color32)terrainMesh.terrainTintColor(c, doNotWrapUV)).ToArray();
-        var uv = newVertices.Select(c => terrainMesh.getUV(c, doNotWrapUV)).ToArray();
-        var uv2 = newVertices.Select(c => terrainMesh.getUV2(c, doNotWrapUV, floorEdges)).ToArray();
-        return new MeshData(vertices, colors32, uv, uv2, newTriangles.ToArray(), newPaths, particles);
+        return new MeshData(
+            newVertices.Select(c => new Vector3(c.x, c.y, 0)).ToArray(), 
+            newVertices.Select(c => (Color32)terrainMesh.terrainTintColor(c, doNotWrapUV)).ToArray(), 
+            newVertices.Select(c => terrainMesh.getUV(c, doNotWrapUV)).ToArray(), 
+            newVertices.Select(c => terrainMesh.getUV2(c, doNotWrapUV, floorEdges)).ToArray(), 
+            newTriangles.ToArray(), 
+            newPaths, 
+            particles);
     }
 
     private TerrainParticles GenerateParticles(PSPolygon shape)
