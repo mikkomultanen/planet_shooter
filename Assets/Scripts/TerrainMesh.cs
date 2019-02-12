@@ -153,7 +153,18 @@ public class TerrainMesh : MonoBehaviour
         GenerateTerrainTriangles(points, out vertices, out triangles);
         Debug.Log("GenerateTerrain triangles done");
 
-        var polygons = GeneratePolygons(vertices, triangles, r);
+        var segments = new Vector2[][]{
+            new Vector2[]{new Vector2(0,0), new Vector2(-r,0), new Vector2(-r,r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(-r,r), new Vector2(0,r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(0,r), new Vector2(r,r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(r,r), new Vector2(r,0)},
+            new Vector2[]{new Vector2(0,0), new Vector2(r,0), new Vector2(r,-r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(r,-r), new Vector2(0,-r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(0,-r), new Vector2(-r,-r)},
+            new Vector2[]{new Vector2(0,0), new Vector2(-r,-r), new Vector2(-r,0)}
+        };
+
+        var polygons = GeneratePolygons(vertices, triangles, segments);
         Debug.Log("GenerateTerrain polygons done");
         caveCeilingEdges = polygons.SelectMany(p => getCeilingEdges(p, innerRadius)).ToList();
         Debug.Log("GenerateTerrain caveCeilingEdges done");
@@ -170,7 +181,7 @@ public class TerrainMesh : MonoBehaviour
 
         GenerateFragments(polygons);
         Debug.Log("GenerateTerrain fragments done");
-        //UpdateCaveBackground(polygons);
+        UpdateCaveBackground(polygons, segments);
         Debug.Log("GenerateTerrain cave background done");
         _ready = true;
     }
@@ -293,7 +304,7 @@ public class TerrainMesh : MonoBehaviour
         {
             if (!caveSystem.insideCave(PSPolygon.GetCenter(triangle.vertices.Select(toVector2).ToList())))
             {
-                foreach (var v in triangle.vertices)
+                foreach (var v in triangle.vertices.Reverse())
                 {
                     if (!idToIndex.ContainsKey(v.ID))
                     {
@@ -306,19 +317,9 @@ public class TerrainMesh : MonoBehaviour
         }
     }
 
-    private List<PSPolygon> GeneratePolygons(List<Vector2> vertices, List<int> triangles, int r)
+    private List<PSPolygon> GeneratePolygons(List<Vector2> vertices, List<int> triangles, Vector2[][] segments)
     {
         var contours = MeshToPolygonConverter.ContourPolygons(vertices, triangles).ToList();
-        var segments = new Vector2[][]{
-            new Vector2[]{new Vector2(0,0), new Vector2(-r,0), new Vector2(-r,r)},
-            new Vector2[]{new Vector2(0,0), new Vector2(-r,r), new Vector2(0,r)},
-            new Vector2[]{new Vector2(0,0), new Vector2(0,r), new Vector2(r,r)},
-            new Vector2[]{new Vector2(0,0), new Vector2(r,r), new Vector2(r,0)},
-            new Vector2[]{new Vector2(0,0), new Vector2(r,0), new Vector2(r,-r)},
-            new Vector2[]{new Vector2(0,0), new Vector2(r,-r), new Vector2(0,-r)},
-            new Vector2[]{new Vector2(0,0), new Vector2(0,-r), new Vector2(-r,-r)},
-            new Vector2[]{new Vector2(0,0), new Vector2(-r,-r), new Vector2(-r,0)}
-        };
         return segments.AsParallel().SelectMany(segment => MeshToPolygonConverter.FragmentPolygons(contours, segment)).ToList();
     }
 
@@ -508,7 +509,7 @@ public class TerrainMesh : MonoBehaviour
         }
         fragments.Clear();
         caveCeilingEdges.Clear();
-        UpdateCaveBackground(new PSPolygon[0]);
+        UpdateCaveBackground(new PSPolygon[0], new Vector2[0][]);
 #if UNITY_EDITOR
         editorPolygons.Clear();
         editorEdges.Clear();
@@ -568,86 +569,64 @@ public class TerrainMesh : MonoBehaviour
         return piece.gameObject;
     }
 
-    private void UpdateCaveBackground(IEnumerable<PSPolygon> allPolygons)
+    private void UpdateCaveBackground(IEnumerable<PSPolygon> allPolygons, Vector2[][] segments)
     {
-        var polygonSets = new List<List<PSPolygon>>();
-        polygonSets.Add(allPolygons.Where(p => p.Bounds.center.x >= 0 && p.Bounds.center.y >= 0).ToList());
-        polygonSets.Add(allPolygons.Where(p => p.Bounds.center.x >= 0 && p.Bounds.center.y <= 0).ToList());
-        polygonSets.Add(allPolygons.Where(p => p.Bounds.center.x <= 0 && p.Bounds.center.y >= 0).ToList());
-        polygonSets.Add(allPolygons.Where(p => p.Bounds.center.x <= 0 && p.Bounds.center.y <= 0).ToList());
-
-        var vertices = new List<Vector2>();
-        var uv = new List<Vector2>();
-        var colors = new List<Color32>();
-        var triangles = new List<int>();
-
-        int currentIndex;
-        var tempVertices = new List<Vector2>();
-        foreach (var polygons in polygonSets)
-        {
-            if (polygons.Count == 0)
-            {
-                continue;
-            }
-            currentIndex = vertices.Count;
-            var polygonBoundsCenter = polygons.First().Bounds.center;
-            var doNotWrapUV = polygonBoundsCenter.x < 0 && polygonBoundsCenter.y < 0;
-
+        var constraint = new ConstraintOptions();
+        constraint.Convex = true;
+        var quality = new QualityOptions();
+        quality.MinimumAngle = 36;
+        quality.MaximumAngle = 91;
+        var data = segments.AsParallel().Select(segment => {
+            var segmentPolygon = new PSPolygon(segment);
+            var doNotWrapUV = segmentPolygon.Bounds.center.x < 0 && segmentPolygon.Bounds.center.y < 0;
             var poly = new Polygon();
+            poly.Add(createContour(segment));
+            var polygons = allPolygons.Where(p => segmentPolygon.PointInPolygon(p.Bounds.center));
             foreach (var polygon in polygons)
             {
                 poly.Add(createContour(polygon.points), true);
             }
-            poly.Add(new Vertex());
-            if (polygonBoundsCenter.x < 0) {
-                poly.Add(new Vertex(-outerRadius, 0));
-                if (polygonBoundsCenter.y < 0) {
-                    poly.Add(new Vertex(-outerRadius, -outerRadius));
-                    poly.Add(new Vertex(0, -outerRadius));
-                } else {
-                    poly.Add(new Vertex(-outerRadius, outerRadius));
-                    poly.Add(new Vertex(0, outerRadius));
-                }
-            } else {
-                poly.Add(new Vertex(outerRadius, 0));
-                if (polygonBoundsCenter.y < 0) {
-                    poly.Add(new Vertex(outerRadius, -outerRadius));
-                    poly.Add(new Vertex(0, -outerRadius));
-                } else {
-                    poly.Add(new Vertex(outerRadius, outerRadius));
-                    poly.Add(new Vertex(0, outerRadius));
-                }
-            }
-            var constraint = new ConstraintOptions();
-            constraint.Convex = true;
-            var quality = new QualityOptions();
-            quality.MinimumAngle = 36;
-            quality.MaximumAngle = 91;
             var imesh = poly.Triangulate(constraint, quality);
+            var vertices = new List<Vector2>();
+            var triangles = new List<int>();
+            var idToIndex = new Dictionary<int, int>();
             foreach (var triangle in imesh.Triangles)
             {
-                var list = triangle.vertices.Select(toVector2).Reverse().ToList();
-                if (list.Any(v => v.magnitude > innerRadius))
+                var center = PSPolygon.GetCenter(triangle.vertices.Select(toVector2).ToList());
+                var centerMagnitude = center.magnitude;
+                if (centerMagnitude < outerRadius && centerMagnitude > innerRadius && caveSystem.insideCave(center))
                 {
-                    foreach (var v in list)
+                    foreach (var v in triangle.vertices.Reverse())
                     {
-                        var index = indexOf(tempVertices, v);
-                        if (index < 0)
+                        if (!idToIndex.ContainsKey(v.ID))
                         {
-                            index = tempVertices.Count;
-                            tempVertices.Add(v);
-                            colors.Add(caveBackgroundTintColor(v, doNotWrapUV));
-                            uv.Add(getUV(v, doNotWrapUV));
+                            idToIndex.Add(v.ID, vertices.Count);
+                            vertices.Add(toVector2(v));
                         }
-                        triangles.Add(currentIndex + index);
+                        triangles.Add(idToIndex[v.ID]);
                     }
                 }
             }
-            vertices.AddRange(tempVertices);
-            tempVertices.Clear();
+            var uv = vertices.Select(v => getUV(v, doNotWrapUV)).ToList();
+            var colors = vertices.Select(v => (Color32)caveBackgroundTintColor(v, doNotWrapUV)).ToList();
+            return new {vertices, triangles, uv, colors};
+        }).ToList();
+
+        var currentIndex = 0;
+        var tris = new List<int>();
+        foreach (var d in data)
+        {
+            tris.AddRange(d.triangles.Select(i => currentIndex + i));
+            currentIndex += d.vertices.Count;
         }
 
-        UpdateMesh(caveBackground, vertices.Select(p => new Vector3(p.x, p.y, 0)), uv, null, colors, triangles);
+        UpdateMesh(
+            caveBackground, 
+            data.SelectMany(d => d.vertices).Select(v => (Vector3)v),
+            data.SelectMany(d => d.uv), 
+            null, 
+            data.SelectMany(d => d.colors), 
+            tris);
     }
 
     private static void UpdateMesh(MeshFilter meshFilter, IEnumerable<Vector3> vertices, IEnumerable<Vector2> uv, IEnumerable<Vector2> uv2, IEnumerable<Color32> colors, IEnumerable<int> triangles)
