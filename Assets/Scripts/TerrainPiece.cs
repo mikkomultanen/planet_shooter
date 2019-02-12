@@ -115,6 +115,7 @@ class CapsuleClipShape : IClipShape
 public class TerrainPiece : MonoBehaviour
 {
     public ParticleSystem terrainParticleTemplate;
+    public MeshFilter background;
 
     private CompositeDisposable disposeBag = new CompositeDisposable();
 

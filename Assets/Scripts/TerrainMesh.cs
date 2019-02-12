@@ -38,7 +38,6 @@ public struct TerrainMaterials {
 public class TerrainMesh : MonoBehaviour
 {
     public MeshFilter caveBackground;
-    public MeshFilter background;
     public TerrainPiece terrainPieceTemplate;
     public List<TerrainMaterials> terrainMaterials;
     public float outerRadius = 125;
@@ -74,17 +73,10 @@ public class TerrainMesh : MonoBehaviour
     private List<Vector2> editorPoints = new List<Vector2>();
 #endif
 
-    private void Awake() {
-        caveSystem = new SimplexCaveSystem(outerRadius, innerRadius, Random.Range(0, 0x7fffffff));
-    }
-
     private void Start()
     {
         InitMaterial();
-        if (fragments.Count == 0)
-        {
-            GenerateTerrain();
-        }
+        GenerateTerrain();
     }
 
     public PSEdge randomCaveCeiling()
@@ -127,8 +119,8 @@ public class TerrainMesh : MonoBehaviour
         {
             var terrainMaterial = terrainMaterials[Random.Range(0, terrainMaterials.Count)];
             terrainPieceTemplate.GetComponent<MeshRenderer>().sharedMaterial = terrainMaterial.piece;
+            terrainPieceTemplate.background.GetComponent<MeshRenderer>().sharedMaterial = terrainMaterial.pieceBackground;
             caveBackground.GetComponent<MeshRenderer>().sharedMaterial = terrainMaterial.background;
-            background.GetComponent<MeshRenderer>().sharedMaterial = terrainMaterial.pieceBackground;
             tintColorU = terrainMaterial.tintColorU;
             tintColorV = terrainMaterial.tintColorV;
             material = terrainMaterial.piece;
@@ -149,6 +141,7 @@ public class TerrainMesh : MonoBehaviour
     private void GenerateTerrain()
     {
         DeleteTerrain();
+        caveSystem = new SimplexCaveSystem(outerRadius, innerRadius, Random.Range(0, 0x7fffffff));
         int r = Mathf.RoundToInt(outerRadius + 1);
 
         Debug.Log("GenerateTerrain start");
@@ -177,9 +170,7 @@ public class TerrainMesh : MonoBehaviour
 
         GenerateFragments(polygons);
         Debug.Log("GenerateTerrain fragments done");
-        UpdateBackground();
-        Debug.Log("GenerateTerrain background done");
-        UpdateCaveBackground(polygons);
+        //UpdateCaveBackground(polygons);
         Debug.Log("GenerateTerrain cave background done");
         _ready = true;
     }
@@ -510,7 +501,6 @@ public class TerrainMesh : MonoBehaviour
         }
         fragments.Clear();
         caveCeilingEdges.Clear();
-        UpdateBackground();
         UpdateCaveBackground(new PSPolygon[0]);
 #if UNITY_EDITOR
         editorPolygons.Clear();
@@ -527,15 +517,6 @@ public class TerrainMesh : MonoBehaviour
     private GameObject GenerateFragment(PSPolygon polygon)
     {
         TerrainPiece piece = Instantiate(terrainPieceTemplate, gameObject.transform.position, gameObject.transform.rotation);
-
-        MeshFilter meshFilter = piece.GetComponent<MeshFilter>();
-
-        Mesh uMesh = meshFilter.sharedMesh;
-        if (uMesh == null)
-        {
-            meshFilter.mesh = new Mesh();
-            uMesh = meshFilter.sharedMesh;
-        }
 
         var poly = new Polygon();
         poly.Add(TerrainMesh.createContour(polygon.points));
@@ -562,15 +543,23 @@ public class TerrainMesh : MonoBehaviour
         var doNotWrapUV = polygonBoundsCenter.x < 0 && polygonBoundsCenter.y < 0;
         var floorEdges = getFloorEdges(polygon);
 
-        uMesh.vertices = vertices.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
-        uMesh.colors = vertices.Select(p => terrainTintColor(p, doNotWrapUV)).ToArray();
-        uMesh.uv = vertices.Select(v => getUV(v, doNotWrapUV)).ToArray();
-        uMesh.uv2 = vertices.Select(v => getUV2(v, doNotWrapUV, floorEdges)).ToArray();
-        uMesh.triangles = triangles.ToArray();
-        uMesh.RecalculateNormals();
-        uMesh.RecalculateBounds();
-
-        meshFilter.mesh = uMesh;
+        var verts = vertices.Select(p => new Vector3(p.x, p.y, 0)).ToArray();
+        var uvs = vertices.Select(v => getUV(v, doNotWrapUV)).ToArray();
+        var uv2s = vertices.Select(v => getUV2(v, doNotWrapUV, floorEdges)).ToArray();
+        UpdateMesh(
+            piece.GetComponent<MeshFilter>(), 
+            verts,
+            uvs,
+            uv2s,
+            vertices.Select(p => (Color32)terrainTintColor(p, doNotWrapUV)),
+            triangles);
+        UpdateMesh(
+            piece.background,
+            verts,
+            uvs,
+            uv2s,
+            vertices.Select(p => (Color32)backgroundTintColor(p, doNotWrapUV)),
+            triangles);
 
         PolygonCollider2D collider = piece.gameObject.AddComponent<PolygonCollider2D>();
         collider.SetPath(0, polygon.points);
@@ -581,25 +570,6 @@ public class TerrainMesh : MonoBehaviour
 
         piece.gameObject.SetActive(true);
         return piece.gameObject;
-    }
-
-    private void UpdateBackground()
-    {
-        var meshes = fragments.Select(piece => piece.GetComponent<MeshFilter>().sharedMesh);
-        var verticesCount = meshes.Aggregate(0, (total, mesh) => total + mesh.vertices.Length);
-        var trianglesCount = meshes.Aggregate(0, (total, mesh) => total + mesh.triangles.Length);
-        var vertices = new List<Vector3>(verticesCount);
-        var uv = new List<Vector2>(verticesCount);
-        var triangles = new List<int>(trianglesCount);
-        int currentIndex;
-        foreach (var mesh in meshes)
-        {
-            currentIndex = vertices.Count;
-            vertices.AddRange(mesh.vertices);
-            uv.AddRange(mesh.uv);
-            triangles.AddRange(mesh.triangles.Select(i => currentIndex + i));
-        }
-        UpdateMesh(background, vertices, uv, vertices.Select(v => (Color32)backgroundTintColor(v, false)), triangles);
     }
 
     private void UpdateCaveBackground(IEnumerable<PSPolygon> allPolygons)
@@ -681,10 +651,10 @@ public class TerrainMesh : MonoBehaviour
             tempVertices.Clear();
         }
 
-        UpdateMesh(caveBackground, vertices.Select(p => new Vector3(p.x, p.y, 0)), uv, colors, triangles);
+        UpdateMesh(caveBackground, vertices.Select(p => new Vector3(p.x, p.y, 0)), uv, null, colors, triangles);
     }
 
-    private static void UpdateMesh(MeshFilter meshFilter, IEnumerable<Vector3> vertices, IEnumerable<Vector2> uv, IEnumerable<Color32> colors, IEnumerable<int> triangles)
+    private static void UpdateMesh(MeshFilter meshFilter, IEnumerable<Vector3> vertices, IEnumerable<Vector2> uv, IEnumerable<Vector2> uv2, IEnumerable<Color32> colors, IEnumerable<int> triangles)
     {
         var mesh = meshFilter.sharedMesh;
         if (mesh == null)
@@ -695,6 +665,7 @@ public class TerrainMesh : MonoBehaviour
         mesh.Clear();
         mesh.vertices = vertices.ToArray();
         mesh.uv = uv.ToArray();
+        if (uv2 != null) mesh.uv2 = uv2.ToArray();
         mesh.colors32 = colors.ToArray();
         mesh.triangles = triangles.ToArray();
         mesh.RecalculateNormals();
