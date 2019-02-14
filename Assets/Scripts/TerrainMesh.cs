@@ -181,7 +181,7 @@ public class TerrainMesh : MonoBehaviour
 
         GenerateFragments(polygons);
         Debug.Log("GenerateTerrain fragments done");
-        UpdateCaveBackground(polygons, segments);
+        UpdateCaveBackground(segments);
         Debug.Log("GenerateTerrain cave background done");
         _ready = true;
     }
@@ -390,16 +390,6 @@ public class TerrainMesh : MonoBehaviour
         return point.magnitude > innerRadius + 0.005f && polygon.PointInPolygon(point + (point.normalized * 0.005f));
     }
 
-    private float tangent(Vector2 point)
-    {
-        var magnitude = point.magnitude;
-        var direction = point.normalized;
-        var d = outerRadius - innerRadius;
-        var distanceToFloor = caveFloorEdges.Select(e => magnitude - e.IntersectMagnitude(direction)).Where(m => m > -0.1f).DefaultIfEmpty(d).Min();
-        var distanceToCeiling = caveCeilingEdges.Select(e => e.IntersectMagnitude(direction) - magnitude).Where(m => m > -0.1f).DefaultIfEmpty(d).Min();
-        return (1 - Mathf.Clamp01(distanceToFloor / 3f)) - (1 - Mathf.Clamp01(distanceToCeiling / 3f));
-    }
-
     public Color terrainTintColor(Vector2 point, bool doNotWrap)
     {
         var angle = Mathf.Atan2(point.x, point.y);
@@ -429,14 +419,6 @@ public class TerrainMesh : MonoBehaviour
     private Color backgroundTintColor(Vector2 point, bool doNotWrap)
     {
         var color = terrainTintColor(point, doNotWrap) * 0.5f;
-        color.a = 1f;
-        return color;
-    }
-
-    private Color caveBackgroundTintColor(Vector2 point, bool doNotWrap)
-    {
-        var value = 1f - 0.5f * Mathf.Clamp01(0.5f - 0.5f * tangent(point));
-        var color = terrainTintColor(point, doNotWrap) * value;
         color.a = 1f;
         return color;
     }
@@ -509,7 +491,7 @@ public class TerrainMesh : MonoBehaviour
         }
         fragments.Clear();
         caveCeilingEdges.Clear();
-        UpdateCaveBackground(new PSPolygon[0], new Vector2[0][]);
+        UpdateCaveBackground(new Vector2[0][]);
 #if UNITY_EDITOR
         editorPolygons.Clear();
         editorEdges.Clear();
@@ -569,46 +551,40 @@ public class TerrainMesh : MonoBehaviour
         return piece.gameObject;
     }
 
-    private void UpdateCaveBackground(IEnumerable<PSPolygon> allPolygons, Vector2[][] segments)
+    private void UpdateCaveBackground(Vector2[][] segments)
     {
+        var outerSteps = Mathf.FloorToInt(outerRadius * Mathf.PI * 2 / 4);
+        var outerPolygon = Enumerable.Range(0, outerSteps).Select(i => {
+            var angle = 2f * Mathf.PI * i / outerSteps;
+            return new Vector2(Mathf.Sin(angle), Mathf.Cos(angle)) * outerRadius;
+        });
+        var innerSteps = Mathf.FloorToInt(innerRadius * Mathf.PI * 2 / 4);
+        var innerPolygon = Enumerable.Range(0, innerSteps).Select(i => {
+            var angle = -2f * Mathf.PI * i / innerSteps;
+            return new Vector2(Mathf.Sin(angle), Mathf.Cos(angle)) * innerRadius;
+        });
+        var area = new List<IEnumerable<Vector2>>(2);
+        area.Add(outerPolygon);
+        area.Add(innerPolygon);
+
         var constraint = new ConstraintOptions();
-        constraint.Convex = true;
+        constraint.ConformingDelaunay = true;
         var quality = new QualityOptions();
-        quality.MinimumAngle = 36;
-        quality.MaximumAngle = 91;
+        quality.MaximumArea = 10;
         var data = segments.AsParallel().Select(segment => {
             var segmentPolygon = new PSPolygon(segment);
             var doNotWrapUV = segmentPolygon.Bounds.center.x < 0 && segmentPolygon.Bounds.center.y < 0;
             var poly = new Polygon();
-            poly.Add(createContour(segment));
-            var polygons = allPolygons.Where(p => segmentPolygon.PointInPolygon(p.Bounds.center));
-            foreach (var polygon in polygons)
+            foreach (var polygon in PSClipperHelper.intersection(area, segment))
             {
-                poly.Add(createContour(polygon.points), true);
+                poly.Add(createContour(polygon));
             }
             var imesh = poly.Triangulate(constraint, quality);
             var vertices = new List<Vector2>();
             var triangles = new List<int>();
-            var idToIndex = new Dictionary<int, int>();
-            foreach (var triangle in imesh.Triangles)
-            {
-                var center = PSPolygon.GetCenter(triangle.vertices.Select(toVector2).ToList());
-                var centerMagnitude = center.magnitude;
-                if (centerMagnitude < outerRadius && centerMagnitude > innerRadius && caveSystem.insideCave(center))
-                {
-                    foreach (var v in triangle.vertices.Reverse())
-                    {
-                        if (!idToIndex.ContainsKey(v.ID))
-                        {
-                            idToIndex.Add(v.ID, vertices.Count);
-                            vertices.Add(toVector2(v));
-                        }
-                        triangles.Add(idToIndex[v.ID]);
-                    }
-                }
-            }
+            getTriangles(imesh, ref vertices, ref triangles);
             var uv = vertices.Select(v => getUV(v, doNotWrapUV)).ToList();
-            var colors = vertices.Select(v => (Color32)caveBackgroundTintColor(v, doNotWrapUV)).ToList();
+            var colors = vertices.Select(v => (Color32)backgroundTintColor(v, doNotWrapUV)).ToList();
             return new {vertices, triangles, uv, colors};
         }).ToList();
 
