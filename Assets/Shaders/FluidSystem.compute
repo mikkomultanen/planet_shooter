@@ -53,6 +53,8 @@ float _RestDensity;
 float _PressureConstant;
 float _Viscosity;
 
+uint _Count;
+
 uint _KinematicCount;
 float _KinematicViscosity;
 
@@ -212,13 +214,11 @@ void CalculateDensity (uint3 id : SV_DispatchThreadID)
 		float density = 0;
 		float fireInWaterDensity = 0;
 		float waterInFireDensity = 0;
-		uint count, stride;
-		_Particles.GetDimensions(count, stride);
 		for (int x = -1; x < 2; ++x) {
 			for (int y = -1; y < 2; ++y) {
 				const uint gridHash = GridHash(floor(p.position) + float2(x, y));
 				uint i = _CellOffsets[gridHash];
-				while (i != INVALID_OFFSET && i < count) {
+				while (i != INVALID_OFFSET && i < _Count) {
 					Particle o = _Particles[i];
 					if (gridHash != GridHash(o)) {
 						break;
@@ -271,13 +271,11 @@ void CalculateForce (uint3 id : SV_DispatchThreadID)
 		float pressure_p = p.density / restDensity;
 		pressure_p = pressure_p * pressure_p - 1;
 
-		uint count, stride;
-		_Particles.GetDimensions(count, stride);
 		for (int x = -1; x < 2; ++x) {
 			for (int y = -1; y < 2; ++y) {
 				const uint gridHash = GridHash(floor(p.position) + float2(x, y));
 				uint i = _CellOffsets[gridHash];
-				while (i != INVALID_OFFSET && i < count) {
+				while (i != INVALID_OFFSET && i < _Count) {
 					if (i != idx) {
 						Particle o = _Particles[i];
 						if (gridHash != GridHash(o)) {
@@ -321,13 +319,11 @@ void CalculateKinematicForce (uint3 id : SV_DispatchThreadID)
 		float2 vForce = float2(0, 0);
 		float inFireDensity = 0;
 
-		uint count, stride;
-		_Particles.GetDimensions(count, stride);
 		for (int x = -1; x < 2; ++x) {
 			for (int y = -1; y < 2; ++y) {
 				const uint gridHash = GridHash(floor(position) + float2(x, y));
 				uint i = _CellOffsets[gridHash];
-				while (i != INVALID_OFFSET && i < count) {
+				while (i != INVALID_OFFSET && i < _Count) {
 					Particle o = _Particles[i];
 					if (gridHash != GridHash(o)) {
 						break;

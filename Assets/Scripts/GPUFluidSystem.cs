@@ -300,6 +300,8 @@ public class GPUFluidSystem : FluidSystem {
 		computeShader.SetFloat("_PressureConstant", pressureConstant);
 		computeShader.SetFloat("_Viscosity", viscosity);
 
+		computeShader.SetInt("_Count", bufferSize);
+
 		computeShader.SetFloat("_KinematicViscosity", kinematicViscosity);
 
 		computeShader.SetFloat("_SteamRestDensity", steamRestDensity);
