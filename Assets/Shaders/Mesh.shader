@@ -72,8 +72,7 @@ Shader "PlanetShooter/Mesh"
                     #if _DECAL_ON
                     half2 uvd : TEXCOORD2;
                     #endif
-                    #if _SHADOW_NONE
-                    #else
+                    #ifndef _SHADOW_NONE
                     float4 screenPos : TEXCOORD3;
                     #endif
                 };
@@ -91,8 +90,7 @@ Shader "PlanetShooter/Mesh"
                     #if _DECAL_ON
                     o.uvd = TRANSFORM_TEX ( v.texcoord, _EmissionTex );
                     #endif
-                    #if _SHADOW_NONE
-                    #else
+                    #ifndef _SHADOW_NONE
                     o.screenPos = ComputeScreenPos(o.pos);
                     #endif
                     return o;

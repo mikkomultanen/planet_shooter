@@ -15,8 +15,8 @@ Shader "Hidden/PlanetShooter/DistanceField" {
             #include "UnityCG.cginc"
 
             //Fragment Shader
-            float frag (v2f_img i) : COLOR {
-                return 1;
+            float4 frag (v2f_img i) : COLOR {
+                return float4(1,1,1,1);
             }
             ENDCG
         }
